@@ -1,0 +1,4 @@
+[submodule "diamond"]
+	path = diamond
+	url = https://github.com/cannium/Diamond.git
+	branch = remote-config
