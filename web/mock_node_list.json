@@ -1,0 +1,42 @@
+[
+  {
+    "name": "server1",
+    "ip": "1.1.1.1",
+    "tags": ["beijing", "cloud-storage"]
+  },
+  {
+    "name": "server2",
+    "ip": "2.2.2.2",
+    "tags": ["beijing", "cloud-storage"]
+  },
+  {
+    "name": "nserver1",
+    "ip": "2.2.2.1",
+    "tags": ["nanjing", "cloud-storage"]
+  },
+  {
+    "name": "nserver2",
+    "ip": "2.2.2.12",
+    "tags": ["nanjing", "cloud-storage"]
+  },
+  {
+    "name": "server10",
+    "ip": "10.10.10.10",
+    "tags": ["apache", "s3-storage"]
+  },
+  {
+    "name": "server11",
+    "ip": "10.10.10.11",
+    "tags": ["apache", "s3-storage"]
+  },
+  {
+    "name": "serverX",
+    "ip": "10.10.0.11",
+    "tags": ["osd", "s3-storage"]
+  },
+  {
+    "name": "serverY",
+    "ip": "10.10.0.12",
+    "tags": ["osd", "s3-storage"]
+  }
+]

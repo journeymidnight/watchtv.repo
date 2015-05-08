@@ -1,0 +1,31 @@
+{
+  "name": "watchtv",
+  "version": "0.0.0",
+  "description": "watchTV watches Letv",
+  "main": "dev_server.js",
+  "dependencies": {
+    "body-parser": "^1.4.3",
+    "express": "^4.4.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dev_server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "watch",
+    "monitoring",
+  ],
+  "author": "Can Zhang",
+  "bugs": {
+    "url": ""
+  },
+  "homepage": "",
+  "engines" : {
+    "node" : "0.12.x"
+  }
+}
