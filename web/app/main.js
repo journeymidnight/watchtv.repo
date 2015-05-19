@@ -51,13 +51,15 @@ var NodeList = React.createClass({
         var nodeList = this.props.node_list.map(function(node, index){
             if (node.name.toLowerCase().indexOf(key) == -1 &&
                 node.ip.indexOf(key) == -1 &&
-                node.tags.join(" ").toLowerCase().indexOf(key) == -1)
+                node.tags.map(function(t, index) {
+                    return t['name']
+                }).join(" ").toLowerCase().indexOf(key) == -1)
             {
                 return;
             }
             var tags = node.tags.map(function(tag, index){
                 return(
-                    <span>tag</span>
+                    <span>tag['name']</span>
                 )
             })
             return(
@@ -93,6 +95,6 @@ var NodeEntry = React.createClass({
 })
 
 React.render(
-    <SearchableNodeList url="mock_node_list.json" />,
+    <SearchableNodeList url="nodes" />,
     document.getElementById('content')
 )

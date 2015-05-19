@@ -5,7 +5,9 @@
   "main": "dev_server.js",
   "dependencies": {
     "body-parser": "^1.4.3",
-    "express": "^4.4.5"
+    "express": "^4.4.5",
+    "mongoose": "~4.0",
+    "async": "~0.9"
   },
   "devDependencies": {},
   "scripts": {
@@ -18,11 +20,11 @@
   },
   "keywords": [
     "watch",
-    "monitoring",
+    "monitoring"
   ],
   "author": "Can Zhang",
   "bugs": {
-    "url": ""
+    "email": "zhangcan@letv.com"
   },
   "homepage": "",
   "engines" : {
