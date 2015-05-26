@@ -3,6 +3,8 @@ var fs = require('fs');
 var path = require('path');
 var express = require('express');
 var bodyParser = require('body-parser');
+var validator = require('validator');
+var async = require('async');
 var app = express();
 
 app.set('port', (process.env.PORT || 3000));
@@ -74,16 +76,248 @@ app.get('/nodes', function(req, res) {
         .exec(function (err, nodes) {
             if (err) {
                 res.status(500).send("Cannot fetch node list");
-                console.log(err)
+                console.log(err);
                 return
             }
-            console.log(nodes)
+            console.log(nodes);
             res.setHeader('Content-Type', 'application/json');
             res.send(nodes);
         })
 });
 
-var async = require('async');
+app.post('/nodes', function(req, res) {
+    var name = req.body.name,
+        nickname = req.body.nickname,
+        ip = req.body.ip,
+        tags = req.body.tags;
+    if (!ip) {
+        res.status(400).send("IP address is required for adding new nodes");
+        return
+    }
+    if (!validator.isIP(ip)) {
+        res.status(400).send('Invalid IP address');
+        return
+    }
+    if (!name) name = '';
+    if (!nickname) nickname = '';
+    if (!tags) tags = [];
+    if (tags.constructor !== Array) {
+        res.status(400).send('Invalid tag format');
+        return
+    }
+    async.map(tags, function (tag, map_callback) {
+            Tag.findOne({name: tag},
+                function (err, t) {
+                    if (err) {
+                        console.log(err);
+                        return
+                    }
+                    map_callback(null, t)
+                })
+        },
+        function (err, results) {
+            tags = results.filter(
+                function (t) {
+                    if (t) return true;
+                    else return false;
+                }
+            );
+            console.log(tags);
+            Node.create({
+                    name: name,
+                    nickname: nickname,
+                    ip: ip,
+                    tags: tags
+                },
+                function (err, n) {
+                    if (err) {
+                        res.status(500).send('Node create failed');
+                        console.log(err);
+                        return
+                    }
+                    console.log('Node created', n);
+                    res.status(201).send('Node added');
+                });
+        })
+});
+
+
+app.put('/node/:node_id', function (req, res) {
+    var node_id = req.params.node_id;
+    var name = req.body.name,
+        nickname = req.body.nickname,
+        ip = req.body.ip,
+        tags = req.body.tags;
+
+    var update = {};
+    if (ip && !validator.isIP(ip)) {
+        res.status(400).send('Invalid IP address');
+        return
+    }
+    if (name) update.name = name;
+    if (nickname) update.nickname = nickname;
+    if (ip) update.ip = ip;
+    if (!tags) tags = [];
+    if (tags.constructor !== Array) {
+        res.status(400).send('Invalid tag format');
+        return
+    }
+    async.map(tags, function(tag, map_callback){
+            Tag.findOne({name:tag},
+                function(err, t) {
+                    if(err) {
+                        console.log(err);
+                        return
+                    }
+                    map_callback(null, t)
+                })
+        },
+        function(err, results) {
+            update.tags = results.filter(
+                function (t) {
+                    if (t) return true;
+                    else return false;
+                }
+            );
+            console.log(update);
+            Node.findOneAndUpdate(
+                { _id: node_id },
+                { '$set': update },
+                function (err, n) {
+                    if(err) {
+                        res.status(500).send('Existence checking failed');
+                        console.log(err);
+                        return
+                    }
+                    if(!n) {
+                        res.status(404).send(node_id + ' does not exist');
+                        return
+                    }
+                    res.status(200).send('Updated');
+                }
+            )
+        }
+    );
+});
+
+app.get('/node/:node_id', function(req, res) {
+    var node_id = req.params.node_id;
+    Node.findById(node_id, function (err, found) {
+        if (err) {
+            res.status(500).send("Cannot fetch node info");
+            console.log(err);
+            return
+        }
+        if(!found) {
+            res.status(404).send("Cannot get info about node " + node_id);
+            return
+        }
+        res.setHeader('Content-Type', 'application/json');
+        res.send(found);
+    }).populate('tags', 'name'); // return only name
+});
+
+app.get('/tags', function(req, res) {
+    Tag.find({})
+       .skip(0)
+       .limit(100)
+       .exec(function (err, tags) {
+            if(err){
+                res.status(500).send("Cannot fetch tag list");
+                console.log(err);
+                return
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.send(tags);
+        })
+});
+
+app.post('/tags', function (req, res) {
+    var name = req.body.name,
+        monitorItems = req.body.monitorItems,
+        alarmRules = req.body.alarmRules,
+        alarmReceiverGroups = req.body.alarmReceiverGroups;
+    if(!name) {
+        res.status(400).send("Tag name is required");
+        return
+    }
+    if(!monitorItems) monitorItems = [];
+    if(!alarmRules) alarmRules = [];
+    if(!alarmReceiverGroups) alarmReceiverGroups = [];
+    if(monitorItems.constructor !== Array ||
+    alarmRules.constructor !== Array ||
+    alarmReceiverGroups.constructor !== Array) {
+        res.status(400).send('Invalid request format');
+        return
+    }
+    Tag.create({
+        name: name,
+        monitorItems: monitorItems,
+        alarmRules: alarmRules,
+        alarmReceiverGroups: alarmReceiverGroups
+    },
+        function (err, t) {
+            if(err) {
+                res.status.send('Tag create failed');
+                console.log(err);
+                return
+            }
+            res.status(201).send('Tag added');
+        }
+    )
+});
+
+app.get('/tag/:tag_id', function(req, res){
+    var tag_id = req.params.tag_id;
+    Tag.findById(tag_id, function (err, found) {
+        if(err) {
+            res.status(500).send("Cannot fetch tag info");
+            console.log(err);
+            return
+        }
+        if(!found){
+            res.status(404).send("Cannot get info about tag " + tag_id);
+            return
+        }
+        res.setHeader('Content-Type', 'application/json');
+        res.send(found);
+    })
+});
+
+app.put('/tag/:tag_id', function(req, res){
+    var tag_id = req.params.tag_id;
+    var name = req.body.name,
+        monitorItems = req.body.monitorItems,
+        alarmRules = req.body.alarmRules,
+        alarmReceiverGroups = req.body.alarmReceiverGroups;
+    update = {};
+    if(name) update.name = name;
+    if(monitorItems && monitorItems.constructor === Array) {
+        update.monitorItems = monitorItems
+    }
+    if(alarmRules && alarmRules.constructor === Array) {
+        update.alarmRules = alarmRules
+    }
+    if(alarmReceiverGroups && alarmReceiverGroups.constructor === Array) {
+        update.alarmReceiverGroups = alarmReceiverGroups
+    }
+    Tag.findOneAndUpdate(
+        { _id: tag_id },
+        { '$set': update },
+        function (err, t) {
+            if(err) {
+                res.status(500).send('Existence checking failed');
+                console.log(err);
+                return
+            }
+            if(!t) {
+                res.status(404).send(tag_id + ' does not exist');
+                return
+            }
+            res.status(200).send('Updated');
+        }
+    )
+});
 
 // For "Find anything"
 app.get('/q', function(req, res){

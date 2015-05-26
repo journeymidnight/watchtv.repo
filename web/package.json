@@ -4,10 +4,11 @@
   "description": "watchTV watches Letv",
   "main": "dev_server.js",
   "dependencies": {
+    "async": "~0.9",
     "body-parser": "^1.4.3",
     "express": "^4.4.5",
     "mongoose": "~4.0",
-    "async": "~0.9"
+    "validator": "^3.40.0"
   },
   "devDependencies": {},
   "scripts": {
@@ -27,7 +28,7 @@
     "email": "zhangcan@letv.com"
   },
   "homepage": "",
-  "engines" : {
-    "node" : "0.12.x"
+  "engines": {
+    "node": "0.12.x"
   }
 }
