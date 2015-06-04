@@ -119,68 +119,193 @@ var q_param = function(q){
         q: q
     }
 };
+var get_value = function (ret) {
+    return _.flatten(ret.results[0].series[0].values);
+};
 
-var NodeGraph = React.createClass({
+var GraphSelector = React.createClass({
     getInitialState: function(){
+        // measurements: { cpu: { device : ['cpu0' ...],
+        //                        measure: ['idle' ...]
+        //                      },
+        //                 memory: { ... },
+        //               }
+        var measurements = {};
         $.ajax({
             url: influxdb_url + '/query?' + $.param(
                 q_param('SHOW MEASUREMENTS')),
             dataType: 'json',
             success: function(data){
-                var measure_list = _.flatten(data.results[0].series[0].values);
-                var measurements = {};
-                measure_list.map(function(m){
-                    measurements[m] = [];
+                var measure_list = get_value(data);
+                measure_list.map(function(m) {
+                    var tags = {};
+                    $.ajax({
+                        url: influxdb_url + '/query?' + $.param(
+                            q_param('SHOW TAG KEYS FROM ' + m)),
+                        dataType: 'json',
+                        success: function (data) {
+                            var key_list = get_value(data);
+                            key_list.map(function(k){
+                                if(k == 'host') return;
+                                $.ajax({
+                                    url: influxdb_url + '/query?' + $.param(
+                                        q_param('SHOW TAG VALUES FROM ' + m + ' WITH KEY="' +
+                                        k + '"')
+                                    ),
+                                    dataType: 'json',
+                                    success: function (data) {
+                                        tags[k] = get_value(data)
+                                    }
+                                })
+                            });
+                        }
+                    });
+                    measurements[m] = tags;
                 });
-                this.setState({measurements: measurements});
-                stub = this.state
+                console.log(measurements);
+                this.setState({measurements: measurements})
             }.bind(this),
             error: function(xhr, status, err){
-                console.error('SHOW MEASUREMENTS', status, err.toString())
+                console.error('Init measurements structure ', status, err.toString())
             }.bind(this)
         });
+        return {measurements: null}
+    },
+    changeHandler: function() {
+        var that = this;
+        ['selectedMeasurement', 'selectedDevice', 'selectedMeasure'].map(function (name) {
+            if(that.refs[name]) {
+                that.props.onSelect(name, React.findDOMNode(that.refs[name]).value);
+            } else {
+                that.props.onSelect(name, null)
+            }
+        })
+    },
+    handleGraph: function(){
+        this.changeHandler();
+        this.props.onGraph();
+    },
+    render: function(){
+        var measurementOptions = [];
+        var ans = [];
+        if(this.state.measurements) {
+            Object.keys(this.state.measurements).map(function (m) {
+                measurementOptions.push(<option value={m}>{m}</option>)
+            });
+            ans.push(
+                <select onChange={this.changeHandler} ref="selectedMeasurement">
+                    <optgroup label="Measurements">
+                        {measurementOptions}
+                    </optgroup>
+                </select>
+            )
+        }
+        if(this.props.selected.selectedMeasurement){
+            var device = this.state.measurements[this.props.selected.selectedMeasurement].device;
+            if(device) {
+                var deviceOptions = [];
+                device.map(function (d) {
+                    deviceOptions.push(<option value={d}>{d}</option>)
+                });
+                ans.push(
+                    <select onChange={this.changeHandler} ref='selectedDevice'>
+                        <optgroup label="Devices">
+                            {deviceOptions}
+                        </optgroup>
+                    </select>
+                )
+            }
+
+            var measureOptions = [];
+            this.state.measurements[this.props.selected.selectedMeasurement].measure.map(function(m){
+                measureOptions.push(<option value={m}>{m}</option>)
+            });
+            ans.push(
+                <select onChange={this.changeHandler} ref='selectedMeasure'>
+                    <optgroup label="Measures">
+                        {measureOptions}
+                    </optgroup>
+                </select>
+            )
+        }
+        return (
+            <div>
+                {ans}
+                <input type="submit" value="Graph" onClick={this.handleGraph} />
+            </div>
+        )
+    },
+});
+
+
+var NodeGraph = React.createClass({
+    getInitialState: function(){
         return {
             data: [],
             node: null,
-            measurements: []
+            selected: {}
         }
     },
     componentWillReceiveProps: function(nextProps){
         var id = nextProps.node_id;
         if(id){
+            $.ajax({
+                url: 'node/' + id,
+                dataType: 'json',
+                success: function(data){
+                    this.setState({node: data});
+                }.bind(this),
+                error: function(xhr, status, err){
+                    console.error("Fetching node info", status, err.toString())
+                }
+            })
+        }
+    },
+    handleSelect: function(name, value){
+        var selected = this.state.selected;
+        selected[name] = value;
+        this.setState({selected: selected})
+    },
+    handleGraph: function(){
+        var query = 'SELECT value FROM ' + this.state.selected.selectedMeasurement +
+            " WHERE host='influx2' AND measure='" + this.state.selected.selectedMeasure+ "'";
+        if(this.state.selected.selectedDevice) {
+            query += " AND device='" + this.state.selected.selectedDevice + "'";
+        }
+        query += ' LIMIT 200';
+        console.log(query)
         $.ajax({
-            url: 'node/' + id,
+            url: influxdb_url + '/query?' + $.param(q_param(query)),
             dataType: 'json',
-            success: function(data){
-                this.setState({node:data});
-                $.ajax({
-                    url: influxdb_url + '/query?' + $.param(
-                       q_param("select value from cpu where device='cpu0' and measure='user'")),
-                    dataType: 'json',
-                    success: function(data){
-                        console.log(data)
-                    }.bind(this),
-                    error: function(xhr, status, err){
-                        console.error('Fetching data', status, err.toString())
-                    }
-                })
-            }.bind(this),
-            error: function(xhr, status, err){
-                console.error(id, status, err.toString())
+            success: function (data) {
+                console.log(get_value(data));
+                this.setState({data: get_value(data)})
             }.bind(this)
-        })}
+        })
     },
     render: function(){
-        return (
-            <div id="graph" style={{width:'300px',height:'200px'}}></div>
-        )
+        if(this.props.node_id) {
+            return (
+                <div>
+                    <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
+                        onGraph={this.handleGraph} />
+                    <div id="graph" style={{width: '500px', height: '300px'}}></div>
+                </div>
+            )
+        } else {
+            return null
+        }
     },
     componentDidUpdate: function(prevProps, prevState) {
-        $.plot('#graph', [{
-            data: [[1,2], [2,5], [3,4], [4,6]],
-            lines: {show:true, fill:true},
-            points: {show:true},
-        }]);
+        if (this.props.node_id) {
+            fitted_data = [];
+            data = this.state.data;
+            for (var i = 0; i < data.length; i+=2){
+                d = [Date.parse(data[i]) * 1000, data[i+1]];
+                fitted_data.push(d)
+            }
+            $.plot('#graph',[fitted_data])
+        }
     }
 });
 
