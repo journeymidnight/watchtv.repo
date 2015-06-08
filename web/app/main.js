@@ -267,12 +267,16 @@ var NodeGraph = React.createClass({
         this.setState({selected: selected})
     },
     handleGraph: function(){
-        var query = 'SELECT value FROM ' + this.state.selected.selectedMeasurement +
-            " WHERE host='influx2' AND measure='" + this.state.selected.selectedMeasure+ "'";
+        var now = new Date();
+        var aDayAgo = new Date(now.getTime() - 60*60*24*1000);
+        var query = 'SELECT MEAN(value) FROM ' + this.state.selected.selectedMeasurement +
+            " WHERE host='influx2' AND measure='" + this.state.selected.selectedMeasure+ "'" +
+            " AND time > '" + aDayAgo.toISOString() + "' AND time < '" +
+            now.toISOString() + "' ";
         if(this.state.selected.selectedDevice) {
             query += " AND device='" + this.state.selected.selectedDevice + "'";
         }
-        query += ' LIMIT 200';
+        query += ' GROUP BY time(300s) ';
         console.log(query)
         $.ajax({
             url: influxdb_url + '/query?' + $.param(q_param(query)),
@@ -301,10 +305,13 @@ var NodeGraph = React.createClass({
             fitted_data = [];
             data = this.state.data;
             for (var i = 0; i < data.length; i+=2){
-                d = [Date.parse(data[i]) * 1000, data[i+1]];
+                d = [Date.parse(data[i]) , data[i+1]];
                 fitted_data.push(d)
             }
-            $.plot('#graph',[fitted_data])
+            console.log(fitted_data);
+            $.plot('#graph',[fitted_data], {
+                xaxis: {mode: "time"}
+            });
         }
     }
 });
