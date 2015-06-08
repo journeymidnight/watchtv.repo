@@ -16,11 +16,18 @@ var SearchableNodeList = React.createClass({
     },
     getInitialState: function () {
         return {node_list: [],
-                keywords: "",
                 pressed: null}
     },
     handleKeyword: function(keyword){
-        this.setState({keywords:keyword})
+        var that = this;
+        $.ajax({
+            url: 'q?' + $.param({node: keyword}),
+            dataType: 'json',
+            success: function(data){
+                that.setState({node_list:data});
+                console.log(data)
+            }
+        });
     },
     handleNodeClick: function(node_id){
         this.setState({pressed:node_id});
@@ -29,8 +36,7 @@ var SearchableNodeList = React.createClass({
         return (
             <div>
                 <SearchBar onNewKeywords={this.handleKeyword} />
-                <NodeList node_list={this.state.node_list} keywords={this.state.keywords}
-                    onNodeClick={this.handleNodeClick} />
+                <NodeList node_list={this.state.node_list} onNodeClick={this.handleNodeClick} />
                 <div>
                     <NodeGraph node_id={this.state.pressed} />
                 </div>
@@ -58,17 +64,8 @@ var SearchBar = React.createClass({
 
 var NodeList = React.createClass({
     render: function() {
-        var key = this.props.keywords;
         var onNodeClick = this.props.onNodeClick;
         var nodeList = this.props.node_list.map(function(node, index){
-            if (node.name.toLowerCase().indexOf(key) == -1 &&
-                node.ip.indexOf(key) == -1 &&
-                node.tags.map(function(t, index) {
-                    return t['name']
-                }).join(" ").toLowerCase().indexOf(key) == -1)
-            {
-                return;
-            }
             var tags = node.tags.map(function(tag, index){
                 return(
                     <span>{tag['name']}</span>
@@ -162,14 +159,19 @@ var GraphSelector = React.createClass({
                     });
                     measurements[m] = tags;
                 });
-                console.log(measurements);
-                this.setState({measurements: measurements})
+                this.setState({measurements: measurements});
             }.bind(this),
             error: function(xhr, status, err){
                 console.error('Init measurements structure ', status, err.toString())
             }.bind(this)
         });
         return {measurements: null}
+    },
+    componentWillReceiveProps: function(){
+        if(!this.props.selected.selectedMeasurement && this.state.measurements){
+            this.props.onSelect('selectedMeasurement',
+                                Object.keys(this.state.measurements)[0])
+        }
     },
     changeHandler: function() {
         var that = this;
