@@ -1,5 +1,9 @@
-// stub for testing
-var stub = undefined;
+var React = require('react');
+var _ = require('underscore');
+var mui = require('material-ui');
+var bootstrap = require('react-bootstrap');
+
+var mixins = require('./mixins.js');
 
 var SearchableNodeList = React.createClass({
     componentDidMount: function(){
@@ -46,16 +50,17 @@ var SearchableNodeList = React.createClass({
 });
 
 var SearchBar = React.createClass({
+    mixins: [mixins.materialMixin],
     handleSearch: function(event){
         event.preventDefault();
-        var keywords = React.findDOMNode(this.refs.keywords).value.trim();
+        var keywords = this.refs.keywords.getValue().trim();
         this.props.onNewKeywords(keywords)
     },
     render: function(){
         return (
             <form className="searchForm" onSubmit={this.handleSearch} >
-                <input type="text" placeholder="Find anything..." ref="keywords" />
-                <input type="submit" value="Find" />
+                <mui.TextField hintText="Find anything" ref="keywords" />
+                <mui.RaisedButton label="Find" />
             </form>
         )
     }
@@ -121,6 +126,7 @@ var get_value = function (ret) {
 };
 
 var GraphSelector = React.createClass({
+    mixins: [mixins.materialMixin],
     getInitialState: function(){
         // measurements: { cpu: { device : ['cpu0' ...],
         //                        measure: ['idle' ...]
@@ -233,7 +239,7 @@ var GraphSelector = React.createClass({
         return (
             <div>
                 {ans}
-                <input type="submit" value="Graph" onClick={this.handleGraph} />
+                <mui.FlatButton label="Graph" onClick={this.handleGraph} />
             </div>
         )
     },
@@ -295,7 +301,8 @@ var NodeGraph = React.createClass({
                 <div>
                     <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
                         onGraph={this.handleGraph} />
-                    <div id="graph" style={{width: '500px', height: '300px'}}></div>
+                    <div id="graph" style={{width: '500px', height: '300px',
+                        backgroundColor: "#6EB5F0"}}></div>
                 </div>
             )
         } else {
@@ -311,9 +318,31 @@ var NodeGraph = React.createClass({
                 fitted_data.push(d)
             }
             console.log(fitted_data);
-            $.plot('#graph',[fitted_data], {
-                xaxis: {mode: "time"}
-            });
+            $.plot('#graph',
+                [fitted_data],
+                {
+                    xaxis: {
+                        mode: "time",
+                        color: "white",
+                        font: {color: "white"}
+                    },
+                    yaxis: {
+                        color: "white",
+                        font: {color: "white"}
+                    },
+                    series: {
+                        lines: {
+                            show: true,
+                            fill: true,
+                            fillColor: "rgba(143, 198, 242, 0.7)"
+                        }
+                    },
+                    grid: {
+                        color: "transparent",
+                        margin: 10
+                    },
+                    colors: ["white"]
+                });
         }
     }
 });

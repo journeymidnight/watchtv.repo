@@ -1,2 +1,3 @@
 *.swp
 web/node_modules/*
+web/build/*
