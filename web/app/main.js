@@ -73,7 +73,7 @@ var NodeList = React.createClass({
         var nodeList = this.props.node_list.map(function(node, index){
             var tags = node.tags.map(function(tag, index){
                 return(
-                    <span>{tag['name']}</span>
+                    <bootstrap.Badge>{tag['name']}</bootstrap.Badge>
                 )
             });
             return(
@@ -82,15 +82,19 @@ var NodeList = React.createClass({
             )
         });
         return (
-            <table>
-                <tr>
-                    <th>Name</th>
-                    <th>IP Address</th>
-                    <th>Tags</th>
-                    <th>Status</th>
-                </tr>
-                {nodeList}
-            </table>
+            <bootstrap.Table striped bordered hover condensed>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>IP Address</th>
+                        <th>Tags</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {nodeList}
+                </tbody>
+            </bootstrap.Table>
         )
     }
 });
