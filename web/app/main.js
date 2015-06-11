@@ -158,7 +158,8 @@ var NodeEntry = React.createClass({
                 <td key={this.props.id + 'tags'}>{this.props.tags}</td>
                 <td key={this.props.id + 'actions'}>
                     <NodeEditButton />
-                    <NodeInfoButton />
+                    <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
+                        nodeIp={this.props.ip} />
                     <NodeDeleteButton nodeId={this.props.id} onRefresh={this.props.onRefresh}
                         nodeName={this.props.name} />
                 </td>
@@ -176,8 +177,28 @@ var NodeEditButton = React.createClass({
 
 var NodeInfoButton = React.createClass({
     mixins: [mixins.materialMixin],
+    showInfo: function(){
+        this.refs.infoDialog.show();
+    },
     render: function(){
-        return <mui.FlatButton label="Info" />
+        var title = this.props.nodeName+'('+this.props.nodeIp+')';
+        var infoAction = [
+            {text: 'Close'}
+        ];
+        return (
+            <span>
+            <mui.FlatButton label="Info" onClick={this.showInfo} />
+            <mui.Dialog
+                title={title}
+                actions={infoAction}
+                modal={true}
+                ref="infoDialog">
+                <div>
+                    <NodeGraph node_id={this.props.nodeId} />
+                </div>
+            </mui.Dialog>
+            </span>
+        )
     }
 });
 
@@ -410,7 +431,7 @@ var NodeGraph = React.createClass({
                 <div>
                     <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
                         onGraph={this.handleGraph} />
-                    <div id="graph" style={{width: '500px', height: '300px',
+                    <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
                         backgroundColor: "#6EB5F0"}}></div>
                 </div>
             )
@@ -427,7 +448,7 @@ var NodeGraph = React.createClass({
                 fitted_data.push(d)
             }
             console.log(fitted_data);
-            $.plot('#graph',
+            $.plot('#graph' + this.props.node_id,
                 [fitted_data],
                 {
                     xaxis: {
