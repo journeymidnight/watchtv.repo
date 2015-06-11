@@ -47,8 +47,7 @@ var SearchableNodeList = React.createClass({
         return (
             <div>
                 <SearchBar onNewKeywords={this.handleKeyword} />
-                <NodeList node_list={this.state.node_list} onNodeClick={this.handleNodeClick}
-                    onRefresh={this.handleKeyword} />
+                <NodeList node_list={this.state.node_list} onRefresh={this.handleKeyword} />
                 <div>
                     <NodeGraph node_id={this.state.pressed} />
                 </div>
@@ -92,7 +91,6 @@ var NodeList = React.createClass({
                 "ip": ip,
                 "tags": tag
             },
-            //dataType: 'json',
             success: function(data) {
                 this.props.onRefresh()
             }.bind(this),
@@ -107,7 +105,7 @@ var NodeList = React.createClass({
         this.refs.snackbar.dismiss()
     },
     render: function() {
-        var onNodeClick = this.props.onNodeClick;
+        var that = this;
         var nodeList = this.props.node_list.map(function(node, index){
             var tags = node.tags.map(function(tag, index){
                 return(
@@ -115,8 +113,8 @@ var NodeList = React.createClass({
                 )
             });
             return(
-                <NodeEntry name={node.name} ip={node.ip} tags={tags} key={index}
-                    id={node._id} onEntryClick={onNodeClick} />
+                <NodeEntry name={node.name} ip={node.ip} tags={tags} key={node._id}
+                    id={node._id} onRefresh={that.props.onRefresh} />
             )
         });
         var tfoot =
@@ -152,19 +150,17 @@ var NodeList = React.createClass({
 
 
 var NodeEntry = React.createClass({
-    handleClick: function(){
-        this.props.onEntryClick(this.props.id)
-    },
     render: function(){
         return (
-            <tr onClick={this.handleClick}>
-                <td>{this.props.name}</td>
-                <td>{this.props.ip}</td>
-                <td>{this.props.tags}</td>
-                <td>
+            <tr>
+                <td key={this.props.id + 'name'}>{this.props.name}</td>
+                <td key={this.props.id + 'ip'}>{this.props.ip}</td>
+                <td key={this.props.id + 'tags'}>{this.props.tags}</td>
+                <td key={this.props.id + 'actions'}>
                     <NodeEditButton />
                     <NodeInfoButton />
-                    <NodeDeleteButton />
+                    <NodeDeleteButton nodeId={this.props.id} onRefresh={this.props.onRefresh}
+                        nodeName={this.props.name} />
                 </td>
             </tr>
         )
@@ -187,8 +183,41 @@ var NodeInfoButton = React.createClass({
 
 var NodeDeleteButton = React.createClass({
     mixins: [mixins.materialMixin],
+    handleClick: function(event){
+        this.refs.deleteConfirm.show();
+    },
+    deleteNode: function(){
+        $.ajax({
+            type:'DELETE',
+            url: 'node/' + this.props.nodeId,
+            success: function(data){
+                this.props.onRefresh();
+            }.bind(this),
+            error: function(xhr, status, err) {
+                console.log(status, xhr.responseText);
+                var msgBar = <mui.Snackbar message={xhr.responseText} />;
+                React.render(msgBar, this.refs.deleteConfirm)
+            }.bind(this)
+        })
+    },
     render: function(){
-        return <mui.FlatButton label="Delete" />
+        var deleteConfirm = [
+            {text: 'Cancel'},
+            {text: 'Confirm', onClick: this.deleteNode}
+        ];
+        var msg = 'Are you sure to delete node "' + this.props.nodeName + '"?';
+
+        return (
+            <span>
+            <mui.FlatButton label="Delete" onClick={this.handleClick} />
+            <mui.Dialog
+                title="Delete Confirmation"
+                actions={deleteConfirm}
+                modal={true}
+                ref="deleteConfirm"> {msg}
+            </mui.Dialog>
+            </span>
+        )
     }
 });
 

@@ -217,6 +217,18 @@ app.get('/node/:node_id', function(req, res) {
     }).populate('tags', 'name'); // return only name
 });
 
+app.delete('/node/:node_id', function(req, res) {
+    var node_id = req.params.node_id;
+    Node.findByIdAndRemove(node_id, function (err) {
+        if (err) {
+            res.status(500).send("Failed to execute delete");
+            console.log(err);
+            return
+        }
+        res.send(node_id + " has been deleted.")
+    })
+});
+
 app.get('/tags', function(req, res) {
     Tag.find({})
        .skip(0)
