@@ -23,12 +23,19 @@ var SearchableNodeList = React.createClass({
                 pressed: null}
     },
     handleKeyword: function(keyword){
+        console.log(keyword);
+        if(keyword == undefined) {
+            keyword = this.state.keyword
+        }
         var that = this;
         $.ajax({
             url: 'q?' + $.param({node: keyword}),
             dataType: 'json',
             success: function(data){
-                that.setState({node_list:data});
+                that.setState({
+                    node_list:data,
+                    keyword: keyword
+                });
                 console.log(data)
             }
         });
@@ -40,7 +47,8 @@ var SearchableNodeList = React.createClass({
         return (
             <div>
                 <SearchBar onNewKeywords={this.handleKeyword} />
-                <NodeList node_list={this.state.node_list} onNodeClick={this.handleNodeClick} />
+                <NodeList node_list={this.state.node_list} onNodeClick={this.handleNodeClick}
+                    onRefresh={this.handleKeyword} />
                 <div>
                     <NodeGraph node_id={this.state.pressed} />
                 </div>
@@ -68,6 +76,36 @@ var SearchBar = React.createClass({
 
 
 var NodeList = React.createClass({
+    mixins: [mixins.materialMixin],
+    getInitialState: function () {
+        return {snackMsg: ''}
+    },
+    handleCreateNewNode: function() {
+        var name = this.refs.newName.getValue().trim(),
+            ip = this.refs.newIP.getValue().trim(),
+            tag = this.refs.newTag.getValue().trim().split(/[\s,]+/);
+        $.ajax({
+            type: "POST",
+            url: "nodes",
+            data: {
+                "name": name,
+                "ip": ip,
+                "tags": tag
+            },
+            //dataType: 'json',
+            success: function(data) {
+                this.props.onRefresh()
+            }.bind(this),
+            error: function(xhr, status, err) {
+                console.error(xhr, status, err.toString());
+                this.setState({snackMsg: xhr.responseText});
+                this.refs.snackbar.show()
+            }.bind(this)
+        })
+    },
+    dismissSnackbar: function(){
+        this.refs.snackbar.dismiss()
+    },
     render: function() {
         var onNodeClick = this.props.onNodeClick;
         var nodeList = this.props.node_list.map(function(node, index){
@@ -81,20 +119,33 @@ var NodeList = React.createClass({
                     id={node._id} onEntryClick={onNodeClick} />
             )
         });
+        var tfoot =
+            <tr>
+                <td><mui.TextField ref="newName" /></td>
+                <td><mui.TextField ref="newIP" /></td>
+                <td><mui.TextField ref="newTag" /></td>
+                <td><mui.FlatButton label="Add" onClick={this.handleCreateNewNode}/></td>
+            </tr>;
         return (
+            <div>
             <bootstrap.Table striped bordered hover condensed>
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>IP Address</th>
                         <th>Tags</th>
-                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {nodeList}
                 </tbody>
+                <tfoot>
+                    {tfoot}
+                </tfoot>
             </bootstrap.Table>
+                <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </div>
         )
     }
 });
@@ -110,9 +161,34 @@ var NodeEntry = React.createClass({
                 <td>{this.props.name}</td>
                 <td>{this.props.ip}</td>
                 <td>{this.props.tags}</td>
-                <td>Good</td>
+                <td>
+                    <NodeEditButton />
+                    <NodeInfoButton />
+                    <NodeDeleteButton />
+                </td>
             </tr>
         )
+    }
+});
+
+var NodeEditButton = React.createClass({
+    mixins: [mixins.materialMixin],
+    render: function(){
+        return <mui.FlatButton label="Edit" />
+    }
+});
+
+var NodeInfoButton = React.createClass({
+    mixins: [mixins.materialMixin],
+    render: function(){
+        return <mui.FlatButton label="Info" />
+    }
+});
+
+var NodeDeleteButton = React.createClass({
+    mixins: [mixins.materialMixin],
+    render: function(){
+        return <mui.FlatButton label="Delete" />
     }
 });
 
