@@ -82,14 +82,14 @@ var NodeList = React.createClass({
     handleCreateNewNode: function() {
         var name = this.refs.newName.getValue().trim(),
             ip = this.refs.newIP.getValue().trim(),
-            tag = this.refs.newTag.getValue().trim().split(/[\s,]+/);
+            tags = this.refs.newTag.getValue().trim().split(/[\s,]+/);
         $.ajax({
             type: "POST",
             url: "nodes",
             data: {
                 "name": name,
                 "ip": ip,
-                "tags": tag
+                "tags": tags
             },
             success: function(data) {
                 this.props.onRefresh()
@@ -101,19 +101,11 @@ var NodeList = React.createClass({
             }.bind(this)
         })
     },
-    dismissSnackbar: function(){
-        this.refs.snackbar.dismiss()
-    },
     render: function() {
         var that = this;
-        var nodeList = this.props.node_list.map(function(node, index){
-            var tags = node.tags.map(function(tag, index){
-                return(
-                    <bootstrap.Badge>{tag['name']}</bootstrap.Badge>
-                )
-            });
+        var nodeList = this.props.node_list.map(function(node){
             return(
-                <NodeEntry name={node.name} ip={node.ip} tags={tags} key={node._id}
+                <NodeEntry name={node.name} ip={node.ip} tags={node.tags} key={node._id}
                     id={node._id} onRefresh={that.props.onRefresh} />
             )
         });
@@ -151,13 +143,20 @@ var NodeList = React.createClass({
 
 var NodeEntry = React.createClass({
     render: function(){
+        var tags = this.props.tags.map(function(tag, index){
+            return(
+                <bootstrap.Badge>{tag['name']}</bootstrap.Badge>
+            )
+        });
         return (
             <tr>
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
                 <td key={this.props.id + 'ip'}>{this.props.ip}</td>
-                <td key={this.props.id + 'tags'}>{this.props.tags}</td>
+                <td key={this.props.id + 'tags'}>{tags}</td>
                 <td key={this.props.id + 'actions'}>
-                    <NodeEditButton />
+                    <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
+                        nodeIp={this.props.ip} nodeTags={this.props.tags}
+                        onRefresh={this.props.onRefresh} />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIp={this.props.ip} />
                     <NodeDeleteButton nodeId={this.props.id} onRefresh={this.props.onRefresh}
@@ -170,8 +169,61 @@ var NodeEntry = React.createClass({
 
 var NodeEditButton = React.createClass({
     mixins: [mixins.materialMixin],
+    handleClick: function(){
+        this.refs.editDialog.show();
+    },
+    getInitialState: function(){
+        return {snackMsg: ''}
+    },
+    updateNode: function(){
+        $.ajax({
+            type: "PUT",
+            url: "node/" + this.props.nodeId,
+            data: {
+                "name": this.refs.nameInput.getValue().trim(),
+                "ip": this.refs.ipInput.getValue().trim(),
+                "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/)
+            },
+            success: function(data) {
+                this.refs.editDialog.dismiss();
+                this.props.onRefresh()
+            }.bind(this),
+            error: function(xhr, status, err) {
+                this.setState({snackMsg: xhr.responseText});
+                this.refs.snackbar.show()
+            }.bind(this)
+        })
+    },
     render: function(){
-        return <mui.FlatButton label="Edit" />
+        var editActions = [
+            {text: 'Cancel'},
+            {text: 'Update', onClick: this.updateNode}
+        ];
+        console.log(this.props.nodeTags)
+        var tags = this.props.nodeTags.map(function(t){
+            return t.name;
+        });
+        var edits = <div>
+            <mui.TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
+                ref="nameInput" />
+            <mui.TextField floatingLabelText="IP Address" defaultValue={this.props.nodeIp}
+                ref="ipInput" />
+            <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
+                ref="tagInput" multiLine={true} />
+            </div>;
+        return (
+            <span>
+            <mui.FlatButton label="Edit" onClick={this.handleClick} />
+            <mui.Dialog
+                title={"Edit info for " + this.props.nodeIp}
+                actions={editActions}
+                modal={true}
+                ref="editDialog">
+            {edits}
+            </mui.Dialog>
+            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </span>
+        )
     }
 });
 
@@ -207,6 +259,9 @@ var NodeDeleteButton = React.createClass({
     handleClick: function(event){
         this.refs.deleteConfirm.show();
     },
+    getInitialState: function(){
+        return {snackMsg: ''}
+    },
     deleteNode: function(){
         $.ajax({
             type:'DELETE',
@@ -215,9 +270,8 @@ var NodeDeleteButton = React.createClass({
                 this.props.onRefresh();
             }.bind(this),
             error: function(xhr, status, err) {
-                console.log(status, xhr.responseText);
-                var msgBar = <mui.Snackbar message={xhr.responseText} />;
-                React.render(msgBar, this.refs.deleteConfirm)
+                this.setState({snackMsg: xhr.responseText});
+                this.refs.snackbar.show()
             }.bind(this)
         })
     },
@@ -237,6 +291,7 @@ var NodeDeleteButton = React.createClass({
                 modal={true}
                 ref="deleteConfirm"> {msg}
             </mui.Dialog>
+            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>
         )
     }
@@ -247,11 +302,14 @@ var q_param = function(q){
     return {
         u: 'root',
         p: 'root',
-        db: 'rebase',
+        db: 'graphite',
         q: q
     }
 };
 var get_value = function (ret) {
+    if (ret.results[0].series == undefined){
+        return []
+    }
     return _.flatten(ret.results[0].series[0].values);
 };
 
