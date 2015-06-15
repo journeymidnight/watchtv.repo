@@ -331,65 +331,71 @@ app.put('/tag/:tag_id', function(req, res){
     )
 });
 
-// For "Find anything"
-app.get('/q', function(req, res){
-    // /q?node=xxx
-    if (req.query.node == undefined){
-        res.status(400).send("Invalid query")
-        return
-    }
+app.delete('/tag/:tag_id', function(req, res) {
+    var tag_id = req.params.tag_id;
+    Tag.findByIdAndRemove(tag_id, function (err) {
+        if (err) {
+            res.status(500).send("Failed to execute delete");
+            console.log(err);
+            return
+        }
+        res.send(tag_id + " has been deleted.")
+    })
+});
+
+var queryNode = function(query, res) {
     async.map(
-        req.query.node.split(' '),
+        query.split(' '),
         function(s, map_callback){
             var sregx = new RegExp(s, 'i');
             async.parallel([
-                function (callback) {
-                    Tag.find({'name': sregx}, {_id: 1},
-                        function (err, tags) {
-                            if (err) {
-                                callback(err, {})
-                            }
-                            var ids = tags.map(function (tag) {
-                                return tag._id
-                            });
-                            Node.find({tags: {$in: ids}},
-                                function (err, nodes) {
-                                    if (err) {
-                                        callback(err, {})
-                                    }
-                                    console.log('tags return:', nodes);
-                                    callback(null, nodes)
-                                }).populate('tags', 'name')  // return only name
+                    function (callback) {
+                        Tag.find({'name': sregx}, {_id: 1}, // only return id
+                            function (err, tags) {
+                                if (err) {
+                                    callback(err, {})
+                                }
+                                var ids = tags.map(function (tag) {
+                                    return tag._id
+                                });
+                                Node.find({tags: {$in: ids}},
+                                    function (err, nodes) {
+                                        if (err) {
+                                            callback(err, {})
+                                        }
+                                        console.log('tags return:', nodes);
+                                        callback(null, nodes)
+                                    }).populate('tags', 'name');  // return only name of tag
+                            })
+                    },
+                    function (callback) {
+                        Node.find({$or:[
+                            {name: sregx},
+                            {nickname: sregx},
+                            {ip: sregx}
+                        ]}, function (err, nodes) {
+                            callback(err, nodes)
+                        }).populate('tags', 'name');  // return only name of tag
+                    }
+                ],
+                function(err, r){
+                    if(err){
+                        console.log(err);
+                        res.status(500).send("Cannot complete your query");
+                        return
+                    }
+                    var uniq_nodes = {};
+                    r.map(function(nodes){
+                        nodes.map(function (node) {
+                            uniq_nodes[node._id] = node
                         })
-                },
-                function (callback) {
-                    Node.find({$or:[
-                        {name: sregx},
-                        {nickname: sregx},
-                        {ip: sregx}
-                    ]}, function (err, nodes) {
-                        callback(err, nodes)
-                    }).populate('tags', 'name')  // return only name
-                }
-            ],
-            function(err, r){
-                if(err){
-                    console.log(err);
-                    res.status(500).send("Cannot complete your finding query");
-                    return
-                }
-                var uniq_nodes = {};
-                r.map(function(nodes){
-                    nodes.map(function (node) {
-                        uniq_nodes[node._id] = node
-                    })
-                });
-                console.log('uniq nodes', uniq_nodes);
-                map_callback(null, uniq_nodes)
-            })
+                    });
+                    console.log('uniq nodes', uniq_nodes);
+                    map_callback(null, uniq_nodes)
+                })
         },
         function(err, results) {
-            console.log('results', results)
+            console.log('results', results);
             var ans = results.reduce(
                 function(pre, curr, index, array){
                     console.log('array', array);
@@ -398,7 +404,7 @@ app.get('/q', function(req, res){
                     } else {
                         var ans = {};
                         // intersection of pre and curr
-                        for (p in pre) {
+                        for (var p in pre) {
                             if (curr[p] != undefined){
                                 ans[p] = pre[p]
                             }
@@ -409,7 +415,7 @@ app.get('/q', function(req, res){
                 null
             );
             var ret = [];
-            for (k in ans) {
+            for (var k in ans) {
                 ret.push(ans[k])
             }
             console.log('ret', ret);
@@ -417,4 +423,34 @@ app.get('/q', function(req, res){
             res.status(200).send(ret)
         }
     );
+};
+
+var queryTag = function(query, res) {
+    var sregx = new RegExp(query.trim(), 'i');
+    Tag.find({name:sregx})
+        .exec(function(err, tags) {
+            if(err) {
+                console.log(err);
+                res.status(500).send("Cannot complete your query");
+                return
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.send(tags)
+        })
+};
+
+// For "Find anything"
+app.get('/q', function(req, res){
+    if(req.query.node != undefined) {
+        // /q?node=xxx
+        queryNode(req.query.node, res);
+        return
+    } else if (req.query.tag != undefined) {
+        // /q?tag=xxx
+        queryTag(req.query.tag, res);
+        return
+    } else {
+        res.status(400).send("Invalid query");
+        return
+    }
 });

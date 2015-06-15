@@ -4,11 +4,14 @@ var mui = require('material-ui');
 var bootstrap = require('react-bootstrap');
 
 var mixins = require('./mixins.js');
+var SearchBar = require('./ui/searchbar.js');
+var DeleteButton = require('./ui/deletebutton.js');
+var NavigationBar = require('./ui/navigationbar.js');
 
 var SearchableNodeList = React.createClass({
     componentDidMount: function(){
         $.ajax({
-            url: this.props.url,
+            url: 'nodes',
             dataType: 'json',
             success: function(data) {
                 this.setState({node_list:data})
@@ -19,11 +22,12 @@ var SearchableNodeList = React.createClass({
         })
     },
     getInitialState: function () {
-        return {node_list: [],
-                pressed: null}
+        return {
+            node_list: [],
+            keyword: ''
+        }
     },
     handleKeyword: function(keyword){
-        console.log(keyword);
         if(keyword == undefined) {
             keyword = this.state.keyword
         }
@@ -36,43 +40,18 @@ var SearchableNodeList = React.createClass({
                     node_list:data,
                     keyword: keyword
                 });
-                console.log(data)
             }
         });
-    },
-    handleNodeClick: function(node_id){
-        this.setState({pressed:node_id});
     },
     render: function(){
         return (
             <div>
-                <SearchBar onNewKeywords={this.handleKeyword} />
+                <SearchBar onNewKeywords={this.handleKeyword} hintText="Find anything" />
                 <NodeList node_list={this.state.node_list} onRefresh={this.handleKeyword} />
-                <div>
-                    <NodeGraph node_id={this.state.pressed} />
-                </div>
             </div>
         )
     }
 });
-
-var SearchBar = React.createClass({
-    mixins: [mixins.materialMixin],
-    handleSearch: function(event){
-        event.preventDefault();
-        var keywords = this.refs.keywords.getValue().trim();
-        this.props.onNewKeywords(keywords)
-    },
-    render: function(){
-        return (
-            <form className="searchForm" onSubmit={this.handleSearch} >
-                <mui.TextField hintText="Find anything" ref="keywords" />
-                <mui.RaisedButton label="Find" />
-            </form>
-        )
-    }
-});
-
 
 var NodeList = React.createClass({
     mixins: [mixins.materialMixin],
@@ -91,7 +70,7 @@ var NodeList = React.createClass({
                 "ip": ip,
                 "tags": tags
             },
-            success: function(data) {
+            success: function(_) {
                 this.props.onRefresh()
             }.bind(this),
             error: function(xhr, status, err) {
@@ -109,12 +88,12 @@ var NodeList = React.createClass({
                     id={node._id} onRefresh={that.props.onRefresh} />
             )
         });
-        var tfoot =
+        var addNewNodeRow =
             <tr>
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newIP" /></td>
                 <td><mui.TextField ref="newTag" /></td>
-                <td><mui.FlatButton label="Add" onClick={this.handleCreateNewNode}/></td>
+                <td><mui.FlatButton label="Add" onClick={this.handleCreateNewNode} /></td>
             </tr>;
         return (
             <div>
@@ -131,7 +110,7 @@ var NodeList = React.createClass({
                     {nodeList}
                 </tbody>
                 <tfoot>
-                    {tfoot}
+                    {addNewNodeRow}
                 </tfoot>
             </bootstrap.Table>
                 <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
@@ -159,8 +138,8 @@ var NodeEntry = React.createClass({
                         onRefresh={this.props.onRefresh} />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIp={this.props.ip} />
-                    <NodeDeleteButton nodeId={this.props.id} onRefresh={this.props.onRefresh}
-                        nodeName={this.props.name} />
+                    <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
+                        name={this.props.name} url="node" />
                 </td>
             </tr>
         )
@@ -199,7 +178,7 @@ var NodeEditButton = React.createClass({
             {text: 'Cancel'},
             {text: 'Update', onClick: this.updateNode}
         ];
-        console.log(this.props.nodeTags)
+        console.log(this.props.nodeTags);
         var tags = this.props.nodeTags.map(function(t){
             return t.name;
         });
@@ -254,48 +233,6 @@ var NodeInfoButton = React.createClass({
     }
 });
 
-var NodeDeleteButton = React.createClass({
-    mixins: [mixins.materialMixin],
-    handleClick: function(event){
-        this.refs.deleteConfirm.show();
-    },
-    getInitialState: function(){
-        return {snackMsg: ''}
-    },
-    deleteNode: function(){
-        $.ajax({
-            type:'DELETE',
-            url: 'node/' + this.props.nodeId,
-            success: function(data){
-                this.props.onRefresh();
-            }.bind(this),
-            error: function(xhr, status, err) {
-                this.setState({snackMsg: xhr.responseText});
-                this.refs.snackbar.show()
-            }.bind(this)
-        })
-    },
-    render: function(){
-        var deleteConfirm = [
-            {text: 'Cancel'},
-            {text: 'Confirm', onClick: this.deleteNode}
-        ];
-        var msg = 'Are you sure to delete node "' + this.props.nodeName + '"?';
-
-        return (
-            <span>
-            <mui.FlatButton label="Delete" onClick={this.handleClick} />
-            <mui.Dialog
-                title="Delete Confirmation"
-                actions={deleteConfirm}
-                modal={true}
-                ref="deleteConfirm"> {msg}
-            </mui.Dialog>
-            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
-            </span>
-        )
-    }
-});
 
 var influxdb_url = 'http://192.169.0.39:8086';
 var q_param = function(q){
@@ -430,7 +367,7 @@ var GraphSelector = React.createClass({
                 <mui.FlatButton label="Graph" onClick={this.handleGraph} />
             </div>
         )
-    },
+    }
 });
 
 
@@ -535,7 +472,19 @@ var NodeGraph = React.createClass({
     }
 });
 
+var NodeApp = React.createClass({
+    mixins: [mixins.materialMixin],
+    render: function(){
+        return (
+            <mui.AppCanvas>
+                <NavigationBar title="Nodes" />
+                <SearchableNodeList />
+            </mui.AppCanvas>
+        )
+    }
+});
+
 React.render(
-    <SearchableNodeList url="nodes" />,
+    <NodeApp />,
     document.getElementById('content')
 );
