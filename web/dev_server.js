@@ -13,25 +13,6 @@ app.use('/', express.static(path.join(__dirname, './')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-app.get('/mock_node_list', function(req, res) {
-  fs.readFile('mock_node_list.json', function(err, data) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(data);
-  });
-});
-
-app.post('/comments.json', function(req, res) {
-  fs.readFile('comments.json', function(err, data) {
-    var comments = JSON.parse(data);
-    comments.push(req.body);
-    fs.writeFile('comments.json', JSON.stringify(comments, null, 4), function(err) {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.send(JSON.stringify(comments));
-    });
-  });
-});
-
 
 app.listen(app.get('port'), function() {
   console.log('Server started: http://localhost:' + app.get('port') + '/');
@@ -85,6 +66,15 @@ app.get('/nodes', function(req, res) {
         })
 });
 
+var isIPandPort = function(s) {
+    var addr = s.split(':')[0],
+        port = s.split(':')[1];  // could be `undefined`
+    return (
+        validator.isIP(addr) &&
+        (!port || validator.isInt(port))
+    )
+};
+
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
         nickname = req.body.nickname,
@@ -94,7 +84,7 @@ app.post('/nodes', function(req, res) {
         res.status(400).send("IP address is required for adding new nodes");
         return
     }
-    if (!validator.isIP(ip)) {
+    if (!isIPandPort(ip)) {
         res.status(400).send('Invalid IP address');
         return
     }
@@ -150,7 +140,7 @@ app.put('/node/:node_id', function (req, res) {
         tags = req.body.tags;
 
     var update = {};
-    if (ip && !validator.isIP(ip)) {
+    if (ip && !isIPandPort(ip)) {
         res.status(400).send('Invalid IP address');
         return
     }
