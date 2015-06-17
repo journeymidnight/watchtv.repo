@@ -10,10 +10,12 @@
     "fixed-data-table": "^0.3.0",
     "flot": "^0.8.0-alpha",
     "jquery": "^2.1.4",
+    "jsclass": "^4.0.5",
     "material-ui": "^0.8.0",
     "mongoose": "~4.0",
     "react": "^0.13.3",
     "react-bootstrap": "^0.23.2",
+    "request": "^2.57.0",
     "underscore": "^1.8.3",
     "validator": "^3.40.0"
   },

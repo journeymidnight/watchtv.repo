@@ -5,6 +5,8 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var validator = require('validator');
 var async = require('async');
+var request = require('request');
+var Set = require('jsclass/src/set').Set;
 var app = express();
 
 app.set('port', (process.env.PORT || 3000));
@@ -60,7 +62,6 @@ app.get('/nodes', function(req, res) {
                 console.log(err);
                 return
             }
-            console.log(nodes);
             res.setHeader('Content-Type', 'application/json');
             res.send(nodes);
         })
@@ -72,6 +73,56 @@ var isIPandPort = function(s) {
     return (
         validator.isIP(addr) &&
         (!port || validator.isInt(port))
+    )
+};
+
+// nodeCommander communicates with nodes to enable or disable monitor items.
+// nodes: ["ip:port", ...]
+// enables: ["item", ...]
+// disables: ["item", ...]
+var nodeCommander = function(nodes, enables, disables) {
+    enables = enables.map(function(en){
+        return ({
+            "name": en,
+            "config": {}
+        })
+    });
+    disables = disables.map(function(dis){
+        return ({
+            "name": dis,
+            "config": {}
+        })
+    });
+    async.map(
+        nodes,
+        function(n, map_callback) {
+            var addr = n.split(':')[0],
+                port = n.split(':')[1];
+            if (!port) {
+                port = '5000';     // default port
+            }
+            request({
+                    method: "POST",
+                    url: 'http://' + addr + ':' + port + '/collector/enabled',
+                    json: true,
+                    headers: {
+                        "content-type": "application/json"
+                    },
+                    body: {
+                        "enable": enables,
+                        "disable": disables
+                    }
+                },
+                function (err, resp, body) {
+                    console.log(err, resp, body);
+                }
+            )
+        },
+        function (err, _) {
+            if (err) {
+                console.log(err)
+            }
+        }
     )
 };
 
@@ -95,7 +146,8 @@ app.post('/nodes', function(req, res) {
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(tags, function (tag, map_callback) {
+    async.map(tags,
+        function (tag, map_callback) {
             Tag.findOne({name: tag},
                 function (err, t) {
                     if (err) {
@@ -106,14 +158,19 @@ app.post('/nodes', function(req, res) {
                 })
         },
         function (err, results) {
+            var monitorItems = new Set([]);
             tags = results.filter(
                 function (t) {
-                    if (t) return true;
-                    else return false;
+                    if (t) {
+                        monitorItems.merge(new Set(t.monitorItems));
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             );
-            console.log(tags);
-            Node.create({
+            Node.create(
+                {
                     name: name,
                     nickname: nickname,
                     ip: ip,
@@ -127,7 +184,9 @@ app.post('/nodes', function(req, res) {
                     }
                     console.log('Node created', n);
                     res.status(201).send('Node added');
-                });
+                }
+            );
+            nodeCommander([ip], monitorItems.entries(), []);
         })
 });
 
@@ -353,7 +412,6 @@ var queryNode = function(query, res) {
                                         if (err) {
                                             callback(err, {})
                                         }
-                                        console.log('tags return:', nodes);
                                         callback(null, nodes)
                                     }).populate('tags', 'name');  // return only name of tag
                             })
@@ -380,15 +438,12 @@ var queryNode = function(query, res) {
                             uniq_nodes[node._id] = node
                         })
                     });
-                    console.log('uniq nodes', uniq_nodes);
                     map_callback(null, uniq_nodes)
                 })
         },
         function(err, results) {
-            console.log('results', results);
             var ans = results.reduce(
                 function(pre, curr, index, array){
-                    console.log('array', array);
                     if(pre == null){
                         return curr
                     } else {
@@ -408,7 +463,6 @@ var queryNode = function(query, res) {
             for (var k in ans) {
                 ret.push(ans[k])
             }
-            console.log('ret', ret);
             res.setHeader('Content-Type', 'application/json');
             res.status(200).send(ret)
         }
