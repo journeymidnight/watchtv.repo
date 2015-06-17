@@ -211,7 +211,8 @@ app.put('/node/:node_id', function (req, res) {
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(tags, function(tag, map_callback){
+    async.map(tags,
+        function(tag, map_callback){
             Tag.findOne({name:tag},
                 function(err, t) {
                     if(err) {
@@ -222,17 +223,23 @@ app.put('/node/:node_id', function (req, res) {
                 })
         },
         function(err, results) {
+            var updatedMonitorItems = new Set([]);
             update.tags = results.filter(
                 function (t) {
-                    if (t) return true;
-                    else return false;
+                    if (t) {
+                        updatedMonitorItems.merge(new Set(t.monitorItems));
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             );
-            console.log(update);
+            console.log('update', update);
             Node.findOneAndUpdate(
                 { _id: node_id },
                 { '$set': update },
                 function (err, n) {
+                    // n is the original node record before update
                     if(err) {
                         res.status(500).send('Existence checking failed');
                         console.log(err);
@@ -242,9 +249,38 @@ app.put('/node/:node_id', function (req, res) {
                         res.status(404).send(node_id + ' does not exist');
                         return
                     }
+                    console.log('origin', n);
+                    async.map(n.tags, // n.tags is an array of ids
+                        function (tag, map_callback) {
+                            Tag.findById(tag,
+                                function (err, t) {
+                                    if (err) {
+                                        console.log(err);
+                                        return
+                                    }
+                                    map_callback(null, t)
+                                })
+                        },
+                        function (err, results) {
+                            var originalMonitorItems = new Set([]);
+                            tags = results.filter(
+                                function (t) {
+                                    if (t) {
+                                        originalMonitorItems.merge(new Set(t.monitorItems));
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                }
+                            );
+                            var toDisable = originalMonitorItems.difference(updatedMonitorItems);
+                            var toEnable = updatedMonitorItems.difference(originalMonitorItems);
+                            nodeCommander([n.ip], toEnable, toDisable)
+                        }
+                    );
                     res.status(200).send('Updated');
                 }
-            )
+            );
         }
     );
 });
@@ -365,7 +401,7 @@ app.put('/tag/:tag_id', function(req, res){
     Tag.findOneAndUpdate(
         { _id: tag_id },
         { '$set': update },
-        function (err, t) {
+        function (err, t) {  // t is the original tag record
             if(err) {
                 res.status(500).send('Existence checking failed');
                 console.log(err);
@@ -374,6 +410,23 @@ app.put('/tag/:tag_id', function(req, res){
             if(!t) {
                 res.status(404).send(tag_id + ' does not exist');
                 return
+            }
+            if(update.monitorItems) {
+                Node.find({tags: t._id},
+                    function(err, nodes) {
+                        if(err) {
+                            console.log('fetching nodes by tag', err);
+                        }
+                        var nodeAddrs = nodes.map(function(n){
+                            return n.ip
+                        });
+                        var originalItems = new Set(t.monitorItems),
+                            updateItems = new Set(update.monitorItems);
+                        var toDisable = originalItems.difference(updateItems),
+                            toEnable = updateItems.difference(originalItems);
+                        nodeCommander(nodeAddrs, toEnable, toDisable)
+                    }
+                )
             }
             res.status(200).send('Updated');
         }
