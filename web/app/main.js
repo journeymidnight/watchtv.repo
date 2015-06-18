@@ -122,9 +122,12 @@ var NodeList = React.createClass({
 
 var NodeEntry = React.createClass({
     render: function(){
+        var that = this;
         var tags = this.props.tags.map(function(tag, index){
             return(
-                <bootstrap.Badge>{tag['name']}</bootstrap.Badge>
+                <bootstrap.Badge key={that.props.id+'tag'+tag['name']}>
+                    {tag['name']}
+                </bootstrap.Badge>
             )
         });
         return (
@@ -208,26 +211,33 @@ var NodeEditButton = React.createClass({
 
 var NodeInfoButton = React.createClass({
     mixins: [mixins.materialMixin],
+    getInitialState: function() {
+        return {
+            renderGraph: false  // don't render the graph at startup
+        }
+    },
     showInfo: function(){
+        this.setState({renderGraph: true});
         this.refs.infoDialog.show();
     },
     render: function(){
-        var title = this.props.nodeName+'('+this.props.nodeIp+')';
+        var title = this.props.nodeName + '(' + this.props.nodeIp + ')';
         var infoAction = [
             {text: 'Close'}
         ];
         return (
             <span>
-            <mui.FlatButton label="Info" onClick={this.showInfo} />
-            <mui.Dialog
-                title={title}
-                actions={infoAction}
-                modal={true}
-                ref="infoDialog">
-                <div>
-                    <MetricGraph node_id={this.props.nodeId} node_ip={this.props.nodeIp} />
-                </div>
-            </mui.Dialog>
+                <mui.FlatButton label="Info" onClick={this.showInfo} />
+                <mui.Dialog
+                    title={title}
+                    actions={infoAction}
+                    modal={true}
+                    ref="infoDialog">
+                    <div>
+                        <MetricGraph node_id={this.props.nodeId} node_ip={this.props.nodeIp}
+                            render={this.state.renderGraph} />
+                    </div>
+                </mui.Dialog>
             </span>
         )
     }

@@ -186,7 +186,9 @@ app.post('/nodes', function(req, res) {
                     res.status(201).send('Node added');
                 }
             );
-            nodeCommander([ip], monitorItems.entries(), []);
+            if (monitorItems.entries().length != 0) {
+                nodeCommander([ip], monitorItems.entries(), []);
+            }
         })
 });
 

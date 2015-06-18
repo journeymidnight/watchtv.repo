@@ -4,7 +4,7 @@ var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
 
-var influxdb_url = 'http://192.169.0.39:8086';
+var influxdb_url = 'http://192.169.0.53:8086';
 var q_param = function(q){
     return {
         u: 'root',
@@ -23,12 +23,12 @@ var get_value = function (ret) {
 
 var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
-    getInitialState: function(){
+    getInitialState: function() {
         return {
             measurements: null
         }
     },
-    componentDidMount: function(){
+    componentWillMount: function(){
 
         // measurements: { cpu: { device : ['cpu0' ...],
         //                        measure: ['idle' ...]
@@ -42,6 +42,7 @@ var GraphSelector = React.createClass({
             dataType: 'json',
             success: function(data){
                 var measure_list = get_value(data);
+                console.log('measure_list', measure_list);
                 measure_list.map(function(m) {
                     var tags = {};
                     $.ajax({
@@ -73,11 +74,14 @@ var GraphSelector = React.createClass({
                 console.error('Init measurements structure ', status, err.toString())
             }.bind(this)
         });
-    },
-    componentWillReceiveProps: function(){
-        if(!this.props.selected.selectedMeasurement && this.state.measurements){
-            this.props.onSelect('selectedMeasurement',
-                Object.keys(this.state.measurements)[0])
+
+        if(!this.props.selected.selectedMeasurement &&
+            !$.isEmptyObject(this.state.measurements))
+        {
+            var defaultMeasurement = Object.keys(this.state.measurements)[0];
+            this.props.onSelect('selectedMeasurement', defaultMeasurement);
+            this.props.onSelect('selectedMeasure',
+                this.state.measurements[defaultMeasurement].measure[0]);
         }
     },
     changeHandler: function() {
@@ -95,14 +99,16 @@ var GraphSelector = React.createClass({
         this.props.onGraph();
     },
     render: function(){
+        var that = this;
         var measurementOptions = [];
-        var ans = [];
+        var selectors = [];
         if(this.state.measurements) {
             Object.keys(this.state.measurements).map(function (m) {
-                measurementOptions.push(<option value={m}>{m}</option>)
+                measurementOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
-            ans.push(
-                <select onChange={this.changeHandler} ref="selectedMeasurement">
+            selectors.push(
+                <select onChange={this.changeHandler} ref="selectedMeasurement"
+                    key={this.props.id+"selectedMeasurement"} >
                     <optgroup label="Measurements">
                         {measurementOptions}
                     </optgroup>
@@ -114,10 +120,11 @@ var GraphSelector = React.createClass({
             if(device) {
                 var deviceOptions = [];
                 device.map(function (d) {
-                    deviceOptions.push(<option value={d}>{d}</option>)
+                    deviceOptions.push(<option key={that.props.id+d} value={d}>{d}</option>)
                 });
-                ans.push(
-                    <select onChange={this.changeHandler} ref='selectedDevice'>
+                selectors.push(
+                    <select onChange={this.changeHandler} ref='selectedDevice'
+                        key={this.props.id+"selectedDevice"} >
                         <optgroup label="Devices">
                             {deviceOptions}
                         </optgroup>
@@ -127,10 +134,11 @@ var GraphSelector = React.createClass({
 
             var measureOptions = [];
             this.state.measurements[this.props.selected.selectedMeasurement].measure.map(function(m){
-                measureOptions.push(<option value={m}>{m}</option>)
+                measureOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
-            ans.push(
-                <select onChange={this.changeHandler} ref='selectedMeasure'>
+            selectors.push(
+                <select onChange={this.changeHandler} ref='selectedMeasure'
+                    key={this.props.id+"selectedMeasure"} >
                     <optgroup label="Measures">
                         {measureOptions}
                     </optgroup>
@@ -139,7 +147,7 @@ var GraphSelector = React.createClass({
         }
         return (
             <div>
-                {ans}
+                {selectors}
                 <mui.FlatButton label="Graph" onClick={this.handleGraph} />
             </div>
         )
@@ -161,20 +169,17 @@ var MetricGraph = React.createClass({
             host: host
         }
     },
-    componentWillReceiveProps: function(nextProps){
-        var id = nextProps.node_id;
-        if(id){
-            $.ajax({
-                url: 'node/' + id,
-                dataType: 'json',
-                success: function(data){
-                    this.setState({node: data});
-                }.bind(this),
-                error: function(xhr, status, err){
-                    console.error("Fetching node info", status, err.toString())
-                }
-            })
-        }
+    componentWillMount: function(){
+        $.ajax({
+            url: 'node/' + this.props.node_id,
+            dataType: 'json',
+            success: function(data){
+                this.setState({node: data});
+            }.bind(this),
+            error: function(xhr, status, err){
+                console.error("Fetching node info", status, err.toString())
+            }
+        })
     },
     handleSelect: function(name, value){
         var selected = this.state.selected;
@@ -185,7 +190,7 @@ var MetricGraph = React.createClass({
         var now = new Date();
         var aDayAgo = new Date(now.getTime() - 60*60*24*1000);
         var query = 'SELECT MEAN(value) FROM ' + this.state.selected.selectedMeasurement +
-            " WHERE host='" + this.host + "' AND measure='" +
+            " WHERE host='" + this.state.host + "' AND measure='" +
             this.state.selected.selectedMeasure +
             "'" + " AND time > '" + aDayAgo.toISOString() + "' AND time < '" +
             now.toISOString() + "' ";
@@ -204,25 +209,30 @@ var MetricGraph = React.createClass({
         })
     },
     render: function(){
-        if(this.props.node_id) {
-            return (
-                <div>
-                    <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
-                        onGraph={this.handleGraph} host={this.state.host} />
-                    <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
-                        backgroundColor: "#6EB5F0"}}></div>
-                </div>
-            )
-        } else {
+        if(!this.props.render || !this.props.node_id) {
             return null
         }
+        return (
+            <div>
+                <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
+                    onGraph={this.handleGraph} host={this.state.host} id={this.props.node_id} />
+                    <mui.DatePicker
+                        hintText="Date from"
+                        mode="landscape" />
+                    <mui.DatePicker
+                        hintText="to"
+                        mode="landscape" />
+                <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
+                    backgroundColor: "#6EB5F0"}}></div>
+            </div>
+        )
     },
     componentDidUpdate: function(prevProps, prevState) {
-        if (this.props.node_id) {
-            fitted_data = [];
-            data = this.state.data;
+        if (this.props.node_id && this.props.render) {
+            var fitted_data = [];
+            var data = this.state.data;
             for (var i = 0; i < data.length; i+=2){
-                d = [Date.parse(data[i]) , data[i+1]];
+                var d = [Date.parse(data[i]) , data[i+1]];
                 fitted_data.push(d)
             }
             console.log(fitted_data);
@@ -247,10 +257,19 @@ var MetricGraph = React.createClass({
                     },
                     grid: {
                         color: "transparent",
-                        margin: 10
+                        margin: 10,
+                        hoverable: true
                     },
-                    colors: ["white"]
+                    colors: ["white"],
+                    crosshair: {
+                        mode: "x",
+                        color: "white"
+                    }
                 });
+            $('#graph' + this.props.node_id)
+                .bind("plothover",  function (event, pos, item) {
+                    console.log(event, pos, item)
+                })
         }
     }
 });
