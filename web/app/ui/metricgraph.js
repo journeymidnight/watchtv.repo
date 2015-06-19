@@ -4,7 +4,7 @@ var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
 
-var influxdb_url = 'http://192.169.0.53:8086';
+var influxdb_url = 'http://192.169.0.59:8086';
 var q_param = function(q){
     return {
         u: 'root',
@@ -155,6 +155,85 @@ var GraphSelector = React.createClass({
 });
 
 
+var pointPerGraph = 300; // should be configurable
+
+var buildQuery = function(fromTime, toTime, measurement, host, device, measure) {
+    // fromTime and toTime are all Date objects
+
+    var groupByTime = Math.floor( (toTime - fromTime)/pointPerGraph/1000 );
+    if (groupByTime < 1) { groupByTime = 1}
+
+    var query = 'SELECT MEAN(value) FROM ' + measurement +
+        " WHERE host='" + host +  "' AND measure='" + measure + "'" +
+        " AND time > '" + fromTime.toISOString() +  "' AND time < '" +
+        toTime.toISOString() + "' ";
+    if(measure) {
+        query += " AND device='" + device + "' ";
+    }
+    query += ' GROUP BY time(' + groupByTime + 's)';
+    return query;
+};
+
+var millisecondsPerDay = 24*60*60*1000;
+var fitTime = function(time) {
+    // "time" assumes to be the time gotten from DatePicker, in Unix time, in milliseconds
+    // returns picked "date" combines current "time"
+    var now = new Date();
+    var timeOfDay = (now.getTime() % millisecondsPerDay);
+    var dateOfTime = Math.ceil(time / millisecondsPerDay) * millisecondsPerDay;
+    return new Date(dateOfTime + timeOfDay);
+};
+
+var fitData = function(data) {
+    // convert [time, data, time, data ...]
+    // to [ [time, data], [time, data], ...]
+    var fitted_data = [];
+    for (var i = 0; i < data.length; i+=2){
+        var d = [Date.parse(data[i]) , data[i+1]];
+        fitted_data.push(d)
+    }
+    console.log('fit data ', fitted_data);
+    return fitted_data;
+};
+
+var plotGraph = function(placeholder, data) {
+    return $.plot(placeholder,
+        [data],
+        {
+            xaxis: {
+                mode: "time",
+                timezone: "browser",
+                color: "white",
+                font: {color: "white"}
+            },
+            yaxis: {
+                color: "white",
+                font: {color: "white"}
+            },
+            series: {
+                lines: {
+                    show: true,
+                    fill: true,
+                    fillColor: "rgba(143, 198, 242, 0.7)"
+                }
+            },
+            grid: {
+                color: "transparent",
+                margin: 10,
+                hoverable: true
+            },
+            colors: ["white"],
+            crosshair: {
+                mode: "x",
+                color: "white"
+            },
+            selection: {
+                mode: "x"
+            }
+        });
+};
+
+var eventBinded = {}; // memorize if jQuery event has been binded
 
 var MetricGraph = React.createClass({
     getInitialState: function(){
@@ -186,27 +265,26 @@ var MetricGraph = React.createClass({
         selected[name] = value;
         this.setState({selected: selected})
     },
-    handleGraph: function(){
-        var now = new Date();
-        var aDayAgo = new Date(now.getTime() - 60*60*24*1000);
-        var query = 'SELECT MEAN(value) FROM ' + this.state.selected.selectedMeasurement +
-            " WHERE host='" + this.state.host + "' AND measure='" +
-            this.state.selected.selectedMeasure +
-            "'" + " AND time > '" + aDayAgo.toISOString() + "' AND time < '" +
-            now.toISOString() + "' ";
-        if(this.state.selected.selectedDevice) {
-            query += " AND device='" + this.state.selected.selectedDevice + "'";
-        }
-        query += ' GROUP BY time(300s) ';
-        console.log(query)
+    queryInfluxDB: function(queryString) {
         $.ajax({
-            url: influxdb_url + '/query?' + $.param(q_param(query)),
+            url: influxdb_url + '/query?' + $.param(q_param(queryString)),
             dataType: 'json',
             success: function (data) {
-                console.log(get_value(data));
-                this.setState({data: get_value(data)})
+                this.setState({data: get_value(data)});
             }.bind(this)
         })
+    },
+    handleGraph: function(){
+        var query = buildQuery(
+            fitTime(this.refs.fromDatePicker.getDate().getTime()),
+            fitTime(this.refs.toDatePicker.getDate().getTime()),
+            this.state.selected.selectedMeasurement,
+            this.state.host,
+            this.state.selected.selectedDevice,
+            this.state.selected.selectedMeasure
+        );
+        console.log(query);
+        this.queryInfluxDB(query);
     },
     render: function(){
         if(!this.props.render || !this.props.node_id) {
@@ -214,14 +292,20 @@ var MetricGraph = React.createClass({
         }
         return (
             <div>
+                <mui.DatePicker
+                    hintText="Date from"
+                    mode="landscape"
+                    ref="fromDatePicker"
+                    autoOk={true}
+                />
+                <mui.DatePicker
+                    hintText="to"
+                    mode="landscape"
+                    ref="toDatePicker"
+                    autoOk={true}
+                />
                 <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
                     onGraph={this.handleGraph} host={this.state.host} id={this.props.node_id} />
-                    <mui.DatePicker
-                        hintText="Date from"
-                        mode="landscape" />
-                    <mui.DatePicker
-                        hintText="to"
-                        mode="landscape" />
                 <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
                     backgroundColor: "#6EB5F0"}}></div>
             </div>
@@ -229,47 +313,37 @@ var MetricGraph = React.createClass({
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (this.props.node_id && this.props.render) {
-            var fitted_data = [];
-            var data = this.state.data;
-            for (var i = 0; i < data.length; i+=2){
-                var d = [Date.parse(data[i]) , data[i+1]];
-                fitted_data.push(d)
+            var fitted_data = fitData(this.state.data);
+            console.log('fitted: ', fitted_data);
+            var plot = plotGraph('#graph' + this.props.node_id,
+                                fitted_data);
+            var that = this;
+            if(!eventBinded[that.props.node_id]) {
+                eventBinded[that.props.node_id] = true;
+                console.log('eventBinded: ', eventBinded);
+                $('#graph' + this.props.node_id)
+                    .bind("plothover", function (event, pos, item) {
+                        //console.log(pos, item)
+                    })
+                    .bind("plotselected", function (event, ranges) {
+                        var newFromTime = new Date(ranges.xaxis.from),
+                            newToTime = new Date(ranges.xaxis.to);
+                        that.queryInfluxDB(
+                            buildQuery(
+                                newFromTime,
+                                newToTime,
+                                that.state.selected.selectedMeasurement,
+                                that.state.host,
+                                that.state.selected.selectedDevice,
+                                that.state.selected.selectedMeasure
+                            ),
+                            function (data) {
+                                plotGraph('#graph' + that.props.node_id,
+                                    fitData(data))
+                            }
+                        );
+                    });
             }
-            console.log(fitted_data);
-            $.plot('#graph' + this.props.node_id,
-                [fitted_data],
-                {
-                    xaxis: {
-                        mode: "time",
-                        color: "white",
-                        font: {color: "white"}
-                    },
-                    yaxis: {
-                        color: "white",
-                        font: {color: "white"}
-                    },
-                    series: {
-                        lines: {
-                            show: true,
-                            fill: true,
-                            fillColor: "rgba(143, 198, 242, 0.7)"
-                        }
-                    },
-                    grid: {
-                        color: "transparent",
-                        margin: 10,
-                        hoverable: true
-                    },
-                    colors: ["white"],
-                    crosshair: {
-                        mode: "x",
-                        color: "white"
-                    }
-                });
-            $('#graph' + this.props.node_id)
-                .bind("plothover",  function (event, pos, item) {
-                    console.log(event, pos, item)
-                })
         }
     }
 });
