@@ -167,7 +167,7 @@ var buildQuery = function(fromTime, toTime, measurement, host, device, measure) 
         " WHERE host='" + host +  "' AND measure='" + measure + "'" +
         " AND time > '" + fromTime.toISOString() +  "' AND time < '" +
         toTime.toISOString() + "' ";
-    if(measure) {
+    if(device) {
         query += " AND device='" + device + "' ";
     }
     query += ' GROUP BY time(' + groupByTime + 's)';
@@ -196,6 +196,16 @@ var fitData = function(data) {
     return fitted_data;
 };
 
+// Copyed from
+// http://stackoverflow.com/questions/6784894/add-commas-or-spaces-to-group-every-three-digits
+var numberFormatter = function(val, axis) {
+    var str = val.toString().split('.');
+    if (str[0].length >= 5) {
+        str[0] = str[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
+    }
+    return str.join('.');
+};
+
 var plotGraph = function(placeholder, data) {
     return $.plot(placeholder,
         [data],
@@ -208,7 +218,8 @@ var plotGraph = function(placeholder, data) {
             },
             yaxis: {
                 color: "white",
-                font: {color: "white"}
+                font: {color: "white"},
+                tickFormatter: numberFormatter
             },
             series: {
                 lines: {
@@ -308,6 +319,16 @@ var MetricGraph = React.createClass({
                     onGraph={this.handleGraph} host={this.state.host} id={this.props.node_id} />
                 <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
                     backgroundColor: "#6EB5F0"}}></div>
+                <div id={'tooltip'+this.props.node_id} style={
+                    {
+                        position: 'absolute',
+                        display: "none",
+                        border: '1px solid rgb(223,255,253)',
+                        padding: "2px",
+                        "background-color": "rgb(238,254,255)",
+                        opacity: 0.80
+                    }
+                    }> </div>
             </div>
         )
     },
@@ -323,7 +344,17 @@ var MetricGraph = React.createClass({
                 console.log('eventBinded: ', eventBinded);
                 $('#graph' + this.props.node_id)
                     .bind("plothover", function (event, pos, item) {
-                        //console.log(pos, item)
+                        console.log('item: ', item);
+                        console.log('pos: ', pos);
+                        if (item) {
+                            var x = new Date(item.datapoint[0]),
+                                y = numberFormatter(item.datapoint[1]);
+                            $('#tooltip'+that.props.node_id)
+                                .html(y + '<br>' + x )
+                                .fadeIn(200);
+                        } else {
+                            $('#tooltip'+that.props.node_id).hide();
+                        }
                     })
                     .bind("plotselected", function (event, ranges) {
                         var newFromTime = new Date(ranges.xaxis.from),
