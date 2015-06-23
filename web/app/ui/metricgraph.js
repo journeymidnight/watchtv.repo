@@ -207,6 +207,7 @@ var numberFormatter = function(val, axis) {
 };
 
 var plotGraph = function(placeholder, data) {
+    console.log('placeholder name', placeholder);
     return $.plot(placeholder,
         [data],
         {
@@ -246,30 +247,34 @@ var plotGraph = function(placeholder, data) {
 
 var eventBinded = {}; // memorize if jQuery event has been binded
 
-var MetricGraph = React.createClass({
+var Graph = React.createClass({
     getInitialState: function(){
         // get `host` attribute for influxdb queries
         var dot = new RegExp('\\.','g');
-        var host = this.props.node_ip.split(':')[0].replace(dot, '_');
+        var host = this.props.ip.split(':')[0].replace(dot, '_');
 
-        return {
-            data: [],
-            node: null,
-            selected: {},
-            host: host
-        }
-    },
-    componentWillMount: function(){
+        var nodeData = null;
         $.ajax({
             url: 'node/' + this.props.node_id,
             dataType: 'json',
             success: function(data){
+                nodeData = data;
                 this.setState({node: data});
             }.bind(this),
             error: function(xhr, status, err){
                 console.error("Fetching node info", status, err.toString())
             }
-        })
+        });
+
+        return {
+            data: [],
+            node: nodeData,
+            selected: {},
+            host: host,
+            uniq_id: this.props.node_id + host
+        }
+    },
+    componentWillMount: function(){
     },
     handleSelect: function(name, value){
         var selected = this.state.selected;
@@ -316,16 +321,18 @@ var MetricGraph = React.createClass({
                     autoOk={true}
                 />
                 <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
-                    onGraph={this.handleGraph} host={this.state.host} id={this.props.node_id} />
-                <div id={'graph'+this.props.node_id} style={{width: '650px', height: '300px',
+                    onGraph={this.handleGraph} host={this.state.host} id={this.state.uniq_id}
+                    key={this.state.uniq_id}
+                />
+                <div id={'graph'+this.state.uniq_id} style={{width: '650px', height: '300px',
                     backgroundColor: "#6EB5F0"}}></div>
-                <div id={'tooltip'+this.props.node_id} style={
+                <div id={'tooltip'+this.state.uniq_id} style={
                     {
                         position: 'absolute',
                         display: "none",
                         border: '1px solid rgb(223,255,253)',
                         padding: "2px",
-                        "background-color": "rgb(238,254,255)",
+                        backgroundColor: "rgb(238,254,255)",
                         opacity: 0.80
                     }
                     }> </div>
@@ -336,24 +343,24 @@ var MetricGraph = React.createClass({
         if (this.props.node_id && this.props.render) {
             var fitted_data = fitData(this.state.data);
             console.log('fitted: ', fitted_data);
-            var plot = plotGraph('#graph' + this.props.node_id,
+            plotGraph('#graph' + this.state.uniq_id,
                                 fitted_data);
             var that = this;
-            if(!eventBinded[that.props.node_id]) {
-                eventBinded[that.props.node_id] = true;
+            if(!eventBinded[that.state.uniq_id]) {
+                eventBinded[that.state.uniq_id] = true;
                 console.log('eventBinded: ', eventBinded);
-                $('#graph' + this.props.node_id)
+                $('#graph' + that.state.uniq_id)
                     .bind("plothover", function (event, pos, item) {
                         console.log('item: ', item);
                         console.log('pos: ', pos);
                         if (item) {
                             var x = new Date(item.datapoint[0]),
                                 y = numberFormatter(item.datapoint[1]);
-                            $('#tooltip'+that.props.node_id)
+                            $('#tooltip'+that.state.uniq_id)
                                 .html(y + '<br>' + x )
                                 .fadeIn(200);
                         } else {
-                            $('#tooltip'+that.props.node_id).hide();
+                            $('#tooltip'+that.state.uniq_id).hide();
                         }
                     })
                     .bind("plotselected", function (event, ranges) {
@@ -369,7 +376,7 @@ var MetricGraph = React.createClass({
                                 that.state.selected.selectedMeasure
                             ),
                             function (data) {
-                                plotGraph('#graph' + that.props.node_id,
+                                plotGraph('#graph' + that.state.uniq_id,
                                     fitData(data))
                             }
                         );
@@ -379,5 +386,35 @@ var MetricGraph = React.createClass({
     }
 });
 
+var MetricGraph = React.createClass({
+    render: function() {
+        var that = this;
+        if(this.props.node_ips.length > 1) {
+            var graphs = [];
+            this.props.node_ips.map(function(ip){
+                graphs.push(
+                    <mui.Tab label={ip} key={that.props.node_id + ip}>
+                        <div>
+                            <Graph ip={ip} node_id={that.props.node_id}
+                                render={that.props.render}
+                                key={that.props.node_id + ip}
+                            />
+                        </div>
+                    </mui.Tab>
+                )
+            });
+            return (
+                <mui.Tabs>
+                    {graphs}
+                </mui.Tabs>
+            )
+        } else { // node_ips.len == 1
+            return (
+                <Graph ip={this.props.node_ips[0]} node_id={this.props.node_id}
+                    render={this.props.render} />
+            )
+        }
+    }
+});
 
 module.exports = MetricGraph;

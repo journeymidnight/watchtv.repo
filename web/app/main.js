@@ -60,14 +60,14 @@ var NodeList = React.createClass({
     },
     handleCreateNewNode: function() {
         var name = this.refs.newName.getValue().trim(),
-            ip = this.refs.newIP.getValue().trim(),
+            ips = this.refs.newIP.getValue().trim().split(/[\s,]+/),
             tags = this.refs.newTag.getValue().trim().split(/[\s,]+/);
         $.ajax({
             type: "POST",
             url: "nodes",
             data: {
                 "name": name,
-                "ip": ip,
+                "ips": ips,
                 "tags": tags
             },
             success: function(_) {
@@ -84,7 +84,7 @@ var NodeList = React.createClass({
         var that = this;
         var nodeList = this.props.node_list.map(function(node){
             return(
-                <NodeEntry name={node.name} ip={node.ip} tags={node.tags} key={node._id}
+                <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     id={node._id} onRefresh={that.props.onRefresh} />
             )
         });
@@ -101,7 +101,7 @@ var NodeList = React.createClass({
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>IP Address</th>
+                        <th>IP Addresses</th>
                         <th>Tags</th>
                         <th>Actions</th>
                     </tr>
@@ -133,14 +133,14 @@ var NodeEntry = React.createClass({
         return (
             <tr>
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
-                <td key={this.props.id + 'ip'}>{this.props.ip}</td>
+                <td key={this.props.id + 'ip'}>{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
                 <td key={this.props.id + 'actions'}>
                     <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
-                        nodeIp={this.props.ip} nodeTags={this.props.tags}
+                        nodeIps={this.props.ips} nodeTags={this.props.tags}
                         onRefresh={this.props.onRefresh} />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
-                        nodeIp={this.props.ip} />
+                        nodeIps={this.props.ips} />
                     <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
                 </td>
@@ -163,7 +163,7 @@ var NodeEditButton = React.createClass({
             url: "node/" + this.props.nodeId,
             data: {
                 "name": this.refs.nameInput.getValue().trim(),
-                "ip": this.refs.ipInput.getValue().trim(),
+                "ips": this.refs.ipInput.getValue().trim().split(/[\s,]+/),
                 "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/)
             },
             success: function(data) {
@@ -188,7 +188,8 @@ var NodeEditButton = React.createClass({
         var edits = <div>
             <mui.TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
                 ref="nameInput" />
-            <mui.TextField floatingLabelText="IP Address" defaultValue={this.props.nodeIp}
+            <mui.TextField floatingLabelText="IP Address"
+                defaultValue={this.props.nodeIps.join("  ")}
                 ref="ipInput" />
             <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
                 ref="tagInput" multiLine={true} />
@@ -197,7 +198,7 @@ var NodeEditButton = React.createClass({
             <span>
             <mui.FlatButton label="Edit" onClick={this.handleClick} />
             <mui.Dialog
-                title={"Edit info for " + this.props.nodeIp}
+                title={"Edit info for " + this.props.nodeName}
                 actions={editActions}
                 modal={true}
                 ref="editDialog">
@@ -221,7 +222,7 @@ var NodeInfoButton = React.createClass({
         this.refs.infoDialog.show();
     },
     render: function(){
-        var title = this.props.nodeName + '(' + this.props.nodeIp + ')';
+        var title = this.props.nodeName + '(' + this.props.nodeIps.join(', ') + ')';
         var infoAction = [
             {text: 'Close'}
         ];
@@ -234,7 +235,7 @@ var NodeInfoButton = React.createClass({
                     modal={true}
                     ref="infoDialog">
                     <div>
-                        <MetricGraph node_id={this.props.nodeId} node_ip={this.props.nodeIp}
+                        <MetricGraph node_id={this.props.nodeId} node_ips={this.props.nodeIps}
                             render={this.state.renderGraph} />
                     </div>
                 </mui.Dialog>

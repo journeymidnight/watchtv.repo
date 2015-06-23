@@ -39,7 +39,7 @@ var tagSchema = new Schema({
 var nodeSchema = new Schema({
     nickname: String,
     name: String,
-    ip: String,
+    ips: [String],
     tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}]
 },
     {
@@ -129,16 +129,19 @@ var nodeCommander = function(nodes, enables, disables) {
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
         nickname = req.body.nickname,
-        ip = req.body.ip,
+        ips = req.body.ips,
         tags = req.body.tags;
-    if (!ip) {
+
+    if (!ips) {
         res.status(400).send("IP address is required for adding new nodes");
         return
     }
-    if (!isIPandPort(ip)) {
-        res.status(400).send('Invalid IP address');
+    ips = ips.filter(isIPandPort);
+    if (ips.length==0) {
+        res.status(400).send("At least one valid IP address is required");
         return
     }
+
     if (!name) name = '';
     if (!nickname) nickname = '';
     if (!tags) tags = [];
@@ -173,7 +176,7 @@ app.post('/nodes', function(req, res) {
                 {
                     name: name,
                     nickname: nickname,
-                    ip: ip,
+                    ips: ips,
                     tags: tags
                 },
                 function (err, n) {
@@ -187,7 +190,7 @@ app.post('/nodes', function(req, res) {
                 }
             );
             if (monitorItems.entries().length != 0) {
-                nodeCommander([ip], monitorItems.entries(), []);
+                nodeCommander(ips, monitorItems.entries(), []);
             }
         })
 });
@@ -197,17 +200,20 @@ app.put('/node/:node_id', function (req, res) {
     var node_id = req.params.node_id;
     var name = req.body.name,
         nickname = req.body.nickname,
-        ip = req.body.ip,
+        ips = req.body.ips,
         tags = req.body.tags;
 
     var update = {};
-    if (ip && !isIPandPort(ip)) {
-        res.status(400).send('Invalid IP address');
-        return
+    if (ips) {
+        ips = ips.filter(isIPandPort);
+        if (ips.length==0) {
+            res.status(400).send("At least one valid IP address is required");
+            return
+        }
     }
     if (name) update.name = name;
     if (nickname) update.nickname = nickname;
-    if (ip) update.ip = ip;
+    if (ips) update.ips = ips;
     if (!tags) tags = [];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
@@ -277,7 +283,10 @@ app.put('/node/:node_id', function (req, res) {
                             );
                             var toDisable = originalMonitorItems.difference(updatedMonitorItems);
                             var toEnable = updatedMonitorItems.difference(originalMonitorItems);
-                            nodeCommander([n.ip], toEnable, toDisable)
+                            nodeCommander(n.ips, toEnable, toDisable);
+                            if(ips) {
+                                nodeCommander(ips, toEnable, toDisable)
+                            }
                         }
                     );
                     res.status(200).send('Updated');
@@ -419,8 +428,9 @@ app.put('/tag/:tag_id', function(req, res){
                         if(err) {
                             console.log('fetching nodes by tag', err);
                         }
-                        var nodeAddrs = nodes.map(function(n){
-                            return n.ip
+                        var nodeAddrs = [];
+                        nodes.map(function(n){
+                            nodeAddrs.concat(n.ips)
                         });
                         var originalItems = new Set(t.monitorItems),
                             updateItems = new Set(update.monitorItems);
@@ -475,7 +485,7 @@ var queryNode = function(query, res) {
                         Node.find({$or:[
                             {name: sregx},
                             {nickname: sregx},
-                            {ip: sregx}
+                            {ips: sregx}
                         ]}, function (err, nodes) {
                             callback(err, nodes)
                         }).populate('tags', 'name');  // return only name of tag
