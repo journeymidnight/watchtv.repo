@@ -9,13 +9,18 @@ var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
 var MetricGraph = require('./ui/metricgraph.js');
 
+var itemsPerPage = 1;  // Make it configurable
+
 var SearchableNodeList = React.createClass({
     componentDidMount: function(){
         $.ajax({
-            url: 'nodes',
+            url: 'nodes?' + $.param({limit: itemsPerPage}),
             dataType: 'json',
             success: function(data) {
-                this.setState({node_list:data})
+                this.setState({
+                    node_list:data.node,
+                    totalPages: Math.ceil(data.total/itemsPerPage)
+                })
             }.bind(this),
             error: function(xhr, status, err){
                 console.error(this.props.url, status, err.toString())
@@ -25,21 +30,32 @@ var SearchableNodeList = React.createClass({
     getInitialState: function () {
         return {
             node_list: [],
+            totalPages: 1,
+            activePage: 1,
             keyword: ''
         }
     },
-    handleKeyword: function(keyword){
+    handleKeyword: function(keyword, pageNumber){
         if(keyword == undefined) {
             keyword = this.state.keyword
         }
+        if(!pageNumber) {
+            pageNumber = 1;
+        }
         var that = this;
         $.ajax({
-            url: 'q?' + $.param({node: keyword}),
+            url: 'q?' + $.param({
+                node: keyword,
+                skip: itemsPerPage * (pageNumber - 1),
+                limit: itemsPerPage
+            }),
             dataType: 'json',
             success: function(data){
                 that.setState({
-                    node_list:data,
-                    keyword: keyword
+                    node_list:data.node,
+                    keyword: keyword,
+                    totalPages: Math.ceil(data.total/itemsPerPage),
+                    activePage: pageNumber
                 });
             }
         });
@@ -47,7 +63,9 @@ var SearchableNodeList = React.createClass({
     render: function(){
         return (
             <div>
-                <SearchBar onNewKeywords={this.handleKeyword} hintText="Find anything" />
+                <SearchBar onNewKeywords={this.handleKeyword} hintText="Find anything"
+                    totalPages={this.state.totalPages} activePage={this.state.activePage}
+                />
                 <NodeList node_list={this.state.node_list} onRefresh={this.handleKeyword} />
             </div>
         )

@@ -52,21 +52,66 @@ var Tag = mongoose.model('Tag', tagSchema);
 // `Node` represents a monitored system, a machine for example.
 var Node = mongoose.model('Node', nodeSchema);
 
-app.get('/nodes', function(req, res) {
-    Node.find({})
-        .skip(0)
-        .limit(20)
-        .populate('tags', 'name')  // return only name
-        .exec(function (err, nodes) {
+var handlePluralGet = function(name, model, query, extraModelActions) {
+    // used in GET /nodes, /tags and queryTag
+
+    // name: string, used in notification string and result key name
+    // mode: mongoose model
+    // query: query sent to mongodb
+    // extraModelActions: actions to apply to mongoose query, in format
+    //                  [{
+    //                      methodName: 'method',
+    //                      arguments: ['arg1', 'arg2', ...]
+    //                  },
+    //                  { ... }, ...]
+    if(!extraModelActions) extraModelActions = [];
+
+    return function(req, res) {
+        var skip = req.query.skip,
+            limit = req.query.limit;
+        if (!skip) skip = 0;
+        if (!limit) limit = 15;
+        skip = parseInt(skip);
+        limit = parseInt(limit);
+
+        model.count(query, function (err, count) {
             if (err) {
-                res.status(500).send("Cannot fetch node list");
+                res.status(500).send("Cannot count " + name + " number");
                 console.log(err);
                 return
             }
-            res.setHeader('Content-Type', 'application/json');
-            res.send(nodes);
+            var q = extraModelActions.reduce(
+                function(preValue, currValue){
+                    return preValue[currValue.methodName].apply(preValue, currValue.arguments)
+            },
+            model.find(query)
+                 .skip(skip)
+                 .limit(limit)
+            );
+            q.exec(function (err, instances) {
+                if(err) {
+                    res.status(500).send("Cannot fetch " + name + " list");
+                    console.log(err);
+                    return
+                }
+                res.setHeader('Content-Type', 'application/json');
+                var result = {
+                    total: count,
+                    skip: skip,
+                    limit: limit,
+                };
+                result[name] = instances;
+                res.send(result);
+            })
         })
-});
+    }
+};
+
+app.get('/nodes', handlePluralGet('node', Node, {},
+                                [{
+                                    methodName: 'populate',
+                                    arguments: ['tags', 'name']
+                                }]));
 
 var isIPandPort = function(s) {
     var addr = s.split(':')[0],
@@ -331,20 +376,7 @@ app.delete('/node/:node_id', function(req, res) {
     })
 });
 
-app.get('/tags', function(req, res) {
-    Tag.find({})
-       .skip(0)
-       .limit(100)
-       .exec(function (err, tags) {
-            if(err){
-                res.status(500).send("Cannot fetch tag list");
-                console.log(err);
-                return
-            }
-            res.setHeader('Content-Type', 'application/json');
-            res.send(tags);
-        })
-});
+app.get('/tags', handlePluralGet('tag', Tag, {}, []));
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
@@ -463,7 +495,15 @@ app.delete('/tag/:tag_id', function(req, res) {
     })
 });
 
-var queryNode = function(query, res) {
+var queryNode = function(req, res) {
+    var skip = req.query.skip,
+        limit = req.query.limit,
+        query = req.query.node;
+    if (!skip) skip = 0;
+    if (!limit) limit = 15;
+    skip = parseInt(skip);
+    limit = parseInt(limit);
+
     async.map(
         query.split(' '),
         function(s, map_callback){
@@ -530,42 +570,40 @@ var queryNode = function(query, res) {
                 },
                 null
             );
-            var ret = [];
+            var resultNodes = [];
             for (var k in ans) {
-                ret.push(ans[k])
+                resultNodes.push(ans[k])
             }
+            console.log('resultNodes ', resultNodes);
+            console.log('skip limit skip+limit', skip, limit, skip+limit);
+            console.log('resultNodes sliced ', resultNodes.slice(skip, skip + limit));
+            var returnObject = {
+                total: resultNodes.length,
+                skip: skip,
+                limit: limit,
+                node: resultNodes.slice(skip, skip + limit)
+            };
             res.setHeader('Content-Type', 'application/json');
-            res.status(200).send(ret)
+            res.status(200).send(returnObject);
         }
     );
 };
 
-var queryTag = function(query, res) {
+var queryTag = function(req, res) {
+    var query = req.query.tag;
     var sregx = new RegExp(query.trim(), 'i');
-    Tag.find({name:sregx})
-        .exec(function(err, tags) {
-            if(err) {
-                console.log(err);
-                res.status(500).send("Cannot complete your query");
-                return
-            }
-            res.setHeader('Content-Type', 'application/json');
-            res.send(tags)
-        })
+    handlePluralGet('tag', Tag, {name: sregx}, [])(req, res);
 };
 
 // For "Find anything"
 app.get('/q', function(req, res){
     if(req.query.node != undefined) {
         // /q?node=xxx
-        queryNode(req.query.node, res);
-        return
+        queryNode(req, res);
     } else if (req.query.tag != undefined) {
         // /q?tag=xxx
-        queryTag(req.query.tag, res);
-        return
+        queryTag(req, res);
     } else {
         res.status(400).send("Invalid query");
-        return
     }
 });
