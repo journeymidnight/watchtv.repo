@@ -39,6 +39,7 @@ var tagSchema = new Schema({
 var nodeSchema = new Schema({
     nickname: String,
     name: String,
+    description: String,
     ips: [String],
     tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}]
 },
@@ -129,6 +130,7 @@ var nodeCommander = function(nodes, enables, disables) {
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
         nickname = req.body.nickname,
+        description = req.body.description,
         ips = req.body.ips,
         tags = req.body.tags;
 
@@ -144,6 +146,7 @@ app.post('/nodes', function(req, res) {
 
     if (!name) name = '';
     if (!nickname) nickname = '';
+    if (!description) description = '';
     if (!tags) tags = [];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
@@ -176,6 +179,7 @@ app.post('/nodes', function(req, res) {
                 {
                     name: name,
                     nickname: nickname,
+                    description: description,
                     ips: ips,
                     tags: tags
                 },
@@ -200,6 +204,7 @@ app.put('/node/:node_id', function (req, res) {
     var node_id = req.params.node_id;
     var name = req.body.name,
         nickname = req.body.nickname,
+        description = req.body.description,
         ips = req.body.ips,
         tags = req.body.tags;
 
@@ -213,6 +218,7 @@ app.put('/node/:node_id', function (req, res) {
     }
     if (name) update.name = name;
     if (nickname) update.nickname = nickname;
+    if (description) update.description = description;
     if (ips) update.ips = ips;
     if (!tags) tags = [];
     if (tags.constructor !== Array) {

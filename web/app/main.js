@@ -1,6 +1,7 @@
 var React = require('react');
 var mui = require('material-ui');
 var bootstrap = require('react-bootstrap');
+var markdown = require('markdown').markdown;
 
 var mixins = require('./mixins.js');
 var SearchBar = require('./ui/searchbar.js');
@@ -85,7 +86,8 @@ var NodeList = React.createClass({
         var nodeList = this.props.node_list.map(function(node){
             return(
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
-                    id={node._id} onRefresh={that.props.onRefresh} />
+                    id={node._id} description={node.description}
+                    onRefresh={that.props.onRefresh} />
             )
         });
         var addNewNodeRow =
@@ -138,9 +140,11 @@ var NodeEntry = React.createClass({
                 <td key={this.props.id + 'actions'}>
                     <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} nodeTags={this.props.tags}
-                        onRefresh={this.props.onRefresh} />
+                        onRefresh={this.props.onRefresh}
+                        nodeDescription={this.props.description}
+                    />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
-                        nodeIps={this.props.ips} />
+                        nodeIps={this.props.ips} description={this.props.description} />
                     <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
                 </td>
@@ -163,6 +167,7 @@ var NodeEditButton = React.createClass({
             url: "node/" + this.props.nodeId,
             data: {
                 "name": this.refs.nameInput.getValue().trim(),
+                "description": this.refs.descriptionInput.getValue().trim(),
                 "ips": this.refs.ipInput.getValue().trim().split(/[\s,]+/),
                 "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/)
             },
@@ -193,6 +198,12 @@ var NodeEditButton = React.createClass({
                 ref="ipInput" />
             <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
                 ref="tagInput" multiLine={true} />
+                <div>
+                    <mui.TextField floatingLabelText="Description"
+                        defaultValue={this.props.nodeDescription}
+                        ref="descriptionInput" multiLine={true}
+                    />
+                </div>
             </div>;
         return (
             <span>
@@ -221,6 +232,11 @@ var NodeInfoButton = React.createClass({
         this.setState({renderGraph: true});
         this.refs.infoDialog.show();
     },
+    createMarkdown: function(){
+        return {
+            __html: markdown.toHTML(this.props.description)
+        }
+    },
     render: function(){
         var title = this.props.nodeName + '(' + this.props.nodeIps.join(', ') + ')';
         var infoAction = [
@@ -235,6 +251,9 @@ var NodeInfoButton = React.createClass({
                     modal={true}
                     ref="infoDialog">
                     <div>
+                        <bootstrap.Panel collapsible={this.props.description == ''}>
+                            <div dangerouslySetInnerHTML={this.createMarkdown()} />
+                        </bootstrap.Panel>
                         <MetricGraph node_id={this.props.nodeId} node_ips={this.props.nodeIps}
                             render={this.state.renderGraph} />
                     </div>
