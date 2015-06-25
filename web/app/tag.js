@@ -4,55 +4,10 @@ var mui = require('material-ui');
 var bootstrap = require('react-bootstrap');
 
 var mixins = require('./mixins.js');
-var SearchBar = require('./ui/searchbar.js');
 var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
+var SearchableList = require('./ui/searchablelist.js');
 
-var SearchableTagList = React.createClass({
-    componentDidMount: function() {
-        $.ajax({
-            url: 'tags',
-            dataType: 'json',
-            success: function(data){
-                this.setState({tag_list: data})
-            }.bind(this),
-            error: function(xhr, status, err){
-                console.error('get tags: ', status, err.toString())
-            }
-        })
-    },
-    getInitialState: function() {
-        return {
-            tag_list: [],
-            keyword: ''
-        }
-    },
-    handleKeyword: function(keyword){
-        if(keyword == undefined) {
-            keyword = this.state.keyword
-        }
-        var that = this;
-        $.ajax({
-            url: 'q?' + $.param({tag: keyword}),
-            dataType: 'json',
-            success: function(data) {
-                console.log(data)
-                that.setState({
-                    tag_list: data,
-                    keyword: keyword
-                });
-            }
-        })
-    },
-    render: function(){
-        return (
-            <div>
-                <SearchBar onNewKeywords={this.handleKeyword} hintText="Find tags" />
-                <TagList tag_list={this.state.tag_list} onRefresh={this.handleKeyword} />
-            </div>
-        )
-    }
-});
 
 var TagList = React.createClass({
     mixins: [mixins.materialMixin],
@@ -83,7 +38,7 @@ var TagList = React.createClass({
     },
     render: function() {
         var that = this;
-        var tagList = this.props.tag_list.map(function(tag){
+        var tagList = this.props.data.map(function(tag){
             return (
                 <TagEntry name={tag.name} id={tag._id} monitorItems={tag.monitorItems}
                     alarmRules={tag.alarmRules} receiverGroups={tag.alarmReceiverGroups}
@@ -208,7 +163,11 @@ var TagApp = React.createClass({
         return (
             <mui.AppCanvas>
                 <NavigationBar title="Tags" />
-                <SearchableTagList />
+                <SearchableList
+                    type="tag"
+                    listClass={TagList}
+                    hintText="Find tags"
+                />
             </mui.AppCanvas>
         )
     }

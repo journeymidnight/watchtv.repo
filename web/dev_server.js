@@ -95,13 +95,12 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
                     return
                 }
                 res.setHeader('Content-Type', 'application/json');
-                var result = {
+                res.send({
                     total: count,
                     skip: skip,
                     limit: limit,
-                };
-                result[name] = instances;
-                res.send(result);
+                    result: instances
+                })
             })
         })
     }
@@ -574,14 +573,11 @@ var queryNode = function(req, res) {
             for (var k in ans) {
                 resultNodes.push(ans[k])
             }
-            console.log('resultNodes ', resultNodes);
-            console.log('skip limit skip+limit', skip, limit, skip+limit);
-            console.log('resultNodes sliced ', resultNodes.slice(skip, skip + limit));
             var returnObject = {
                 total: resultNodes.length,
                 skip: skip,
                 limit: limit,
-                node: resultNodes.slice(skip, skip + limit)
+                result: resultNodes.slice(skip, skip + limit)
             };
             res.setHeader('Content-Type', 'application/json');
             res.status(200).send(returnObject);

@@ -17,6 +17,8 @@ var mixins = require('../mixins.js');
 // props:
 //   onNewKeywords: callback func, called when button is pressed
 //   hintText: string, the "hint text" part above
+//   totalPages: number, total number of pages
+//   activePage: number, start from 1 to totalPages, currently selected page
 
 var SearchBar = React.createClass({
     mixins: [mixins.materialMixin],
@@ -46,7 +48,10 @@ var SearchBar = React.createClass({
                     <mui.RaisedButton label="Find" />
                 </form>
                 <bootstrap.Pagination
-                    bsSize='small'
+                    first={true}
+                    last={true}
+                    maxButtons={this.props.totalPages > 10 ? 10: this.props.totalPages}
+                    bsSize='medium'
                     items={this.props.totalPages}
                     activePage={this.props.activePage}
                     onSelect={this.handlePageSelect}

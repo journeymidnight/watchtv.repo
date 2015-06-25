@@ -4,73 +4,11 @@ var bootstrap = require('react-bootstrap');
 var markdown = require('markdown').markdown;
 
 var mixins = require('./mixins.js');
-var SearchBar = require('./ui/searchbar.js');
 var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
 var MetricGraph = require('./ui/metricgraph.js');
+var SearchableList = require('./ui/searchablelist.js');
 
-var itemsPerPage = 1;  // Make it configurable
-
-var SearchableNodeList = React.createClass({
-    componentDidMount: function(){
-        $.ajax({
-            url: 'nodes?' + $.param({limit: itemsPerPage}),
-            dataType: 'json',
-            success: function(data) {
-                this.setState({
-                    node_list:data.node,
-                    totalPages: Math.ceil(data.total/itemsPerPage)
-                })
-            }.bind(this),
-            error: function(xhr, status, err){
-                console.error(this.props.url, status, err.toString())
-            }.bind(this)
-        })
-    },
-    getInitialState: function () {
-        return {
-            node_list: [],
-            totalPages: 1,
-            activePage: 1,
-            keyword: ''
-        }
-    },
-    handleKeyword: function(keyword, pageNumber){
-        if(keyword == undefined) {
-            keyword = this.state.keyword
-        }
-        if(!pageNumber) {
-            pageNumber = 1;
-        }
-        var that = this;
-        $.ajax({
-            url: 'q?' + $.param({
-                node: keyword,
-                skip: itemsPerPage * (pageNumber - 1),
-                limit: itemsPerPage
-            }),
-            dataType: 'json',
-            success: function(data){
-                that.setState({
-                    node_list:data.node,
-                    keyword: keyword,
-                    totalPages: Math.ceil(data.total/itemsPerPage),
-                    activePage: pageNumber
-                });
-            }
-        });
-    },
-    render: function(){
-        return (
-            <div>
-                <SearchBar onNewKeywords={this.handleKeyword} hintText="Find anything"
-                    totalPages={this.state.totalPages} activePage={this.state.activePage}
-                />
-                <NodeList node_list={this.state.node_list} onRefresh={this.handleKeyword} />
-            </div>
-        )
-    }
-});
 
 var NodeList = React.createClass({
     mixins: [mixins.materialMixin],
@@ -101,7 +39,7 @@ var NodeList = React.createClass({
     },
     render: function() {
         var that = this;
-        var nodeList = this.props.node_list.map(function(node){
+        var nodeList = this.props.data.map(function(node){
             return(
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     id={node._id} description={node.description}
@@ -287,7 +225,11 @@ var NodeApp = React.createClass({
         return (
             <mui.AppCanvas>
                 <NavigationBar title="Nodes" />
-                <SearchableNodeList />
+                <SearchableList
+                    type="node"
+                    listClass={NodeList}
+                    hintText="Find anything"
+                />
             </mui.AppCanvas>
         )
     }
