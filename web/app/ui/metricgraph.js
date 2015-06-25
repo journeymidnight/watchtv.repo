@@ -196,7 +196,7 @@ var fitData = function(data) {
     return fitted_data;
 };
 
-// Copyed from
+// Copied from
 // http://stackoverflow.com/questions/6784894/add-commas-or-spaces-to-group-every-three-digits
 var numberFormatter = function(val, axis) {
     var str = val.toString().split('.');
@@ -245,7 +245,7 @@ var plotGraph = function(placeholder, data) {
         });
 };
 
-var eventBinded = {}; // memorize if jQuery event has been binded
+var eventBound = {}; // memorize if jQuery event has been bound
 
 var Graph = React.createClass({
     getInitialState: function(){
@@ -275,7 +275,7 @@ var Graph = React.createClass({
         }
     },
     componentWillMount: function(){
-        eventBinded[this.state.uniq_id] = false;
+        eventBound[this.state.uniq_id] = false;
     },
     handleSelect: function(name, value){
         var selected = this.state.selected;
@@ -347,9 +347,9 @@ var Graph = React.createClass({
             plotGraph('#graph' + this.state.uniq_id,
                                 fitted_data);
             var that = this;
-            if(!eventBinded[that.state.uniq_id]) {
-                eventBinded[that.state.uniq_id] = true;
-                console.log('eventBinded: ', eventBinded);
+            if(!eventBound[that.state.uniq_id]) {
+                eventBound[that.state.uniq_id] = true;
+                console.log('eventBound: ', eventBound);
                 $('#graph' + that.state.uniq_id)
                     .bind("plothover", function (event, pos, item) {
                         console.log('item: ', item);
