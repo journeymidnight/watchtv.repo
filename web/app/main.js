@@ -54,7 +54,7 @@ var NodeList = React.createClass({
                 <td>
                     <mui.IconButton tooltip="Add" onClick={this.handleCreateNewNode}>
                         <mui.SvgIcon>
-                            <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                                 <path d="M0 0h24v24H0z" fill="none"/>
                             </svg>
@@ -174,7 +174,7 @@ var NodeEditButton = React.createClass({
             <span>
             <mui.IconButton tooltip="Edit" onClick={this.handleClick}>
                 <mui.SvgIcon>
-                    <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                         <path d="M0 0h24v24H0z" fill="none"/>
                     </svg>
@@ -218,7 +218,7 @@ var NodeInfoButton = React.createClass({
             <span>
                 <mui.IconButton tooltip="Info" onClick={this.showInfo}>
                     <mui.SvgIcon>
-                        <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
                             <path d="M0 0h24v24H0z" fill="none"/>
                         </svg>

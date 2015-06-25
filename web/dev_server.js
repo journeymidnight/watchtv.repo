@@ -435,7 +435,7 @@ app.put('/tag/:tag_id', function(req, res){
         monitorItems = req.body.monitorItems,
         alarmRules = req.body.alarmRules,
         alarmReceiverGroups = req.body.alarmReceiverGroups;
-    update = {};
+    var update = {};
     if(name) update.name = name;
     if(monitorItems && monitorItems.constructor === Array) {
         update.monitorItems = monitorItems
@@ -467,7 +467,7 @@ app.put('/tag/:tag_id', function(req, res){
                         }
                         var nodeAddrs = [];
                         nodes.map(function(n){
-                            nodeAddrs.concat(n.ips)
+                            nodeAddrs = nodeAddrs.concat(n.ips)
                         });
                         var originalItems = new Set(t.monitorItems),
                             updateItems = new Set(update.monitorItems);
