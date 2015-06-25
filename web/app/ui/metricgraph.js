@@ -275,6 +275,7 @@ var Graph = React.createClass({
         }
     },
     componentWillMount: function(){
+        eventBinded[this.state.uniq_id] = false;
     },
     handleSelect: function(name, value){
         var selected = this.state.selected;
