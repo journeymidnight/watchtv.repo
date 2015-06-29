@@ -3,6 +3,7 @@ var _ = require('underscore');
 var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
+var unit = require('../unit.js');
 
 var influxdb_url = 'http://192.169.0.59:8086';
 var q_param = function(q){
@@ -192,21 +193,24 @@ var fitData = function(data) {
         var d = [Date.parse(data[i]) , data[i+1]];
         fitted_data.push(d)
     }
-    console.log('fit data ', fitted_data);
     return fitted_data;
 };
 
-// Copied from
-// http://stackoverflow.com/questions/6784894/add-commas-or-spaces-to-group-every-three-digits
-var numberFormatter = function(val, axis) {
+var numberFormatter = function(val, axis, unit) {
+    // Copied from
+    // http://stackoverflow.com/questions/6784894/add-commas-or-spaces-to-group-every-three-digits
     var str = val.toString().split('.');
     if (str[0].length >= 5) {
         str[0] = str[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
     }
-    return str.join('.');
+    if (unit) {
+        return str.join('.') + ' ' + unit;
+    } else {
+        return str.join('.');
+    }
 };
 
-var plotGraph = function(placeholder, data) {
+var plotGraph = function(placeholder, data, yAxisFormatter) {
     console.log('placeholder name', placeholder);
     return $.plot(placeholder,
         [data],
@@ -220,7 +224,7 @@ var plotGraph = function(placeholder, data) {
             yaxis: {
                 color: "white",
                 font: {color: "white"},
-                tickFormatter: numberFormatter
+                tickFormatter: yAxisFormatter
             },
             series: {
                 lines: {
@@ -245,7 +249,6 @@ var plotGraph = function(placeholder, data) {
         });
 };
 
-var eventBound = {}; // memorize if jQuery event has been bound
 
 var Graph = React.createClass({
     getInitialState: function(){
@@ -273,9 +276,6 @@ var Graph = React.createClass({
             host: host,
             uniq_id: this.props.node_id + host
         }
-    },
-    componentWillMount: function(){
-        eventBound[this.state.uniq_id] = false;
     },
     handleSelect: function(name, value){
         var selected = this.state.selected;
@@ -344,45 +344,62 @@ var Graph = React.createClass({
         if (this.props.node_id && this.props.render) {
             var fitted_data = fitData(this.state.data);
             console.log('fitted: ', fitted_data);
-            plotGraph('#graph' + this.state.uniq_id,
-                                fitted_data);
-            var that = this;
-            if(!eventBound[that.state.uniq_id]) {
-                eventBound[that.state.uniq_id] = true;
-                console.log('eventBound: ', eventBound);
-                $('#graph' + that.state.uniq_id)
-                    .bind("plothover", function (event, pos, item) {
-                        console.log('item: ', item);
-                        console.log('pos: ', pos);
-                        if (item) {
-                            var x = new Date(item.datapoint[0]),
-                                y = numberFormatter(item.datapoint[1]);
-                            $('#tooltip'+that.state.uniq_id)
-                                .html(y + '<br>' + x )
-                                .fadeIn(200);
-                        } else {
-                            $('#tooltip'+that.state.uniq_id).hide();
-                        }
-                    })
-                    .bind("plotselected", function (event, ranges) {
-                        var newFromTime = new Date(ranges.xaxis.from),
-                            newToTime = new Date(ranges.xaxis.to);
-                        that.queryInfluxDB(
-                            buildQuery(
-                                newFromTime,
-                                newToTime,
-                                that.state.selected.selectedMeasurement,
-                                that.state.host,
-                                that.state.selected.selectedDevice,
-                                that.state.selected.selectedMeasure
-                            ),
-                            function (data) {
-                                plotGraph('#graph' + that.state.uniq_id,
-                                    fitData(data))
-                            }
-                        );
-                    });
+
+            // unit is the last part of measure name, e.g.
+            // tx_Bps, Committed_AS_byte, etc.
+            var formatter, unitSuffix;
+            if(this.state.selected.selectedMeasure) {
+                var u = this.state.selected.selectedMeasure.split('_').slice(-1)[0];
             }
+            if(unit[u]) {
+                formatter = unit[u];
+                unitSuffix = u;
+            } else {
+                formatter = numberFormatter;
+                unitSuffix = null;
+            }
+            plotGraph('#graph' + this.state.uniq_id,
+                      fitted_data,
+                      formatter
+            );
+            var that = this;
+            $('#graph' + that.state.uniq_id)
+                .unbind()
+                .bind("plothover", function (event, pos, item) {
+                    console.log('item: ', item);
+                    console.log('pos: ', pos);
+                    if (item) {
+                        var x = new Date(item.datapoint[0]),
+                            y = numberFormatter(item.datapoint[1],
+                                                null,
+                                                unitSuffix);
+                        $('#tooltip'+that.state.uniq_id)
+                            .html(y + '<br>' + x )
+                            .fadeIn(200);
+                    } else {
+                        $('#tooltip'+that.state.uniq_id).hide();
+                    }
+                })
+                .bind("plotselected", function (event, ranges) {
+                    var newFromTime = new Date(ranges.xaxis.from),
+                        newToTime = new Date(ranges.xaxis.to);
+                    that.queryInfluxDB(
+                        buildQuery(
+                            newFromTime,
+                            newToTime,
+                            that.state.selected.selectedMeasurement,
+                            that.state.host,
+                            that.state.selected.selectedDevice,
+                            that.state.selected.selectedMeasure
+                        ),
+                        function (data) {
+                            plotGraph('#graph' + that.state.uniq_id,
+                                      fitData(data),
+                                      formatter
+                            )
+                        }
+                    );
+                });
         }
     }
 });
