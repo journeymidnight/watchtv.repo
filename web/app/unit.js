@@ -34,7 +34,13 @@ var bps = formatFuncCreator(1024, [' Bps', ' KiBps', ' MiBps', ' GiBps', ' TiBps
 var ms = formatFuncCreator(1000, [' ms', ' s']);
 
 var percent = function(val, axis) {
-        return val + ' %';
+    var whole = val.toString().split('.')[0],
+        decimal = val.toString().split('.')[1];
+    if(decimal) {
+        return whole + '.' + decimal.slice(0,2) + ' %';  // keep only 2 decimals
+    } else {
+        return whole + ' %';
+    }
 };
 
 
