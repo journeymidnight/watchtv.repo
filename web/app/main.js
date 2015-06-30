@@ -218,7 +218,7 @@ var NodeInfoButton = React.createClass({
         ];
         var fillColor = "#444444"; // grey
         if(this.props.state != "Good") {
-            fillColor = "#E60000" // red
+            fillColor = "#E60000"; // red
         }
         return (
             <span>
