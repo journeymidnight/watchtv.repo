@@ -20,16 +20,14 @@ app.listen(app.get('port'), function() {
   console.log('Server started: http://0.0.0.0:' + app.get('port') + '/');
 });
 
-var mongoose = require('mongoose');
-var schema = require('./schema.js');
-mongoose.connect('mongodb://watchtv:watchtv@localhost:27017/watchtv');
+var db = require('./db.js');
 
 
 var handlePluralGet = function(name, model, query, extraModelActions) {
     // used in GET /nodes, /tags and queryTag
 
     // name: string, used in notification string and result key name
-    // mode: mongoose model
+    // model: mongoose model
     // query: query sent to mongodb
     // extraModelActions: actions to apply to mongoose query, in format
     //                  [{
@@ -79,7 +77,7 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
     }
 };
 
-app.get('/nodes', handlePluralGet('node', schema.Node, {},
+app.get('/nodes', handlePluralGet('node', db.Node, {},
                                 [{
                                     methodName: 'populate',
                                     arguments: ['tags', 'name']
@@ -171,7 +169,7 @@ app.post('/nodes', function(req, res) {
     }
     async.map(tags,
         function (tag, map_callback) {
-            schema.Tag.findOne({name: tag},
+            db.Tag.findOne({name: tag},
                 function (err, t) {
                     if (err) {
                         console.log(err);
@@ -192,7 +190,7 @@ app.post('/nodes', function(req, res) {
                     }
                 }
             );
-            schema.Node.create(
+            db.Node.create(
                 {
                     name: name,
                     nickname: nickname,
@@ -244,7 +242,7 @@ app.put('/node/:node_id', function (req, res) {
     }
     async.map(tags,
         function(tag, map_callback){
-            schema.Tag.findOne({name:tag},
+            db.Tag.findOne({name:tag},
                 function(err, t) {
                     if(err) {
                         console.log(err);
@@ -266,7 +264,7 @@ app.put('/node/:node_id', function (req, res) {
                 }
             );
             console.log('update', update);
-            schema.Node.findOneAndUpdate(
+            db.Node.findOneAndUpdate(
                 { _id: node_id },
                 { '$set': update },
                 function (err, n) {
@@ -283,7 +281,7 @@ app.put('/node/:node_id', function (req, res) {
                     console.log('origin', n);
                     async.map(n.tags, // n.tags is an array of ids
                         function (tag, map_callback) {
-                            schema.Tag.findById(tag,
+                            db.Tag.findById(tag,
                                 function (err, t) {
                                     if (err) {
                                         console.log(err);
@@ -321,7 +319,7 @@ app.put('/node/:node_id', function (req, res) {
 
 app.get('/node/:node_id', function(req, res) {
     var node_id = req.params.node_id;
-    schema.Node.findById(node_id, function (err, found) {
+    db.Node.findById(node_id, function (err, found) {
         if (err) {
             res.status(500).send("Cannot fetch node info");
             console.log(err);
@@ -338,7 +336,7 @@ app.get('/node/:node_id', function(req, res) {
 
 app.delete('/node/:node_id', function(req, res) {
     var node_id = req.params.node_id;
-    schema.Node.findByIdAndRemove(node_id, function (err) {
+    db.Node.findByIdAndRemove(node_id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
             console.log(err);
@@ -348,7 +346,7 @@ app.delete('/node/:node_id', function(req, res) {
     })
 });
 
-app.get('/tags', handlePluralGet('tag', schema.Tag, {}, []));
+app.get('/tags', handlePluralGet('tag', db.Tag, {}, []));
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
@@ -368,7 +366,7 @@ app.post('/tags', function (req, res) {
         res.status(400).send('Invalid request format');
         return
     }
-    schema.Tag.create({
+    db.Tag.create({
         name: name,
         monitorItems: monitorItems,
         alarmRules: alarmRules,
@@ -387,7 +385,7 @@ app.post('/tags', function (req, res) {
 
 app.get('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
-    schema.Tag.findById(tag_id, function (err, found) {
+    db.Tag.findById(tag_id, function (err, found) {
         if(err) {
             res.status(500).send("Cannot fetch tag info");
             console.log(err);
@@ -419,7 +417,7 @@ app.put('/tag/:tag_id', function(req, res){
     if(alarmReceiverGroups && alarmReceiverGroups.constructor === Array) {
         update.alarmReceiverGroups = alarmReceiverGroups
     }
-    schema.Tag.findOneAndUpdate(
+    db.Tag.findOneAndUpdate(
         { _id: tag_id },
         { '$set': update },
         function (err, t) {  // t is the original tag record
@@ -433,7 +431,7 @@ app.put('/tag/:tag_id', function(req, res){
                 return
             }
             if(update.monitorItems) {
-                schema.Node.find({tags: t._id},
+                db.Node.find({tags: t._id},
                     function(err, nodes) {
                         if(err) {
                             console.log('fetching nodes by tag', err);
@@ -457,7 +455,7 @@ app.put('/tag/:tag_id', function(req, res){
 
 app.delete('/tag/:tag_id', function(req, res) {
     var tag_id = req.params.tag_id;
-    schema.Tag.findByIdAndRemove(tag_id, function (err) {
+    db.Tag.findByIdAndRemove(tag_id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
             console.log(err);
@@ -482,7 +480,7 @@ var queryNode = function(req, res) {
             var sregx = new RegExp(s, 'i');
             async.parallel([
                     function (callback) {
-                        schema.Tag.find({'name': sregx}, {_id: 1}, // only return id
+                        db.Tag.find({'name': sregx}, {_id: 1}, // only return id
                             function (err, tags) {
                                 if (err) {
                                     callback(err, {})
@@ -490,7 +488,7 @@ var queryNode = function(req, res) {
                                 var ids = tags.map(function (tag) {
                                     return tag._id
                                 });
-                                schema.Node.find({tags: {$in: ids}},
+                                db.Node.find({tags: {$in: ids}},
                                     function (err, nodes) {
                                         if (err) {
                                             callback(err, {})
@@ -500,7 +498,7 @@ var queryNode = function(req, res) {
                             })
                     },
                     function (callback) {
-                        schema.Node.find({$or:[
+                        db.Node.find({$or:[
                             {name: sregx},
                             {nickname: sregx},
                             {ips: sregx}
@@ -561,7 +559,7 @@ var queryNode = function(req, res) {
 var queryTag = function(req, res) {
     var query = req.query.tag;
     var sregx = new RegExp(query.trim(), 'i');
-    handlePluralGet('tag', schema.Tag, {name: sregx}, [])(req, res);
+    handlePluralGet('tag', db.Tag, {name: sregx}, [])(req, res);
 };
 
 // For "Find anything"

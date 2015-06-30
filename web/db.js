@@ -17,12 +17,15 @@ var tagSchema = new Schema({
 var Tag = mongoose.model('Tag', tagSchema);
 
 
+var states = ['Good', 'Warning', 'Error'];
 var nodeSchema = new Schema({
         nickname: String,
         name: String,
         description: String,
         ips: [String],
-        tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}]
+        tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}],
+        state: {type: String, enum: states},
+        failedRules: [String]
     },
     {
         collection: "Node"
@@ -33,21 +36,9 @@ var nodeSchema = new Schema({
 var Node = mongoose.model('Node', nodeSchema);
 
 
-var stateSchema = new Schema({
-        nodeId: {type: Schema.Types.ObjectId, ref: 'Node'},
-        failedRules: [String],
-        state: String
-    },
-    {
-        collection: "State"
-    }
-);
-
-var State = mongoose.model('State', stateSchema);
-
+mongoose.connect('mongodb://watchtv:watchtv@localhost:27017/watchtv');
 
 module.exports = {
     Tag: Tag,
-    Node: Node,
-    State: State
+    Node: Node
 };

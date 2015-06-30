@@ -30,7 +30,6 @@ var GraphSelector = React.createClass({
         }
     },
     componentWillMount: function(){
-
         // measurements: { cpu: { device : ['cpu0' ...],
         //                        measure: ['idle' ...]
         //                      },
