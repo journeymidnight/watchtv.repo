@@ -1,5 +1,7 @@
 var mongoose = require('mongoose');
 
+var config = require('./config.js');
+
 var Schema = mongoose.Schema,
     ObjectId = Schema.ObjectId;
 
@@ -36,7 +38,7 @@ var nodeSchema = new Schema({
 var Node = mongoose.model('Node', nodeSchema);
 
 
-mongoose.connect('mongodb://watchtv:watchtv@localhost:27017/watchtv');
+mongoose.connect(config.db.mongodbURL);
 
 module.exports = {
     Tag: Tag,

@@ -4,13 +4,14 @@ var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
 var unit = require('../unit.js');
+var config = require('../../config.js');
 
-var influxdb_url = 'http://192.169.0.59:8086';
+var influxdb_url = config.webApp.influxdbURL;
 var q_param = function(q){
     return {
-        u: 'root',
-        p: 'root',
-        db: 'graphite',
+        u: config.webApp.influxdbUser,
+        p: config.webApp.influxdbPassword,
+        db: config.webApp.influxdbDatabase,
         q: q
     }
 };

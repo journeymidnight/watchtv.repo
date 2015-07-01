@@ -2,10 +2,10 @@ var async = require('async');
 var request = require('request');
 
 var db = require('./db.js');
+var config = require('./config.js');
 
-// TODO: Make them configurable
-var NodeCheckInterval = 5 * 60 * 1000; // 5min, in ms
-var NodeListUpdateInterval = 12 * 60 * 60 * 1000; // 12h, in ms
+var NodeCheckInterval = config.judge.NodeCheckInterval;
+var NodeListUpdateInterval = config.judge.NodeListUpdateInterval;
 
 var nodeLivenessCheckFactory = function(node) {
     return function() {

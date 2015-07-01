@@ -1,6 +1,7 @@
 var React = require('react');
 
 var SearchBar = require('./searchbar.js');
+var config = require('../../config.js');
 
 
 // The integration place for SearchBar and a table class(currently TagList or NodeList)
@@ -11,7 +12,7 @@ var SearchBar = require('./searchbar.js');
 // hintText: string, text to show as a placeholder in search input box
 
 
-var itemsPerPage = 10;  // TODO: Make it configurable
+var itemsPerPage = config.webApp.itemsPerPage;
 
 var SearchableList = React.createClass({
     componentDidMount: function(){

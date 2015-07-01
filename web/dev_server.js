@@ -1,4 +1,3 @@
-
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
@@ -9,7 +8,10 @@ var request = require('request');
 var Set = require('jsclass/src/set').Set;
 var app = express();
 
-app.set('port', (process.env.PORT || 3000));
+var db = require('./db.js');
+var config = require('./config.js');
+
+app.set('port', (config.webServer.port || 3000));
 
 app.use('/', express.static(path.join(__dirname, './')));
 app.use(bodyParser.json());
@@ -20,7 +22,6 @@ app.listen(app.get('port'), function() {
   console.log('Server started: http://0.0.0.0:' + app.get('port') + '/');
 });
 
-var db = require('./db.js');
 
 
 var handlePluralGet = function(name, model, query, extraModelActions) {
