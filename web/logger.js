@@ -13,13 +13,12 @@ mkdirp(logDir, function(err){
 });
 
 // Ensure the config file
-var fd = fs.openSync(config.log.path, 'a');
+var oldMask,
+    newMask = 0000;
+oldMask = process.umask(newMask);
+var fd = fs.openSync(config.log.path, 'a', 0666);
 fs.closeSync(fd);
-try {
-    fs.chmodSync(config.log.path, '666');
-} catch(err) {
-    console.log('Cannot chmod log file to 666:', err);
-}
+process.umask(oldMask);
 
 
 var getLogger = function(name) {
