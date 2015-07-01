@@ -10,6 +10,7 @@ var app = express();
 
 var db = require('./db.js');
 var config = require('./config.js');
+var logger = require('./logger.js').getLogger('API');
 
 app.set('port', (config.webServer.port || 3000));
 
@@ -19,7 +20,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 
 app.listen(app.get('port'), function() {
-  console.log('Server started: http://0.0.0.0:' + app.get('port') + '/');
+    logger('Server started: http://0.0.0.0:' + app.get('port'));
 });
 
 
@@ -49,7 +50,7 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
         model.count(query, function (err, count) {
             if (err) {
                 res.status(500).send("Cannot count " + name + " number");
-                console.log(err);
+                logger(err);
                 return
             }
             var q = extraModelActions.reduce(
@@ -63,7 +64,7 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
             q.exec(function (err, instances) {
                 if(err) {
                     res.status(500).send("Cannot fetch " + name + " list");
-                    console.log(err);
+                    logger(err);
                     return
                 }
                 res.setHeader('Content-Type', 'application/json');
@@ -116,7 +117,7 @@ var nodeCommander = function(nodes, enables, disables) {
             var addr = n.split(':')[0],
                 port = n.split(':')[1];
             if (!port) {
-                port = '5000';     // default port
+                port = config.webServer.defaultDiamondPort;
             }
             request({
                     method: "POST",
@@ -131,13 +132,13 @@ var nodeCommander = function(nodes, enables, disables) {
                     }
                 },
                 function (err, resp, body) {
-                    console.log(err, resp, body);
+                    logger(err, resp, body);
                 }
             )
         },
         function (err, _) {
             if (err) {
-                console.log(err)
+                logger(err)
             }
         }
     )
@@ -173,7 +174,7 @@ app.post('/nodes', function(req, res) {
             db.Tag.findOne({name: tag},
                 function (err, t) {
                     if (err) {
-                        console.log(err);
+                        logger(err);
                         return
                     }
                     map_callback(null, t)
@@ -202,10 +203,10 @@ app.post('/nodes', function(req, res) {
                 function (err, n) {
                     if (err) {
                         res.status(500).send('Node create failed');
-                        console.log(err);
+                        logger(err);
                         return
                     }
-                    console.log('Node created', n);
+                    logger('Node created', n);
                     res.status(201).send('Node added');
                 }
             );
@@ -246,7 +247,7 @@ app.put('/node/:node_id', function (req, res) {
             db.Tag.findOne({name:tag},
                 function(err, t) {
                     if(err) {
-                        console.log(err);
+                        logger(err);
                         return
                     }
                     map_callback(null, t)
@@ -264,7 +265,7 @@ app.put('/node/:node_id', function (req, res) {
                     }
                 }
             );
-            console.log('update', update);
+            logger('update', update);
             db.Node.findOneAndUpdate(
                 { _id: node_id },
                 { '$set': update },
@@ -272,20 +273,20 @@ app.put('/node/:node_id', function (req, res) {
                     // n is the original node record before update
                     if(err) {
                         res.status(500).send('Existence checking failed');
-                        console.log(err);
+                        logger(err);
                         return
                     }
                     if(!n) {
                         res.status(404).send(node_id + ' does not exist');
                         return
                     }
-                    console.log('origin', n);
+                    logger('origin', n);
                     async.map(n.tags, // n.tags is an array of ids
                         function (tag, map_callback) {
                             db.Tag.findById(tag,
                                 function (err, t) {
                                     if (err) {
-                                        console.log(err);
+                                        logger(err);
                                         return
                                     }
                                     map_callback(null, t)
@@ -305,9 +306,11 @@ app.put('/node/:node_id', function (req, res) {
                             );
                             var toDisable = originalMonitorItems.difference(updatedMonitorItems);
                             var toEnable = updatedMonitorItems.difference(originalMonitorItems);
-                            nodeCommander(n.ips, toEnable, toDisable);
+                            if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
+                                nodeCommander(n.ips, toEnable, toDisable);
+                            }
                             if(ips) {
-                                nodeCommander(ips, toEnable, toDisable)
+                                nodeCommander(ips, updatedMonitorItems, []);
                             }
                         }
                     );
@@ -323,7 +326,7 @@ app.get('/node/:node_id', function(req, res) {
     db.Node.findById(node_id, function (err, found) {
         if (err) {
             res.status(500).send("Cannot fetch node info");
-            console.log(err);
+            logger(err);
             return
         }
         if(!found) {
@@ -340,7 +343,7 @@ app.delete('/node/:node_id', function(req, res) {
     db.Node.findByIdAndRemove(node_id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
-            console.log(err);
+            logger(err);
             return
         }
         res.send(node_id + " has been deleted.")
@@ -376,7 +379,7 @@ app.post('/tags', function (req, res) {
         function (err, t) {
             if(err) {
                 res.status.send('Tag create failed');
-                console.log(err);
+                logger(err);
                 return
             }
             res.status(201).send('Tag added');
@@ -389,7 +392,7 @@ app.get('/tag/:tag_id', function(req, res){
     db.Tag.findById(tag_id, function (err, found) {
         if(err) {
             res.status(500).send("Cannot fetch tag info");
-            console.log(err);
+            logger(err);
             return
         }
         if(!found){
@@ -424,7 +427,7 @@ app.put('/tag/:tag_id', function(req, res){
         function (err, t) {  // t is the original tag record
             if(err) {
                 res.status(500).send('Existence checking failed');
-                console.log(err);
+                logger(err);
                 return
             }
             if(!t) {
@@ -435,7 +438,7 @@ app.put('/tag/:tag_id', function(req, res){
                 db.Node.find({tags: t._id},
                     function(err, nodes) {
                         if(err) {
-                            console.log('fetching nodes by tag', err);
+                            logger('fetching nodes by tag', err);
                         }
                         var nodeAddrs = [];
                         nodes.map(function(n){
@@ -445,7 +448,9 @@ app.put('/tag/:tag_id', function(req, res){
                             updateItems = new Set(update.monitorItems);
                         var toDisable = originalItems.difference(updateItems),
                             toEnable = updateItems.difference(originalItems);
-                        nodeCommander(nodeAddrs, toEnable, toDisable)
+                        if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
+                            nodeCommander(nodeAddrs, toEnable, toDisable)
+                        }
                     }
                 )
             }
@@ -459,7 +464,7 @@ app.delete('/tag/:tag_id', function(req, res) {
     db.Tag.findByIdAndRemove(tag_id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
-            console.log(err);
+            logger(err);
             return
         }
         res.send(tag_id + " has been deleted.")
@@ -510,7 +515,7 @@ var queryNode = function(req, res) {
                 ],
                 function(err, r){
                     if(err){
-                        console.log(err);
+                        logger(err);
                         res.status(500).send("Cannot complete your query");
                         return
                     }

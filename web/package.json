@@ -13,6 +13,7 @@
     "jsclass": "^4.0.5",
     "markdown": "^0.5.0",
     "material-ui": "^0.9.2",
+    "mkdirp": "^0.5.1",
     "moment": "^2.10.3",
     "mongoose": "^4.0.6",
     "react": "^0.13.3",

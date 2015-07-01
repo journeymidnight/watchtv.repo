@@ -3,6 +3,7 @@ var request = require('request');
 
 var db = require('./db.js');
 var config = require('./config.js');
+var logger = require('./logger.js').getLogger('Judge');
 
 var NodeCheckInterval = config.judge.NodeCheckInterval;
 var NodeListUpdateInterval = config.judge.NodeListUpdateInterval;
@@ -35,7 +36,7 @@ var nodeLivenessCheckFactory = function(node) {
                     return (previous || current);
                 }, false);
 
-                console.log('State of ', node.ips, '   ', state);
+                logger('State of', node.ips, ' ', state);
                 var update = {};
                 if(state) {
                     update = {
@@ -53,7 +54,7 @@ var nodeLivenessCheckFactory = function(node) {
                     { _id: node._id },
                     { '$set': update},
                     function(err, state) {
-                        if(err) {console.log('Create/update state ', err)}
+                        if(err) {logger('Create/update state ', err)}
                     }
                 )
             }
@@ -66,7 +67,7 @@ var livenessCheck = function() {
     db.Node.find({},
         function(err, nodes) {
             if(err) {
-                console.log('fetching nodes ', err);
+                logger('Error fetching nodes ', err);
             }
             livenessCheckJobList.map(function(job){
                 clearInterval(job);
@@ -82,6 +83,7 @@ var livenessCheck = function() {
 
 var checkList = [livenessCheck];
 
+logger('Judge started');
 // Enable all checkers in checkList
 checkList.map(function(checker){
     checker();

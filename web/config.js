@@ -2,7 +2,8 @@
 var config = {};
 
 config.webServer = {
-    port: 80
+    port: 80,
+    defaultDiamondPort: 5000
 };
 
 config.webApp = {
@@ -20,6 +21,10 @@ config.db = {
 config.judge = {
     NodeCheckInterval: 5 * 60 * 1000, // 5min, in ms
     NodeListUpdateInterval: 12 * 60 * 60 * 1000 // 12h, in ms
+};
+
+config.log = {
+    path: "/Users/can/Desktop/watchtv/watchtv.log"
 };
 
 
