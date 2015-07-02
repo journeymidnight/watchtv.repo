@@ -23,10 +23,14 @@
     "update": "^0.3.6",
     "validator": "^3.40.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^10.2.4",
+    "react-tools": "^0.13.3"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node dev_server.js"
+    "start": "node dev_server.js",
+    "build_js": "bash build_js.sh"
   },
   "repository": {
     "type": "git",

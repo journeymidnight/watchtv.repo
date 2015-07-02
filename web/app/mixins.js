@@ -13,6 +13,22 @@ var materialMixin = {
     }
 };
 
+var configMixin = {
+    getConfig : function() {
+        $.ajax({
+            url: '/config',
+            dataType: 'json',
+            success: function(data) {
+                this.setState({config: data})
+            }.bind(this),
+            error: function(_) {
+                this.setState({config: data})
+            }.bind(this)
+        })
+    }
+};
+
 module.exports = {
-    materialMixin: materialMixin
+    materialMixin: materialMixin,
+    configMixin: configMixin
 };

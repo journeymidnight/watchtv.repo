@@ -2,12 +2,16 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title>Tags</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <title>watchTV watches letv</title>
+    <script src="js/jquery-2.1.4.min.js"></script>
+    <script src="js/jquery.flot.min.js"></script>
+    <script src="js/jquery.flot.time.min.js"></script>
+    <script src="js/jquery.flot.crosshair.min.js"></script>
+    <script src="js/jquery.flot.selection.min.js"></script>
 
     <!-- BootStrap -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
 </head>
 <body>
     <div id="content"></div>
@@ -17,13 +21,12 @@
         };
         (function() {
             var wf = document.createElement('script');
-            wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
-            '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+            wf.src = 'js/webfont.js';
             wf.type = 'text/javascript';
             wf.async = 'true';
             var s = document.getElementsByTagName('script')[0];
             s.parentNode.insertBefore(wf, s);
         })(); </script>
-    <script src="build/app-tag.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

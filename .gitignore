@@ -1,3 +1,6 @@
 *.swp
 web/node_modules/*
-web/build/*
+web/app/static/build/*
+web/app/static/js/main.js
+web/app/static/js/tag.js
+web/npm-debug.log

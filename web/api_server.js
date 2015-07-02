@@ -14,7 +14,7 @@ var logger = require('./logger.js').getLogger('API');
 
 app.set('port', (config.webServer.port || 3000));
 
-app.use('/', express.static(path.join(__dirname, './')));
+app.use('/', express.static(path.join(__dirname, 'app', 'static')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -579,4 +579,8 @@ app.get('/q', function(req, res){
     } else {
         res.status(400).send("Invalid query");
     }
+});
+
+app.get('/config', function(req, res) {
+    res.status(200).send(config.webApp);
 });
