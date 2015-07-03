@@ -1,0 +1,7 @@
+/var/log/watchtv/watchtv.log {
+    daily
+    dateext
+    compress
+    rotate 7
+    copytruncate
+}
