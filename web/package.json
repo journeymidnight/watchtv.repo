@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "browserify": "^10.2.4",
+    "minifier": "^0.7.0",
     "react-tools": "^0.13.3"
   },
   "scripts": {

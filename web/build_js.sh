@@ -1,7 +1,9 @@
 #!/bin/bash
 
-jsx app/ app/static/build/
+jsx app/  build/
 
 for f in main.js tag.js; do
-    browserify -d app/static/build/$f -o app/static/js/$f
+    browserify -d build/$f -o build/static/js/$f
+    minify  build/static/js/$f --output app/static/js/$f
 done
+

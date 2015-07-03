@@ -14,7 +14,10 @@ var materialMixin = {
 };
 
 var configMixin = {
-    getConfig : function() {
+    getInitialState: function() {
+        return {config: {}}
+    },
+    componentWillMount: function(){
         $.ajax({
             url: '/config',
             dataType: 'json',
@@ -22,9 +25,10 @@ var configMixin = {
                 this.setState({config: data})
             }.bind(this),
             error: function(_) {
-                this.setState({config: data})
-            }.bind(this)
-        })
+                this.setState({config: {}})
+            }.bind(this),
+            async: false
+        });
     }
 };
 

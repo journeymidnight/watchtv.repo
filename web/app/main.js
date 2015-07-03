@@ -43,7 +43,7 @@ var NodeList = React.createClass({
             return(
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     id={node._id} description={node.description} state={node.state}
-                    onRefresh={that.props.onRefresh} />
+                    onRefresh={that.props.onRefresh} config={that.props.config} />
             )
         });
         var addNewNodeRow =
@@ -110,7 +110,7 @@ var NodeEntry = React.createClass({
                     />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} description={this.props.description}
-                        state={this.props.state}
+                        state={this.props.state} config={this.props.config}
                     />
                     <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
@@ -240,7 +240,8 @@ var NodeInfoButton = React.createClass({
                             <div dangerouslySetInnerHTML={this.createMarkdown()} />
                         </bootstrap.Panel>
                         <MetricGraph node_id={this.props.nodeId} node_ips={this.props.nodeIps}
-                            render={this.state.renderGraph} />
+                            render={this.state.renderGraph} config={this.props.config}
+                        />
                     </div>
                 </mui.Dialog>
             </span>
@@ -249,7 +250,7 @@ var NodeInfoButton = React.createClass({
 });
 
 var NodeApp = React.createClass({
-    mixins: [mixins.materialMixin],
+    mixins: [mixins.materialMixin, mixins.configMixin],
     render: function(){
         return (
             <mui.AppCanvas>
@@ -258,6 +259,7 @@ var NodeApp = React.createClass({
                     type="node"
                     listClass={NodeList}
                     hintText="Find anything"
+                    config={this.state.config}
                 />
             </mui.AppCanvas>
         )

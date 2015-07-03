@@ -1,7 +1,7 @@
 var React = require('react');
 
 var SearchBar = require('./searchbar.js');
-var config = require('../../config.js');
+//var config = require('../../config.js');
 
 
 // The integration place for SearchBar and a table class(currently TagList or NodeList)
@@ -12,10 +12,9 @@ var config = require('../../config.js');
 // hintText: string, text to show as a placeholder in search input box
 
 
-var itemsPerPage = config.webApp.itemsPerPage;
-
 var SearchableList = React.createClass({
     componentDidMount: function(){
+        var itemsPerPage = this.props.config.itemsPerPage;
         $.ajax({
             url: this.props.type + 's?' + $.param({limit: itemsPerPage}),
             dataType: 'json',
@@ -39,6 +38,7 @@ var SearchableList = React.createClass({
         }
     },
     handleKeyword: function(keyword, pageNumber){
+        var itemsPerPage = this.props.config.itemsPerPage;
         if(keyword == undefined) {
             keyword = this.state.keyword
         }
@@ -70,7 +70,9 @@ var SearchableList = React.createClass({
                 <SearchBar onNewKeywords={this.handleKeyword} hintText={this.props.hintText}
                     totalPages={this.state.totalPages} activePage={this.state.activePage}
                 />
-                <this.props.listClass data={this.state.data} onRefresh={this.handleKeyword} />
+                <this.props.listClass data={this.state.data} onRefresh={this.handleKeyword}
+                    config={this.props.config}
+                />
             </div>
         )
     }

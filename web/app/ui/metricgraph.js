@@ -4,14 +4,13 @@ var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
 var unit = require('../unit.js');
-var config = require('../../config.js');
 
-var influxdb_url = config.webApp.influxdbURL;
-var q_param = function(q){
+
+var q_param = function(config, q) {
     return {
-        u: config.webApp.influxdbUser,
-        p: config.webApp.influxdbPassword,
-        db: config.webApp.influxdbDatabase,
+        u: config.influxdbUser,
+        p: config.influxdbPassword,
+        db: config.influxdbDatabase,
         q: q
     }
 };
@@ -37,9 +36,11 @@ var GraphSelector = React.createClass({
         //                 memory: { ... },
         //               }
         var measurements = {};
+        var that = this;
         $.ajax({
-            url: influxdb_url + '/query?' + $.param(
-                q_param("SHOW MEASUREMENTS WHERE host='" + this.props.host + "'")),
+            url: this.props.config.influxdbURL + '/query?' + $.param(
+                q_param(this.props.config, 
+                    "SHOW MEASUREMENTS WHERE host='" + this.props.host + "'")),
             dataType: 'json',
             success: function(data){
                 var measure_list = get_value(data);
@@ -47,17 +48,17 @@ var GraphSelector = React.createClass({
                 measure_list.map(function(m) {
                     var tags = {};
                     $.ajax({
-                        url: influxdb_url + '/query?' + $.param(
-                            q_param('SHOW TAG KEYS FROM ' + m)),
+                        url: that.props.config.influxdbURL + '/query?' + $.param(
+                            q_param(that.props.config, 'SHOW TAG KEYS FROM ' + m)),
                         dataType: 'json',
                         success: function (data) {
                             var key_list = get_value(data);
                             key_list.map(function(k){
                                 if(k == 'host') return;
                                 $.ajax({
-                                    url: influxdb_url + '/query?' + $.param(
-                                        q_param('SHOW TAG VALUES FROM ' + m + ' WITH KEY="' +
-                                        k + '"')
+                                    url: that.props.config.influxdbURL + '/query?' + $.param(
+                                        q_param(that.props.config,
+                                            'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
                                     ),
                                     dataType: 'json',
                                     success: function (data) {
@@ -284,7 +285,8 @@ var Graph = React.createClass({
     },
     queryInfluxDB: function(queryString) {
         $.ajax({
-            url: influxdb_url + '/query?' + $.param(q_param(queryString)),
+            url: this.props.config.influxdbURL + '/query?' +
+                $.param(q_param(this.props.config, queryString)),
             dataType: 'json',
             success: function (data) {
                 this.setState({data: get_value(data)});
@@ -323,7 +325,7 @@ var Graph = React.createClass({
                 />
                 <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
                     onGraph={this.handleGraph} host={this.state.host} id={this.state.uniq_id}
-                    key={this.state.uniq_id}
+                    key={this.state.uniq_id} config={this.props.config}
                 />
                 <div id={'graph'+this.state.uniq_id} style={{width: '650px', height: '300px',
                     backgroundColor: "#6EB5F0"}}></div>
@@ -429,7 +431,7 @@ var MetricGraph = React.createClass({
         } else { // node_ips.len == 1
             return (
                 <Graph ip={this.props.node_ips[0]} node_id={this.props.node_id}
-                    render={this.props.render} />
+                    render={this.props.render} config={this.props.config} />
             )
         }
     }

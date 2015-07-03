@@ -174,7 +174,7 @@ var TagEditButton = React.createClass({
 });
 
 var TagApp = React.createClass({
-    mixins: [mixins.materialMixin],
+    mixins: [mixins.materialMixin, mixins.configMixin],
     render: function(){
         return (
             <mui.AppCanvas>
@@ -183,6 +183,7 @@ var TagApp = React.createClass({
                     type="tag"
                     listClass={TagList}
                     hintText="Find tags"
+                    config={this.state.config}
                 />
             </mui.AppCanvas>
         )
