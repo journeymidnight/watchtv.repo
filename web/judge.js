@@ -13,6 +13,12 @@ var nodeLivenessCheckFactory = function(node) {
         async.map(
             node.ips,
             function(ip, callback) {
+                // IP addresses stored in db could in the form
+                // 1.2.3.4 or 1.2.3.4:1234
+                // for the former format, we should append default port when checking
+                if(ip.split(':')[1] == undefined) {
+                    ip += ':' + config.webServer.defaultDiamondPort;
+                }
                 request('http://' + ip, function(err, response, body){
                     if(err || response.statusCode != 200) {
                         callback(null, false);

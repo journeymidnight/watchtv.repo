@@ -86,6 +86,7 @@ app.get('/nodes', handlePluralGet('node', db.Node, {},
                                 }]));
 
 var isIPandPort = function(s) {
+    if (s.endsWith(':')){ return false }
     var addr = s.split(':')[0],
         port = s.split(':')[1];  // could be `undefined`
     return (

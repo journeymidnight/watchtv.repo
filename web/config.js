@@ -20,7 +20,7 @@ config.db = {
 
 config.judge = {
     NodeCheckInterval: 5 * 60 * 1000, // 5min, in ms
-    NodeListUpdateInterval: 12 * 60 * 60 * 1000 // 12h, in ms
+    NodeListUpdateInterval: 60 * 60 * 1000 // 1h, in ms
 };
 
 config.log = {
