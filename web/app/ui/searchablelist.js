@@ -1,7 +1,6 @@
 var React = require('react');
 
 var SearchBar = require('./searchbar.js');
-//var config = require('../../config.js');
 
 
 // The integration place for SearchBar and a table class(currently TagList or NodeList)

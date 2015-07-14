@@ -13,7 +13,7 @@ var nodeLivenessCheckFactory = function(node) {
         async.map(
             node.ips,
             function(ip, callback) {
-                // IP addresses stored in db could in the form
+                // IP addresses stored in db could be in the form
                 // 1.2.3.4 or 1.2.3.4:1234
                 // for the former format, we should append default port when checking
                 if(ip.split(':')[1] == undefined) {
