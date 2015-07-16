@@ -24,7 +24,7 @@ config.judge = {
 };
 
 config.log = {
-    path: "/Users/can/Desktop/watchtv/watchtv.log"
+    path: "/var/log/watchtv/watchtv.log"
 };
 
 
