@@ -8,7 +8,7 @@ config.webServer = {
 
 config.webApp = {
     itemsPerPage: 10,
-    influxdbURL: "http://192.169.0.59:8086",
+    influxdbURL: "http://10.58.180.114:8086",
     influxdbUser: "root",
     influxdbPassword: "root",
     influxdbDatabase: "graphite"

@@ -194,6 +194,20 @@ var fitData = function(data) {
         var d = [Date.parse(data[i]) , data[i+1]];
         fitted_data.push(d)
     }
+    // do linear fitting to eliminate null values
+    var last_i = null;
+    for (i = 0; i < fitted_data.length; i += 1) {
+        if(fitted_data[i][1]) {
+           if (last_i) {
+               for(var j = last_i + 1; j < i; j += 1) {
+                   var y1 = fitted_data[last_i][1];
+                   var y2 = fitted_data[i][1];
+                   fitted_data[j][1] = y1 + (y2 - y1) * (j - last_i) / (i - last_i);
+               }
+           }
+           last_i = i;
+        }
+    }
     return fitted_data;
 };
 
@@ -368,8 +382,8 @@ var Graph = React.createClass({
             $('#graph' + that.state.uniq_id)
                 .unbind()
                 .bind("plothover", function (event, pos, item) {
-                    console.log('item: ', item);
-                    console.log('pos: ', pos);
+                    //console.log('item: ', item);
+                    //console.log('pos: ', pos);
                     if (item) {
                         var x = new Date(item.datapoint[0]),
                             y = numberFormatter(item.datapoint[1],
