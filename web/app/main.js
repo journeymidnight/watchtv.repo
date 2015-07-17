@@ -216,9 +216,9 @@ var NodeInfoButton = React.createClass({
         var infoAction = [
             {text: 'Close'}
         ];
-        var fillColor = "#444444"; // grey
+        var fillColor = "#019875"; // green, signifies the node is in good condition
         if(this.props.state != "Good") {
-            fillColor = "#E60000"; // red
+            fillColor = "#444444"; // grey
         }
         return (
             <span>
