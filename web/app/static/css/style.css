@@ -1,0 +1,3 @@
+.scrollDialog {height: 80%;overflow-y: scroll;overflow-x:hidden; }
+.dropDownMenu {margin-left: -24px;}
+.dropDownMenu svg + div{margin-top: -10px!important;}

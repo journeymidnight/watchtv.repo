@@ -234,6 +234,7 @@ var NodeInfoButton = React.createClass({
                     title={title}
                     actions={infoAction}
                     modal={true}
+                    contentClassName="scrollDialog"
                     ref="infoDialog">
                     <div>
                         <bootstrap.Panel collapsible={this.props.description == ''}>

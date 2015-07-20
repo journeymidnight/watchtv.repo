@@ -159,9 +159,14 @@ var GraphSelector = React.createClass({
 
 var pointPerGraph = 300; // should be configurable
 
-var buildQuery = function(fromTime, toTime, measurement, host, device, measure) {
+var buildQuery = function(fromTime, toTime, timePeriod, measurement, host, device, measure) {
     // fromTime and toTime are all Date objects
-
+    if(timePeriod != null){
+        fromTime = timePeriod[0];
+        toTime = timePeriod[1];
+    }else if(timePeriod == null && fromTime == null && toTime == null){
+        return null;
+    }
     var groupByTime = Math.floor( (toTime - fromTime)/pointPerGraph/1000 );
     if (groupByTime < 1) { groupByTime = 1}
 
@@ -180,10 +185,19 @@ var millisecondsPerDay = 24*60*60*1000;
 var fitTime = function(time) {
     // "time" assumes to be the time gotten from DatePicker, in Unix time, in milliseconds
     // returns picked "date" combines current "time"
+    if(time == null) return null;
+    else time = time.getTime();
     var now = new Date();
     var timeOfDay = (now.getTime() % millisecondsPerDay);
     var dateOfTime = Math.ceil(time / millisecondsPerDay) * millisecondsPerDay;
     return new Date(dateOfTime + timeOfDay);
+};
+var fitTimePeriod = function(timePeriod) {
+    var state = timePeriod.state.selectedIndex;
+    var time = parseInt(timePeriod.props.menuItems[state].value);
+    var now = new Date();
+    if(time == 0) return null;
+    else return [new Date(now.getTime()-time*1000),now];
 };
 
 var fitData = function(data) {
@@ -309,13 +323,15 @@ var Graph = React.createClass({
     },
     handleGraph: function(){
         var query = buildQuery(
-            fitTime(this.refs.fromDatePicker.getDate().getTime()),
-            fitTime(this.refs.toDatePicker.getDate().getTime()),
+            fitTime(this.refs.fromDatePicker.getDate()),
+            fitTime(this.refs.toDatePicker.getDate()),
+            fitTimePeriod(this.refs.timePeriod),
             this.state.selected.selectedMeasurement,
             this.state.host,
             this.state.selected.selectedDevice,
             this.state.selected.selectedMeasure
         );
+        if(query == null) return;
         console.log(query);
         this.queryInfluxDB(query);
     },
@@ -325,6 +341,22 @@ var Graph = React.createClass({
         }
         return (
             <div>
+                <mui.DropDownMenu menuItems={
+                    [
+                       { payload: '1', text: 'None' ,value: '0'},
+                       { payload: '2', text: 'Last 5m' ,value: '300'},
+                       { payload: '3', text: 'Last 15m' ,value: '900'},
+                       { payload: '4', text: 'Last 1h' ,value: '3600'},
+                       { payload: '5', text: 'Last 6h' ,value: '21600'},
+                       { payload: '6', text: 'Last 12h' ,value: '43200'},
+                       { payload: '7', text: 'Last 24h' ,value: '86400'},
+                       { payload: '8', text: 'Last 2d' ,value: '172800'},
+                       { payload: '9', text: 'Last 7d' ,value: '604800'},
+                       { payload: '10', text: 'Last 30d' ,value: '2592000'},
+                    ]
+                }
+                className="dropDownMenu"
+                ref="timePeriod" />
                 <mui.DatePicker
                     hintText="Date from"
                     mode="landscape"
@@ -341,7 +373,7 @@ var Graph = React.createClass({
                     onGraph={this.handleGraph} host={this.state.host} id={this.state.uniq_id}
                     key={this.state.uniq_id} config={this.props.config}
                 />
-                <div id={'graph'+this.state.uniq_id} style={{width: '650px', height: '300px',
+                <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '300px',
                     backgroundColor: "#6EB5F0"}}></div>
                 <div id={'tooltip'+this.state.uniq_id} style={
                     {
@@ -403,6 +435,7 @@ var Graph = React.createClass({
                         buildQuery(
                             newFromTime,
                             newToTime,
+                            null,
                             that.state.selected.selectedMeasurement,
                             that.state.host,
                             that.state.selected.selectedDevice,
