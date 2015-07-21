@@ -95,6 +95,8 @@ var GraphSelector = React.createClass({
                 that.props.onSelect(name, null)
             }
         })
+        if(event.target.id != 'graphBtn')
+            this.props.onGraph();
     },
     handleGraph: function(){
         this.changeHandler();
@@ -150,7 +152,7 @@ var GraphSelector = React.createClass({
         return (
             <div>
                 {selectors}
-                <mui.FlatButton label="Graph" onClick={this.handleGraph} />
+                <mui.FlatButton label="Refresh" onClick={this.handleGraph} id="graphBtn"/>
             </div>
         )
     }
@@ -182,16 +184,6 @@ var buildQuery = function(fromTime, toTime, timePeriod, measurement, host, devic
 };
 
 var millisecondsPerDay = 24*60*60*1000;
-var fitTime = function(time) {
-    // "time" assumes to be the time gotten from DatePicker, in Unix time, in milliseconds
-    // returns picked "date" combines current "time"
-    if(time == null) return null;
-    else time = time.getTime();
-    var now = new Date();
-    var timeOfDay = (now.getTime() % millisecondsPerDay);
-    var dateOfTime = Math.ceil(time / millisecondsPerDay) * millisecondsPerDay;
-    return new Date(dateOfTime + timeOfDay);
-};
 var fitTimePeriod = function(timePeriod) {
     var state = timePeriod.state.selectedIndex;
     var time = parseInt(timePeriod.props.menuItems[state].value);
@@ -323,8 +315,8 @@ var Graph = React.createClass({
     },
     handleGraph: function(){
         var query = buildQuery(
-            fitTime(this.refs.fromDatePicker.getDate()),
-            fitTime(this.refs.toDatePicker.getDate()),
+            null,
+            null,
             fitTimePeriod(this.refs.timePeriod),
             this.state.selected.selectedMeasurement,
             this.state.host,
@@ -335,6 +327,7 @@ var Graph = React.createClass({
         console.log(query);
         this.queryInfluxDB(query);
     },
+    
     render: function(){
         if(!this.props.render || !this.props.node_id) {
             return null
@@ -343,32 +336,21 @@ var Graph = React.createClass({
             <div>
                 <mui.DropDownMenu menuItems={
                     [
-                       { payload: '1', text: 'None' ,value: '0'},
-                       { payload: '2', text: 'Last 5m' ,value: '300'},
-                       { payload: '3', text: 'Last 15m' ,value: '900'},
-                       { payload: '4', text: 'Last 1h' ,value: '3600'},
-                       { payload: '5', text: 'Last 6h' ,value: '21600'},
-                       { payload: '6', text: 'Last 12h' ,value: '43200'},
-                       { payload: '7', text: 'Last 24h' ,value: '86400'},
-                       { payload: '8', text: 'Last 2d' ,value: '172800'},
+                       { payload: '1', text: 'Last 6h' ,value: '21600'},
+                       { payload: '2', text: 'Last 12h' ,value: '43200'},
+                       { payload: '3', text: 'Last 1d' ,value: '86400'},
+                       { payload: '4', text: 'Last 2d' ,value: '172800'},
+                       { payload: '5', text: 'Last 3d' ,value: '259200'},
+                       { payload: '6', text: 'Last 4d' ,value: '345600'},
+                       { payload: '7', text: 'Last 5d' ,value: '432000'},
+                       { payload: '8', text: 'Last 6d' ,value: '518400'},
                        { payload: '9', text: 'Last 7d' ,value: '604800'},
                        { payload: '10', text: 'Last 30d' ,value: '2592000'},
                     ]
                 }
                 className="dropDownMenu"
                 ref="timePeriod" />
-                <mui.DatePicker
-                    hintText="Date from"
-                    mode="landscape"
-                    ref="fromDatePicker"
-                    autoOk={true}
-                />
-                <mui.DatePicker
-                    hintText="to"
-                    mode="landscape"
-                    ref="toDatePicker"
-                    autoOk={true}
-                />
+
                 <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
                     onGraph={this.handleGraph} host={this.state.host} id={this.state.uniq_id}
                     key={this.state.uniq_id} config={this.props.config}
@@ -411,6 +393,9 @@ var Graph = React.createClass({
                       formatter
             );
             var that = this;
+            $('.dropDownMenu div[tabindex] div').unbind().bind('click',function(){
+                $('#graphBtn').trigger('click');
+            });
             $('#graph' + that.state.uniq_id)
                 .unbind()
                 .bind("plothover", function (event, pos, item) {
