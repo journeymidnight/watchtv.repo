@@ -20,8 +20,6 @@ var get_value = function (ret) {
     }
     return _.flatten(ret.results[0].series[0].values);
 };
-
-
 var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
@@ -95,8 +93,15 @@ var GraphSelector = React.createClass({
                 that.props.onSelect(name, null)
             }
         })
-        if(event.target.id != 'graphBtn')
+        if(event.target.id == 'graphBtn'){//for refresh button
+            return;
+        }else if(event.target.id == 'selectParent'){//for parent-select list
+            setTimeout(function(){
+                $('#graphBtn').trigger('click');
+            },200);
+        }else{//for timePeriod and sub-select list
             this.props.onGraph();
+        }
     },
     handleGraph: function(){
         this.changeHandler();
@@ -111,7 +116,7 @@ var GraphSelector = React.createClass({
                 measurementOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
             selectors.push(
-                <select onChange={this.changeHandler} ref="selectedMeasurement"
+                <select onChange={this.changeHandler} ref="selectedMeasurement" id="selectParent"
                     key={this.props.id+"selectedMeasurement"} >
                     <optgroup label="Measurements">
                         {measurementOptions}
