@@ -3,7 +3,10 @@ var config = {};
 
 config.webServer = {
     port: 80,
-    defaultDiamondPort: 5000
+    defaultDiamondPort: 5000,
+    sessionSecret: 'change_this_to_a_random_string_or_being_hacked',
+    sessionDuration: 30 * 60 * 1000, // in ms
+    sessionActiveDuration: 10 * 60 * 1000  // in ms
 };
 
 config.webApp = {

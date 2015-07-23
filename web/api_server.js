@@ -7,6 +7,7 @@ var async = require('async');
 var request = require('request');
 var Set = require('jsclass/src/set').Set;
 var app = express();
+var session = require('client-sessions');
 
 var db = require('./db.js');
 var config = require('./config.js');
@@ -14,9 +15,40 @@ var logger = require('./logger.js').getLogger('API');
 
 app.set('port', (config.webServer.port || 3000));
 
+var requireLogin = function(req, res, next) {
+    if(req.url == '/login.html') {
+        next();
+        return
+    }
+    if(!req.user) {
+        res.redirect('/login.html')
+    } else {
+        next()
+    }
+};
+
+app.use(requireLogin);
 app.use('/', express.static(path.join(__dirname, 'app', 'static')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(session({
+    cookieName: 'session',
+    secret: config.webServer.sessionSecret,
+    duration: config.webServer.sessionDuration,
+    activeDurations: config.webServer.sessionActiveDuration
+}));
+app.use(function(req, res, next){
+    if(req.session && req.session.user) {
+        db.User.findOne({name: req.session.user},
+            function(err, u) {
+                if(u) req.user = u;
+                next()
+            }
+        )
+    } else {
+        next()
+    }
+});
 
 
 app.listen(app.get('port'), function() {
@@ -26,7 +58,7 @@ app.listen(app.get('port'), function() {
 
 
 var handlePluralGet = function(name, model, query, extraModelActions) {
-    // used in GET /nodes, /tags and queryTag
+    // used in GET /nodes, /tags, /users and queryTag
 
     // name: string, used in notification string and result key name
     // model: mongoose model
@@ -79,11 +111,12 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
     }
 };
 
-app.get('/nodes', handlePluralGet('node', db.Node, {},
-                                [{
-                                    methodName: 'populate',
-                                    arguments: ['tags', 'name']
-                                }]));
+app.get('/nodes',
+    handlePluralGet('node', db.Node, {},
+                    [{
+                        methodName: 'populate',
+                        arguments: ['tags', 'name']
+                    }]));
 
 var isIPandPort = function(s) {
     if (s.endsWith(':')){ return false }
@@ -322,21 +355,23 @@ app.put('/node/:node_id', function (req, res) {
     );
 });
 
-app.get('/node/:node_id', function(req, res) {
-    var node_id = req.params.node_id;
-    db.Node.findById(node_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + node_id);
-            return
-        }
-        res.send(found);
-    }).populate('tags', 'name'); // return only name
-});
+app.get('/node/:node_id',
+    function(req, res) {
+        var node_id = req.params.node_id;
+        db.Node.findById(node_id, function (err, found) {
+            if (err) {
+                res.status(500).send("Cannot fetch node info");
+                logger(err);
+                return
+            }
+            if(!found) {
+                res.status(404).send("Cannot get info about node " + node_id);
+                return
+            }
+            res.send(found);
+        }).populate('tags', 'name'); // return only name
+    }
+);
 
 app.delete('/node/:node_id', function(req, res) {
     var node_id = req.params.node_id;
@@ -350,7 +385,8 @@ app.delete('/node/:node_id', function(req, res) {
     })
 });
 
-app.get('/tags', handlePluralGet('tag', db.Tag, {}, []));
+app.get('/tags',
+    handlePluralGet('tag', db.Tag, {}, []));
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
@@ -387,22 +423,24 @@ app.post('/tags', function (req, res) {
     )
 });
 
-app.get('/tag/:tag_id', function(req, res){
-    var tag_id = req.params.tag_id;
-    db.Tag.findById(tag_id, function (err, found) {
-        if(err) {
-            res.status(500).send("Cannot fetch tag info");
-            logger(err);
-            return
-        }
-        if(!found){
-            res.status(404).send("Cannot get info about tag " + tag_id);
-            return
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.send(found);
-    })
-});
+app.get('/tag/:tag_id',
+    function(req, res){
+        var tag_id = req.params.tag_id;
+        db.Tag.findById(tag_id, function (err, found) {
+            if(err) {
+                res.status(500).send("Cannot fetch tag info");
+                logger(err);
+                return
+            }
+            if(!found){
+                res.status(404).send("Cannot get info about tag " + tag_id);
+                return
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.send(found);
+        })
+    }
+);
 
 app.put('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
@@ -581,16 +619,18 @@ app.get('/q', function(req, res){
     }
 });
 
-app.get('/config', function(req, res) {
-    res.status(200).send(config.webApp);
+app.get('/config',
+    function(req, res) {
+        res.status(200).send(config.webApp);
 });
 
 
-app.get('/users', handlePluralGet('user', db.User, {},
-                                 [{
-                                     methodName: 'populate',
-                                     arguments: ['tags', 'name']
-                                 }]
+app.get('/users',
+    handlePluralGet('user', db.User, {},
+                    [{
+                        methodName: 'populate',
+                        arguments: ['tags', 'name']
+                    }]
 ));
 
 app.post('/users', function(req, res){
@@ -679,21 +719,23 @@ app.put('/user/:user_id', function(req, res){
     );
 });
 
-app.get('/user/:user_id', function(req, res) {
-    var user_id = req.params.user_id;
-    db.User.findById(user_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + user_id);
-            return
-        }
-        res.send(found);
-    }).populate('tags', 'name'); // return only name
-});
+app.get('/user/:user_id',
+    function(req, res) {
+        var user_id = req.params.user_id;
+        db.User.findById(user_id, function (err, found) {
+            if (err) {
+                res.status(500).send("Cannot fetch node info");
+                logger(err);
+                return
+            }
+            if(!found) {
+                res.status(404).send("Cannot get info about node " + user_id);
+                return
+            }
+            res.send(found);
+        }).populate('tags', 'name'); // return only name
+    }
+);
 
 app.delete('/user/:user_id', function(req, res) {
     var user_id = req.params.user_id;
@@ -705,4 +747,22 @@ app.delete('/user/:user_id', function(req, res) {
         }
         res.send(user_id + " has been deleted.")
     })
+});
+
+app.post('/login', function(req, res) {
+    var user = req.body.user,
+        password = req.body.password;
+    if(!user || !password) {
+        res.status(400).send('Invalid username or password');
+        return
+    }
+    // FIXME: verify user name and password
+    // FIXME: create user in db if not exist
+    req.session.user = user;
+    res.redirect('/index.html');
+});
+
+app.get('/logout', function(req, res) {
+    req.session.reset();
+    res.redirect('/login.html');
 });
