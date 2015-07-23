@@ -38,9 +38,26 @@ var nodeSchema = new Schema({
 var Node = mongoose.model('Node', nodeSchema);
 
 
+var userSchema = new Schema({
+        name: String,
+        dashboards: [{
+            node: {type: Schema.Types.ObjectId, ref: 'Node'},
+            metric: String,  // comma separated metric name, e.g. "ceph,read_Bps"
+            time: String
+        }],
+        tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}]
+    },
+    {
+        collection: "User"
+    }
+);
+
+var User = mongoose.model('User', userSchema);
+
 mongoose.connect(config.db.mongodbURL);
 
 module.exports = {
     Tag: Tag,
-    Node: Node
+    Node: Node,
+    User: User
 };

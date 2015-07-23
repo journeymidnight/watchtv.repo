@@ -20,8 +20,6 @@ var get_value = function (ret) {
     }
     return _.flatten(ret.results[0].series[0].values);
 };
-
-
 var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
@@ -94,6 +92,7 @@ var GraphSelector = React.createClass({
             } else {
                 that.props.onSelect(name, null)
             }
+<<<<<<< HEAD
         })
         if(event.target.id == 'graphBtn'){//for refresh button
             return;
@@ -102,6 +101,10 @@ var GraphSelector = React.createClass({
                 $('#graphBtn').trigger('click');
             },200);
         }else{//for timePeriod and sub-select list
+=======
+        });
+        if(event.target.id != 'graphBtn')
+>>>>>>> User GET/PUT/POST/DELETE methods
             this.props.onGraph();
         }
     },
