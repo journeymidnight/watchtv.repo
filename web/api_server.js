@@ -16,39 +16,37 @@ var logger = require('./logger.js').getLogger('API');
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
-    if(req.url == '/login.html') {
+    console.log(req.url)
+    if(req.url.startsWith('/login')) {
         next();
         return
     }
-    if(!req.user) {
-        res.redirect('/login.html')
+    if(req.session && req.session.user) {
+        db.User.findOne({name: req.session.user},
+            function(err, u) {
+                if(u) {
+                    req.user = u;
+                    next()
+                } else {
+                    res.redirect('/login.html')
+                }
+            }
+        )
     } else {
-        next()
+        res.redirect('/login.html')
     }
 };
 
-app.use(requireLogin);
-app.use('/', express.static(path.join(__dirname, 'app', 'static')));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({
     cookieName: 'session',
     secret: config.webServer.sessionSecret,
     duration: config.webServer.sessionDuration,
     activeDurations: config.webServer.sessionActiveDuration
 }));
-app.use(function(req, res, next){
-    if(req.session && req.session.user) {
-        db.User.findOne({name: req.session.user},
-            function(err, u) {
-                if(u) req.user = u;
-                next()
-            }
-        )
-    } else {
-        next()
-    }
-});
+app.use(requireLogin);
+app.use('/', express.static(path.join(__dirname, 'app', 'static')));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
 
 app.listen(app.get('port'), function() {
@@ -751,15 +749,42 @@ app.delete('/user/:user_id', function(req, res) {
 
 app.post('/login', function(req, res) {
     var user = req.body.user,
-        password = req.body.password;
+        password = JSON.stringify(req.body.password);
     if(!user || !password) {
         res.status(400).send('Invalid username or password');
         return
     }
-    // FIXME: verify user name and password
-    // FIXME: create user in db if not exist
-    req.session.user = user;
-    res.redirect('/index.html');
+    request({
+        rejectUnauthorized: false,// This is a workaround since the certs of
+                                  // lecloud.com seems not configured properly.
+                                  // Read https://github.com/coolaj86/node-ssl-root-cas
+                                  // for more info.
+        method: "GET",
+        url: 'https://oauth.lecloud.com/nopagelogin?username=' + user +
+             '&password=' + password.slice(1, password.length-1) + '&ldap=true',
+        json: true
+        },
+        function(err, resp, body) {
+            if(err) {
+                logger('Error connecting to OAuth server');
+                res.status(500).send('Error connecting to OAuth server');
+                return
+            }
+            if(body.error) {
+                res.status(401).send('Incorrect username or password');
+                return
+            }
+            db.User.update(
+                {name: user},
+                {name: user},
+                {upsert: true}, // save user to our db if not exist
+                function() {
+                    req.session.user = user;
+                    res.redirect('/index.html');
+                }
+            );
+        }
+    );
 });
 
 app.get('/logout', function(req, res) {
