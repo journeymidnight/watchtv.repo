@@ -749,11 +749,16 @@ app.delete('/user/:user_id', function(req, res) {
 
 app.post('/login', function(req, res) {
     var user = req.body.user,
-        password = JSON.stringify(req.body.password);
+        password = JSON.stringify(req.body.password);  // don't escape '\'
+                        // a side-effct is to surround the string with '"'
+    password = encodeURIComponent(password.slice(1, password.length-1));
     if(!user || !password) {
         res.status(400).send('Invalid username or password');
         return
     }
+    var url = 'https://oauth.lecloud.com/nopagelogin?username=' + user +
+            '&password=' + password + '&ldap=true';
+    logger(url);
     request({
         rejectUnauthorized: false,// This is a workaround since the certs of
                                   // lecloud.com seems not configured properly.
@@ -761,7 +766,7 @@ app.post('/login', function(req, res) {
                                   // for more info.
         method: "GET",
         url: 'https://oauth.lecloud.com/nopagelogin?username=' + user +
-             '&password=' + password.slice(1, password.length-1) + '&ldap=true',
+             '&password=' + password + '&ldap=true',
         json: true
         },
         function(err, resp, body) {
@@ -771,6 +776,7 @@ app.post('/login', function(req, res) {
                 return
             }
             if(body.error) {
+                logger(body);
                 res.status(401).send('Incorrect username or password');
                 return
             }
