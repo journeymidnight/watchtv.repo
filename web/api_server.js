@@ -37,6 +37,14 @@ var requireLogin = function(req, res, next) {
     }
 };
 
+var requireRoot = function(req, res, next) {
+    if(req.user.role == 'Root') {
+        next()
+    } else {
+        res.status(401).send('You must be Root to perform this action')
+    }
+};
+
 app.use(session({
     cookieName: 'session',
     secret: config.webServer.sessionSecret,
@@ -646,6 +654,14 @@ var queryTag = function(req, res) {
         'tag', db.Tag, q, []);
 };
 
+var queryUser = function(req, res) {
+    var query = req.query.user;
+    var sregx = new RegExp(query.trim(), 'i');
+    var q = {name: sregx};
+    handlePluralGet(req, res,
+        'user', db.User, q, []);
+};
+
 // For "Find anything"
 app.get('/q', function(req, res){
     if(req.query.node != undefined) {
@@ -654,6 +670,9 @@ app.get('/q', function(req, res){
     } else if (req.query.tag != undefined) {
         // /q?tag=xxx
         queryTag(req, res);
+    } else if (req.query.user != undefined) {
+        // /q?user=xxx
+        queryUser(req, res);
     } else {
         res.status(400).send("Invalid query");
     }
@@ -665,7 +684,8 @@ app.get('/config',
 });
 
 
-app.get('/users', function(req, res) {
+app.get('/users', requireRoot,
+    function(req, res) {
         handlePluralGet(req, res,
             'user', db.User, {},
             [{
@@ -676,7 +696,8 @@ app.get('/users', function(req, res) {
     }
 );
 
-app.post('/users', function(req, res){
+app.post('/users', requireRoot,
+    function(req, res){
     var name = req.body.name,
         dashboards = req.body.dashboards,
         tags = req.body.tags,
@@ -793,7 +814,7 @@ app.get('/user',
     }
 );
 
-app.get('/user/:user_id',
+app.get('/user/:user_id', requireRoot,
     function(req, res) {
         var user_id = req.params.user_id;
         db.User.findById(user_id, function (err, found) {
@@ -811,7 +832,8 @@ app.get('/user/:user_id',
     }
 );
 
-app.delete('/user/:user_id', function(req, res) {
+app.delete('/user/:user_id', requireRoot,
+    function(req, res) {
     var user_id = req.params.user_id;
     db.User.findByIdAndRemove(user_id, function (err) {
         if (err) {
