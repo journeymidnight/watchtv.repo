@@ -16,7 +16,7 @@ var logger = require('./logger.js').getLogger('API');
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
-    console.log(req.url)
+    logger('visited:', req.url);
     if(req.url.startsWith('/login')) {
         next();
         return
@@ -55,7 +55,7 @@ app.listen(app.get('port'), function() {
 
 
 
-var handlePluralGet = function(name, model, query, extraModelActions) {
+var handlePluralGet = function(req, res, name, model, query, extraModelActions) {
     // used in GET /nodes, /tags, /users and queryTag
 
     // name: string, used in notification string and result key name
@@ -69,52 +69,56 @@ var handlePluralGet = function(name, model, query, extraModelActions) {
     //                  { ... }, ...]
     if(!extraModelActions) extraModelActions = [];
 
-    return function(req, res) {
-        var skip = req.query.skip,
-            limit = req.query.limit;
-        if (!skip) skip = 0;
-        if (!limit) limit = 15;
-        skip = parseInt(skip);
-        limit = parseInt(limit);
+    var skip = req.query.skip,
+        limit = req.query.limit;
+    if (!skip) skip = 0;
+    if (!limit) limit = 15;
+    skip = parseInt(skip);
+    limit = parseInt(limit);
 
-        model.count(query, function (err, count) {
-            if (err) {
-                res.status(500).send("Cannot count " + name + " number");
+    model.count(query, function (err, count) {
+        if (err) {
+            res.status(500).send("Cannot count " + name + " number");
+            logger(err);
+            return
+        }
+        var q = extraModelActions.reduce(
+            function(preValue, currValue){
+                return preValue[currValue.methodName].apply(preValue, currValue.arguments)
+        },
+        model.find(query)
+             .skip(skip)
+             .limit(limit)
+        );
+        q.exec(function (err, instances) {
+            if(err) {
+                res.status(500).send("Cannot fetch " + name + " list");
                 logger(err);
                 return
             }
-            var q = extraModelActions.reduce(
-                function(preValue, currValue){
-                    return preValue[currValue.methodName].apply(preValue, currValue.arguments)
-            },
-            model.find(query)
-                 .skip(skip)
-                 .limit(limit)
-            );
-            q.exec(function (err, instances) {
-                if(err) {
-                    res.status(500).send("Cannot fetch " + name + " list");
-                    logger(err);
-                    return
-                }
-                res.setHeader('Content-Type', 'application/json');
-                res.send({
-                    total: count,
-                    skip: skip,
-                    limit: limit,
-                    result: instances
-                })
+            res.setHeader('Content-Type', 'application/json');
+            res.send({
+                total: count,
+                skip: skip,
+                limit: limit,
+                result: instances
             })
         })
-    }
+    })
 };
 
-app.get('/nodes',
-    handlePluralGet('node', db.Node, {},
-                    [{
-                        methodName: 'populate',
-                        arguments: ['tags', 'name']
-                    }]));
+app.get('/nodes', function(req, res) {
+    var q = {};
+    if(req.user.role != 'Root') {
+        q = {tags: {$in: req.user.tags}}
+    }
+    handlePluralGet(req, res,
+        'node', db.Node, q,
+        [{
+            methodName: 'populate',
+            arguments: ['tags', 'name']
+        }])
+});
 
 var isIPandPort = function(s) {
     if (s.endsWith(':')){ return false }
@@ -383,8 +387,15 @@ app.delete('/node/:node_id', function(req, res) {
     })
 });
 
-app.get('/tags',
-    handlePluralGet('tag', db.Tag, {}, []));
+app.get('/tags', function(req, res) {
+        var q = {};
+        if(req.user.role != 'Root') {
+            q = {_id: {$in: req.user.tags}}
+        }
+        handlePluralGet(req, res,
+            'tag', db.Tag, q, [])
+    }
+);
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
@@ -522,7 +533,11 @@ var queryNode = function(req, res) {
             var sregx = new RegExp(s, 'i');
             async.parallel([
                     function (callback) {
-                        db.Tag.find({'name': sregx}, {_id: 1}, // only return id
+                        var q = {name: sregx};
+                        if(req.user.role != 'Root') {
+                            q = {name: sregx, _id: {$in: req.user.tags}}
+                        }
+                        db.Tag.find(q, {_id: 1}, // only return id
                             function (err, tags) {
                                 if (err) {
                                     callback(err, {})
@@ -530,6 +545,11 @@ var queryNode = function(req, res) {
                                 var ids = tags.map(function (tag) {
                                     return tag._id
                                 });
+                                if(req.user.role != 'Root') {
+                                    ids = ids.filter(function(x){
+                                        return req.user.tags.indexOf(x) != -1
+                                    }); // intersection of ids and user.tags
+                                }
                                 db.Node.find({tags: {$in: ids}},
                                     function (err, nodes) {
                                         if (err) {
@@ -537,14 +557,31 @@ var queryNode = function(req, res) {
                                         }
                                         callback(null, nodes)
                                     }).populate('tags', 'name');  // return only name of tag
-                            })
+                            }
+                        )
                     },
                     function (callback) {
-                        db.Node.find({$or:[
+                        var q = {$or:[
                             {name: sregx},
                             {nickname: sregx},
                             {ips: sregx}
-                        ]}, function (err, nodes) {
+                        ]};
+                        if(req.user.role != 'Root') {
+                            q = {
+                                $and: [
+                                    {
+                                        $or: [
+                                            {name: sregx},
+                                            {nickname: sregx},
+                                            {ips: sregx}
+                                        ]
+                                    },
+                                    {tags: {$in: req.user.tags}}
+                                ]
+                            }
+                        }
+                        db.Node.find(q,
+                            function (err, nodes) {
                             callback(err, nodes)
                         }).populate('tags', 'name');  // return only name of tag
                     }
@@ -601,7 +638,12 @@ var queryNode = function(req, res) {
 var queryTag = function(req, res) {
     var query = req.query.tag;
     var sregx = new RegExp(query.trim(), 'i');
-    handlePluralGet('tag', db.Tag, {name: sregx}, [])(req, res);
+    var q = {name: sregx};
+    if(req.user.role != 'Root') {
+        q = {_id: {$in: req.user.tags, name: sregx}}
+    }
+    handlePluralGet(req, res,
+        'tag', db.Tag, q, []);
 };
 
 // For "Find anything"
@@ -623,48 +665,73 @@ app.get('/config',
 });
 
 
-app.get('/users',
-    handlePluralGet('user', db.User, {},
-                    [{
-                        methodName: 'populate',
-                        arguments: ['tags', 'name']
-                    }]
-));
+app.get('/users', function(req, res) {
+        handlePluralGet(req, res,
+            'user', db.User, {},
+            [{
+                methodName: 'populate',
+                arguments: ['tags', 'name']
+            }]
+        )
+    }
+);
 
 app.post('/users', function(req, res){
     var name = req.body.name,
         dashboards = req.body.dashboards,
-        tags = req.body.tags;
+        tags = req.body.tags,
+        role = req.body.role;
     if(!name) {
         res.status(400).send('Must specify a name');
         return
     }
     if(!dashboards) dashboards = [];
     if(!tags) tags = [];
+    if(!role) role = 'User';
 
-    //TODO: use LeTV OAuth to verify user name
-
-    db.User.create({
-        name: name,
-        dashboards: dashboards,
-        tags: tags
-    },
-        function(err, _) {
+    request({
+            rejectUnauthorized: false,  // same reason as app.post('/login')
+            method: 'GET',
+            url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+                 + name + '&appid=watchtv&appkey=watchtv&limit=3',
+            json: true
+        },
+        function(err, resp, body) {
             if(err) {
-                res.status.send('User add failed');
-                logger(err);
+                logger('Error connecting to OAuth server');
+                res.status(500).send('Error connecting to OAuth server');
                 return
             }
-            res.status(201).send('User added');
+
+            if(body.length > 0 && body[0].email == name+'@letv.com') {
+                db.User.create({
+                        name: name,
+                        dashboards: dashboards,
+                        tags: tags,
+                        role: role
+                    },
+                    function(err, _) {
+                        if(err) {
+                            res.status.send('User add failed');
+                            logger(err);
+                            return
+                        }
+                        res.status(201).send('User added');
+                    }
+                )
+            } else {
+                res.status(400).send('User name not found from Letv OAuth');
+            }
         }
-    )
+    );
 });
 
 app.put('/user/:user_id', function(req, res){
     var user_id = req.params.user_id;
     var name = req.body.name,
         dashboards = req.body.dashboards,
-        tags = req.body.tags;
+        tags = req.body.tags,
+        role = req.body.role;
 
     var update = {};
     if(name) {
@@ -678,6 +745,9 @@ app.put('/user/:user_id', function(req, res){
     if(tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
+    }
+    if(role) {
+        update.role = role
     }
     async.map(tags,
         function(tag, map_callback) {
@@ -716,6 +786,12 @@ app.put('/user/:user_id', function(req, res){
         }
     );
 });
+
+app.get('/user',
+    function(req, res) {
+        res.send(req.user); // req.user is assigned in `requireLogin`
+    }
+);
 
 app.get('/user/:user_id',
     function(req, res) {

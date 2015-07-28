@@ -38,14 +38,17 @@ var nodeSchema = new Schema({
 var Node = mongoose.model('Node', nodeSchema);
 
 
+var roles = ['Root', 'User'];
 var userSchema = new Schema({
         name: String,
         dashboards: [{
             node: {type: Schema.Types.ObjectId, ref: 'Node'},
+            ip: String,
             metric: String,  // comma separated metric name, e.g. "ceph,read_Bps"
             time: String
         }],
-        tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}]
+        tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}],
+        role: {type: String, enum: roles}
     },
     {
         collection: "User"
