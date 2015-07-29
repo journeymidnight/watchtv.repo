@@ -38,12 +38,14 @@ var NavigationBar = React.createClass({
         );
         menuItems = [
             {type: mui.MenuItem.Types.LINK, payload:'/', text: 'Nodes'},
-            {type: mui.MenuItem.Types.LINK, payload:'/tag.html', text: 'Tags'}
+            {type: mui.MenuItem.Types.LINK, payload:'/tag.html', text: 'Tags'},
+            {type: mui.MenuItem.Types.LINK, payload:'/dashboard.html', text: 'Dashboard'},
+            {type: mui.MenuItem.Types.LINK, payload:'/logout', text: 'LoginOut'}
         ];
         return (
             <div>
                 <mui.AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi} />
-                <mui.LeftNav menuItems={menuItems} docked={false} ref="navi"
+                <mui.LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
                     header={header} isInitiallyOpen={true} />
             </div>
         )
