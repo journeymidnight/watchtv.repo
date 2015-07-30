@@ -659,7 +659,11 @@ var queryUser = function(req, res) {
     var sregx = new RegExp(query.trim(), 'i');
     var q = {name: sregx};
     handlePluralGet(req, res,
-        'user', db.User, q, []);
+        'user', db.User, q,
+        [{
+            methodName: 'populate',
+            arguments: ['tags', 'name']
+        }]);
 };
 
 // For "Find anything"
@@ -725,19 +729,39 @@ app.post('/users', requireRoot,
             }
 
             if(body.length > 0 && body[0].email == name+'@letv.com') {
-                db.User.create({
-                        name: name,
-                        dashboards: dashboards,
-                        tags: tags,
-                        role: role
+                async.map(tags,
+                    function(tag, map_callback) {
+                        db.Tag.findOne({name: tag},
+                            function (err, t) {
+                                if (err) {
+                                    logger(err);
+                                    return
+                                }
+                                map_callback(null, t)
+                            })
                     },
-                    function(err, _) {
-                        if(err) {
-                            res.status.send('User add failed');
-                            logger(err);
-                            return
-                        }
-                        res.status(201).send('User added');
+                    function(err, results) {
+                        tags = results.filter(
+                            function(t) {
+                                return t;
+                            }
+                        );
+                        db.User.create({
+                                name: name,
+                                dashboards: dashboards,
+                                tags: tags,
+                                role: role
+                            },
+                            function(err, u) {
+                                if(err) {
+                                    res.status(500).send('User add failed');
+                                    logger(err);
+                                    return
+                                }
+                                logger('User added', u);
+                                res.status(201).send('User added');
+                            }
+                        )
                     }
                 )
             } else {
@@ -847,9 +871,8 @@ app.delete('/user/:user_id', requireRoot,
 
 app.post('/login', function(req, res) {
     var user = req.body.user,
-        password = JSON.stringify(req.body.password);  // don't escape '\'
-                        // a side-effct is to surround the string with '"'
-    password = encodeURIComponent(password.slice(1, password.length-1));
+        password = encodeURIComponent(req.body.password);
+
     if(!user || !password) {
         res.status(400).send('Invalid username or password');
         return
@@ -874,7 +897,7 @@ app.post('/login', function(req, res) {
                 return
             }
             if(body.error) {
-                logger(body);
+                logger('Authentication error,', body);
                 res.status(401).send('Incorrect username or password');
                 return
             }
