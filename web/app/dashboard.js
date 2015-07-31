@@ -220,14 +220,17 @@ var BaseGraph = React.createClass({
                     {this.state.host+' -- '+this.state.selectedMeasurement+' -- '+this.state.selectedDevice+' -- '+this.state.selectedMeasure}
                 </div>
                 <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '250px',backgroundColor: "#6EB5F0"}}></div>
-                <div id={'tooltip'+this.state.uniq_id} style={{
-                    position: 'absolute',
-                    display: "none",
-                    border: '1px solid rgb(223,255,253)',
-                    padding: "2px",
-                    backgroundColor: "rgb(238,254,255)",
-                    opacity: 0.80
-                }}></div>
+                <div id={'tooltip'+this.state.uniq_id} 
+                    className = "tool"
+                    style={{
+                        position: 'absolute',
+                        display: "none",
+                        border: '1px solid rgb(223,255,253)',
+                        padding: "2px",
+                        backgroundColor: "rgb(238,254,255)",
+                        opacity: 0.80
+                    }}>
+                </div>
                 <GraphInfo type="node" title="Edit"  selected={this.props.selected} index={this.props.index} onRefresh={this.refreshGraph}/>
             </div>
         )
