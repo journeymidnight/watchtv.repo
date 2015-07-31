@@ -1,10 +1,7 @@
 var React = require('react');
 var mui = require('material-ui');
-var bootstrap = require('react-bootstrap');
-var markdown = require('markdown').markdown;
 
 var mixins = require('./mixins.js');
-var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
 var GraphSelector = require('./ui/graphSelector.js');
 var unit = require('./unit.js');
@@ -65,7 +62,8 @@ var GraphList = React.createClass({
     render: function(){
         var _this = this;
         var graphList = _this.state.arr.map(function(subArr,index) {
-            return <BaseGraph selected={subArr} config={_this.state.config} index={index} onRefresh={_this.refreshGraph}/>
+            return <BaseGraph selected={subArr} config={_this.state.config} index={index}
+                    onRefresh={_this.refreshGraph} />
         });
         return (
             <div>
