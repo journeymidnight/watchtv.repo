@@ -3,11 +3,12 @@ var React = require('react');
 var SearchBar = require('./searchbar.js');
 
 
-// The integration place for SearchBar and a table class(currently TagList or NodeList)
+// The integration place for SearchBar and a table class
+// currently: TagList, NodeList, UserList
 
 // props:
-// type: string, used to form query url, currently "node" or "tag"
-// listClass: react class, currently "NodeList" or "TagList"
+// type: string, used to form query url, currently "node", "tag" or "user"
+// listClass: react class, currently "NodeList", "TagList", "UserList"
 // hintText: string, text to show as a placeholder in search input box
 
 

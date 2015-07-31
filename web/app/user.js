@@ -24,8 +24,6 @@ var UserList = React.createClass({
         var name = this.refs.newName.getValue().trim(),
             role = this.state.roleStateDropDown,
             tags = this.refs.newTag.getValue().trim().split(/[\s,]+/);
-        console.log('role', role);
-        console.log('tags', tags);
         $.ajax({
             type: "POST",
             url: "users",
@@ -47,6 +45,26 @@ var UserList = React.createClass({
     handleDropDownChange: function(err, selectedIndex, menuItem) {
         this.setState({roleStateDropDown: menuItem.text})
     },
+    componentDidUpdate: function() {
+        $('#newNameInput').autocomplete({
+            source: function(req, res) {
+                var input = req.term;
+                if(input.length < 3) {
+                    res([])
+                }
+                $.ajax({
+                    url: 'q?oauthuser=' + input,
+                    dataType: 'json',
+                    success: function(data) {
+                        res(data)
+                    },
+                    error: function(_) {
+                        res([])
+                    }
+                })
+            }
+        })
+    },
     render: function() {
         var that = this;
         var userList = this.props.data.map(function(user){
@@ -57,7 +75,7 @@ var UserList = React.createClass({
         });
         var addNewUserRow =
             <tr>
-                <td><mui.TextField ref="newName" /></td>
+                <td><mui.TextField ref="newName" id="newNameInput" /></td>
                 <td><mui.DropDownMenu ref="newRole" menuItems={roleItems}
                     onChange={this.handleDropDownChange} /></td>
                 <td><mui.TextField ref="newTag" /></td>

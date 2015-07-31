@@ -666,6 +666,36 @@ var queryUser = function(req, res) {
         }]);
 };
 
+var queryOauthUser = function(req, res) {
+    var query = req.query.oauthuser;
+    if (query.length < 3) {
+        // Only send request to OAuth server if more than 2 letters in query,
+        // otherwise the response would be VERY SLOW(by @lidezhi)
+        res.send([]);
+        return
+    }
+    request({
+        rejectUnauthorized: false,  // same reason as app.post('/login')
+        method: 'GET',
+        url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+        + query + '&appid=watchtv&appkey=watchtv&limit=5',
+        json: true
+    },
+        function(err, resp, body) {
+            if(err) {
+                logger('Error connecting to OAuth server');
+                res.status(500).send('Error connecting to OAuth server');
+                return
+            }
+            var result = body.map(function(user){
+                // get user name from email address
+                return user.email.split('@')[0]
+            });
+            res.send(result)
+        }
+    );
+};
+
 // For "Find anything"
 app.get('/q', function(req, res){
     if(req.query.node != undefined) {
@@ -677,6 +707,9 @@ app.get('/q', function(req, res){
     } else if (req.query.user != undefined) {
         // /q?user=xxx
         queryUser(req, res);
+    } else if (req.query.oauthuser != undefined) {
+        // /q?oauthuser=xxx
+        queryOauthUser(req, res);
     } else {
         res.status(400).send("Invalid query");
     }
