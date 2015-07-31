@@ -17,7 +17,8 @@ app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
     logger('visited:', req.url);
-    if(req.url.startsWith('/login')) {
+    if(req.url.indexOf('/login')>=0||req.url.indexOf('/js')>=0
+        ||req.url.indexOf('/css')>=0||req.url.indexOf('/images')>=0) {
         next();
         return
     }
