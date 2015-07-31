@@ -10,6 +10,74 @@ var GraphSelector = require('./ui/graphSelector.js');
 var unit = require('./unit.js');
 var Utility = require('./utility.js');
 
+var GraphList = React.createClass({
+    mixins: [mixins.materialMixin, mixins.configMixin],
+    getInitialState:function(){
+        return this.init();
+    },
+    init: function(){
+        var user,user_id,dashboards,arr=[];
+        $.ajax({
+            url:"/user",
+            type:"get",
+            async:false,
+            success:function(data){
+                user = data.name;
+                user_id = data._id;
+                dashboards = data.dashboards;
+                for(var i = 0;i<dashboards.length;i++){
+                    var metric = dashboards[i].metric.split(',');
+                    var a,b,c;
+                    if(metric.length == 2){
+                        a = metric[0];
+                        b="";
+                        c = metric[1];
+                    }else if(metric.length == 3){
+                        a = metric[0];
+                        b = metric[1];
+                        c = metric[2];
+                    }
+                    arr[i] = {
+                        ip:dashboards[i].ip,
+                        node_id:dashboards[i]._id,
+                        timePeriod:dashboards[i].time,
+                        selectedMeasurement: a,
+                        selectedDevice: b,
+                        selectedMeasure: c,
+                    }
+                }
+            }
+        });
+        return {
+            user:user,
+            user_id:user_id,
+            arr:arr
+        };
+    },
+    refreshGraph: function(dashboards){
+        var state = this.init();
+        this.setState({
+            user:state.user,
+            user_id:state.user_id,
+            arr:state.arr
+        });
+    },
+    render: function(){
+        var _this = this;
+        var graphList = _this.state.arr.map(function(subArr,index) {
+            return <BaseGraph selected={subArr} config={_this.state.config} index={index} onRefresh={_this.refreshGraph}/>
+        });
+        return (
+            <div>
+                <div className="graphList">
+                    {graphList}
+                </div>
+                <GraphInfo type="node" title="add new dashboard" onRefresh={this.refreshGraph}/>
+            </div>
+        );
+    }
+});
+
 var BaseGraph = React.createClass({
     getInitialState: function(){
         var dot = new RegExp('\\.','g');
@@ -21,8 +89,9 @@ var BaseGraph = React.createClass({
             selectedMeasurement: this.props.selected.selectedMeasurement,
             selectedDevice: this.props.selected.selectedDevice,
             selectedMeasure: this.props.selected.selectedMeasure,
+            node_id: this.props.selected.node_id,
             uniq_id: this.props.selected.node_id + host,
-            config: this.props.selected.config
+            config: this.props.config
         }
     },
     queryInfluxDB: function(queryString) {
@@ -50,6 +119,39 @@ var BaseGraph = React.createClass({
     },
     componentWillMount: function(){
         this.handleGraph();
+    },
+    refreshGraph: function(dashboards,type){
+        if(type != "delete"){
+            var dot = new RegExp('\\.','g');
+            var host = dashboards.ip.split(':')[0].replace(dot, '_');
+            var metric = dashboards.metric.split(",");
+            var measurement,device,measure;
+            if(metric.length==1){
+                measurement = metric[0];
+                device = '';
+                measure = '';
+            }else if(metric.length==2){
+                measurement = metric[0];
+                device = '';
+                measure = metric[1];
+            }else if(metric.length==3){
+                measurement = metric[0];
+                device = metric[1];
+                measure = metric[2];
+            }
+            this.setState({
+                host:host,
+                time:dashboards.time,
+                timePeriod:Utility.fitTimePeriod(null,dashboards.time),
+                selectedMeasurement:measurement,
+                selectedDevice:device,
+                selectedMeasure:measure,
+                uniq_id:this.state.node_id+host
+            });
+            this.handleGraph();
+        }else{
+            this.props.onRefresh();
+        }
     },
     componentDidUpdate: function() {
         var fitted_data = Utility.fitData(this.state.data);
@@ -126,62 +228,12 @@ var BaseGraph = React.createClass({
                     backgroundColor: "rgb(238,254,255)",
                     opacity: 0.80
                 }}></div>
-                <GraphInfo type="node" title="Edit"  selected={this.props.selected}/>
+                <GraphInfo type="node" title="Edit"  selected={this.props.selected} index={this.props.index} onRefresh={this.refreshGraph}/>
             </div>
         )
     }
 });
 
-var GraphList = React.createClass({
-    mixins: [mixins.materialMixin, mixins.configMixin],
-    render: function(){
-        var _this = this;
-        var selected1 = {
-            ip:"10.150.130.101:5000",
-            node_id:"test1234566765",
-            timePeriod:"86400",
-            selectedMeasurement: "ceph",
-            selectedDevice: "",
-            selectedMeasure: "op_per_sec",
-            config:_this.state.config
-        }
-        var selected2 = {
-            ip:"10.150.130.102:5000",
-            node_id:"test12345667652",
-            timePeriod:"2592000",
-            selectedMeasurement: "cpu",
-            selectedDevice: "cpu0",
-            selectedMeasure: "idle_percent",
-            config:_this.state.config
-        }
-        var selected3 = {
-            ip:"10.150.130.102:5000",
-            node_id:"test123456167651",
-            timePeriod:"172800",
-            selectedMeasurement: "iostat",
-            selectedDevice: "dm-1",
-            selectedMeasure: "await_ms",
-            config:_this.state.config
-        }
-        var selected4 = {
-            ip:"10.150.130.85:5000",
-            node_id:"test123456676253",
-            timePeriod:"86400",
-            selectedMeasurement: "network",
-            selectedDevice: "em1",
-            selectedMeasure: "rx_Bps",
-            config:_this.state.config
-        }
-        return (
-            <div className="graphList">
-                <BaseGraph selected={selected1} />
-                <BaseGraph selected={selected2} />
-                <BaseGraph selected={selected3} />
-                <BaseGraph selected={selected4} />
-            </div>
-        )
-    }
-});
 var GraphInfo = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     getInitialState: function(){
@@ -203,10 +255,12 @@ var GraphInfo = React.createClass({
             dataType: 'json',
             async:false,
             success: function(data) {
-                ip = data.result[0].ips.toString();
-                node_id = data.result[0]._id;
-                for(var i = 0;i<data.result.length;i++){
-                    ips[i] = {payload: i+1,text: data.result[i].ips.toString(),value:data.result[i]._id};
+                if(data.total > 0){
+                    ip = data.result[0].ips.toString();
+                    node_id = data.result[0]._id;
+                    for(var i = 0;i<data.result.length;i++){
+                        ips[i] = {payload: i+1,text: data.result[i].ips.toString(),value:data.result[i]._id};
+                    }
                 }
             },
             error: function(xhr, status, err){
@@ -216,7 +270,7 @@ var GraphInfo = React.createClass({
         if(this.props.selected!=null){
             ip = this.props.selected.ip;
             node_id = this.props.selected.node_id;
-            time = Utility.fitTimePeriod(null,this.props.selected.timePeriod);
+            time = this.props.selected.timePeriod;
             selectedMeasurement = this.props.selected.selectedMeasurement;
             selectedDevice = this.props.selected.selectedDevice;
             selectedMeasure = this.props.selected.selectedMeasure;
@@ -229,7 +283,8 @@ var GraphInfo = React.createClass({
             }
         }
         var dot = new RegExp('\\.','g');
-        var host = ip.split(':')[0].replace(dot, '_');
+        if(ip!=null)
+            var host = ip.split(':')[0].replace(dot, '_');
         return {
             ips:ips,
             ip: ip,
@@ -243,11 +298,16 @@ var GraphInfo = React.createClass({
             time:time,
             timeList: timeList,
             selectedIp: selectedIp,
-            selectedTime: selectedTime
+            selectedTime: selectedTime,
+            index:this.props.index
         }
     },
     addGraph:function(){
         this.refs.addGraphDialog.show();
+        $(event.target).parent().find('#graphBtn').trigger('click');
+    },
+    showDelDialog:function(){
+        this.refs.delDialog.show();
     },
     changeIp:function(e, selectedIndex, menuItem){
         var ip = this.refs.ipList.props.menuItems[selectedIndex].text;
@@ -275,29 +335,91 @@ var GraphInfo = React.createClass({
         return;
     },
     saveConfig: function(){
-        var selected = this.state.selected;
-        var metric = selected.selectedMeasurement;
-        if(selected.selectedDevice!=null)
-            metric+=(','+selected.selectedDevice);
-        metric += (','+selected.selectedMeasure);
+        var metric = this.getMetric(),
+            _this = this;
+        var user,user_id,dashboards;
+        $.ajax({
+            url:"/user",
+            type:"get",
+            async:false,
+            success:function(data){
+                user = data.name;
+                user_id = data._id;
+                dashboards = data.dashboards;
+                if(_this.state.index == null){
+                    dashboards[dashboards.length] = {
+                        node: _this.state.node_id,
+                        ip: _this.state.ip,
+                        metric: metric,
+                        time: _this.state.time
+                    }
+                }else{
+                    dashboards[_this.state.index] = {
+                        node: _this.state.node_id,
+                        ip: _this.state.ip,
+                        metric: metric,
+                        time: _this.state.time
+                    }
+
+                }
+            }
+        });
         $.ajax({
             type: 'PUT',
-            url: 'user/<id>',
-            data: {
-                dashboards: [
-                    { 
-                        node: this.state.node_id,
-                        ip: this.state.ip,
-                        metric: metric,
-                        time: this.state.time
-                    }
-                ]
+            url: 'user/'+user_id,
+            data: {dashboards: dashboards},
+            success: function(){
+                _this.refs.addGraphDialog.dismiss();
+                _this.props.onRefresh(dashboards[_this.state.index]);
             }
-        })
-        //this.refs.addGraphDialog.hide();
+        });
+    },
+    getMetric:function(){
+        var selected = this.state.selected,
+            measurement = selected.selectedMeasurement,
+            device = selected.selectedDevice,
+            measure = selected.selectedMeasure,
+            list = $(event.target).parents('.scrollDialog').find('select');
+        if(list.length==1){
+            measurement = list.eq(0).val();
+            device = '';
+            measure = '';
+        }else if(list.length==2){
+            measurement = list.eq(0).val();
+            device = '';
+            measure = ','+list.eq(1).val();
+        }else if(list.length==3){
+            measurement = list.eq(0).val();
+            device = ','+list.eq(1).val();
+            measure = ','+list.eq(2).val();
+        }
+        return measurement+device+measure;
     },
     deleteConfig: function(){
-        //TODO
+        var _this = this;
+        var user_id,dashboards;
+        $.ajax({
+            url:"/user",
+            type:"get",
+            async:false,
+            success:function(data){
+                user_id = data._id;
+                dashboards = data.dashboards;
+                var i = _this.state.index;  
+                if(i != null){
+                    dashboards = dashboards.slice(0,i).concat(dashboards.slice(i+1));
+                }
+            }
+        });
+        $.ajax({
+            type: 'PUT',
+            url: 'user/'+user_id,
+            data: {dashboards: dashboards},
+            async:false
+        });
+        this.refs.addGraphDialog.dismiss();
+        this.refs.delDialog.dismiss();
+        this.props.onRefresh(null,"delete");
     },
     render: function(){
         var addGraphAction = [
@@ -307,17 +429,27 @@ var GraphInfo = React.createClass({
         return (
             <div>
                 <div className="graphBtn" onClick={this.addGraph}></div>
-                <mui.Dialog title={this.props.title} actions={addGraphAction} contentClassName="scrollDialog" ref="addGraphDialog">
-                    <mui.FlatButton label = "Delete" className="delBtn" onClick={this.deleteConfig}/>
+                <mui.Dialog title={this.props.title} actions={addGraphAction} contentClassName="scrollDialog graph" ref="addGraphDialog">
+                    <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog}/>
+                    <mui.Dialog
+                        title="delete"
+                        actions={[
+                            { text: 'Cancel' },
+                            { text: 'Submit', onTouchTap: this.deleteConfig, ref: 'submit' }
+                        ]}
+                        actionFocus="submit"
+                        ref="delDialog">
+                        Confirm to delete ! 
+                    </mui.Dialog>
                     <mui.DropDownMenu menuItems={this.state.ips}
-                    onChange = {this.changeIp}
-                    className="dropDownMenu" selectedIndex={this.state.selectedIp}
-                    ref="ipList" />
+                        onChange = {this.changeIp}
+                        className="dropDownMenu" selectedIndex={this.state.selectedIp}
+                        ref="ipList" />
                     <mui.DropDownMenu selectedIndex={this.state.selectedTime} menuItems={this.state.timeList}
-                    onChange = {this.changeTime}
-                    className="dropDownMenu"
-                    ref="timePeriod" />
-                    <GraphSelector onSelect={this.handleSelect} selected={this.state.selected} onGraph={this.handleGraph}
+                        onChange = {this.changeTime}
+                        className="dropDownMenu"
+                        ref="timePeriod" />
+                    <GraphSelector onSelect={this.handleSelect} select={this.props.selected} selected={this.state.selected} onGraph={this.handleGraph}
                         host={this.state.host} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
                     />
                 </mui.Dialog>
@@ -328,8 +460,8 @@ var GraphInfo = React.createClass({
 
 React.render(
     <div>
+        <NavigationBar title="Dashboard" />
         <GraphList />
-        <GraphInfo type="node" title="add new dashboard"/>
     </div>,
     document.getElementById('content')
 );

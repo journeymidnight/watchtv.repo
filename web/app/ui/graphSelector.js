@@ -9,8 +9,14 @@ var Utility = require('../utility.js');
 var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
+        var select;
+        if(this.props.select)
+            select = this.props.select;
+        else
+            select = this.props.selected;
         return {
-            measurements: null
+            measurements: null,
+            select:select
         }
     },
     componentWillMount: function(){
@@ -35,6 +41,7 @@ var GraphSelector = React.createClass({
                         url: that.props.config.influxdbURL + '/query?' + $.param(
                             Utility.q_param(that.props.config, 'SHOW TAG KEYS FROM ' + m)),
                         dataType: 'json',
+                        async:false,
                         success: function (data) {
                             var key_list = Utility.get_value(data);
                             key_list.map(function(k){
@@ -45,6 +52,7 @@ var GraphSelector = React.createClass({
                                             'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
                                     ),
                                     dataType: 'json',
+                                    async:false,
                                     success: function (data) {
                                         tags[k] = Utility.get_value(data)
                                     }
@@ -102,7 +110,7 @@ var GraphSelector = React.createClass({
                 measurementOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
             selectors.push(
-                <select onChange={this.changeHandler} ref="selectedMeasurement" id="selectParent"
+                <select onChange={this.changeHandler} ref="selectedMeasurement" id="selectParent" defaultValue = {that.state.select.selectedMeasurement}
                     key={this.props.id+"selectedMeasurement"} >
                     <optgroup label="Measurements">
                         {measurementOptions}
@@ -118,7 +126,7 @@ var GraphSelector = React.createClass({
                     deviceOptions.push(<option key={that.props.id+d} value={d}>{d}</option>)
                 });
                 selectors.push(
-                    <select onChange={this.changeHandler} ref='selectedDevice'
+                    <select onChange={this.changeHandler} ref='selectedDevice' defaultValue = {that.state.select.selectedDevice}
                         key={this.props.id+"selectedDevice"} >
                         <optgroup label="Devices">
                             {deviceOptions}
@@ -132,7 +140,7 @@ var GraphSelector = React.createClass({
                 measureOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
             selectors.push(
-                <select onChange={this.changeHandler} ref='selectedMeasure'
+                <select onChange={this.changeHandler} ref='selectedMeasure' defaultValue = {that.state.select.selectedMeasure}
                     key={this.props.id+"selectedMeasure"} >
                     <optgroup label="Measures">
                         {measureOptions}

@@ -233,7 +233,6 @@ var NodeInfoButton = React.createClass({
                 <mui.Dialog
                     title={title}
                     actions={infoAction}
-                    modal={true}
                     contentClassName="scrollDialog"
                     ref="infoDialog">
                     <div>
