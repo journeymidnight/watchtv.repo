@@ -205,11 +205,15 @@ app.post('/nodes', function(req, res) {
         res.status(400).send("At least one valid IP address is required");
         return
     }
+    if (req.user.role != 'Root' && tags[0] == '') {
+        res.status(400)
+           .send("You should specify a tag, otherwise you may not able to see the added node");
+    }
 
     if (!name) name = '';
     if (!nickname) nickname = '';
     if (!description) description = '';
-    if (!tags) tags = [];
+    if (!tags) tags = [''];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
@@ -745,7 +749,7 @@ app.post('/users', requireRoot,
         return
     }
     if(!dashboards) dashboards = [];
-    if(!tags) tags = [];
+    if(!tags) tags = [''];
     if(!role) role = 'User';
 
     request({
