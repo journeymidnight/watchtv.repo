@@ -1,13 +1,19 @@
 html, body {width: 100%;height: 100%;font-family: Roboto, sans-serif;}
 input:-webkit-autofill {-webkit-box-shadow: 0px 100px #000 inset;-webkit-text-fill-color: white;border-bottom: 3px solid #0089cc;}
 input::-webkit-input-placeholder{color:#fff !important;font-size: 14px;}
-
 .dashboard{overflow: auto!important;}
+/*navBar*/
+.head {position: fixed;top: 0;left: 0;width: 100%;z-index: 111;}
+.afterNav{height: 75px;}
 .navBar a{background-color: #fff!important;}
 .navBar a:hover{background-color: rgba(0, 0, 0, .035)!important;}
-.icon {position: fixed;right: 0;top: 0;}
+.icon {position: absolute;right: 0;top: 0;}
 .icon > div:first-child{background: url('../images/icon.jpg') no-repeat center !important;background-size: 40px!important;}
 .icon div span {color: #D7F4F6!important;line-height: 35px;}
+/*content*/
+.searchForm > div +div {position: relative;top: -4px;left: 10px;}
+.table {padding: 0 15px;}
+.table th,.table td{vertical-align: middle!important;}
 .scrollDialog {width:75%;max-height: 80%;overflow-y: auto;overflow-x:hidden; }
 .scrollDialog select {margin-right: 10px;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
 .dropDownMenu{margin-left: -24px;}
@@ -20,6 +26,7 @@ input::-webkit-input-placeholder{color:#fff !important;font-size: 14px;}
 .graphList > div .graphBtn{position: absolute;background: #0089cc url('../images/edit.png') no-repeat center;margin-top:-30px;}
 .delBtn{display:none;}
 .graphTitle{text-align: center;font-family: Roboto, sans-serif;}
+.tool{width:100%;padding:0 20px!important;}
 /*login*/
 .login_body{background-image: url(../images/loginBg.jpg);position: relative;margin: 0;padding: 0;background-size: cover;background-repeat: no-repeat;background-position: center;display:table;overflow: hidden}
 .login_form{padding: 0 20px;float:none;width:30%;margin:0 auto;height: 300px;}

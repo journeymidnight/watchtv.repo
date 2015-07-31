@@ -58,13 +58,16 @@ var NavigationBar = React.createClass({
         ];
         return (
             <div>
-                <mui.AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi} />
-                <mui.LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
-                    header={header} isInitiallyOpen={true} />
-                <mui.CardHeader
-                    title={this.state.user}
-                    avatar=""
-                    className="icon"/>
+                <div className="head">
+                    <mui.AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi} />
+                    <mui.LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
+                        header={header} isInitiallyOpen={true} />
+                    <mui.CardHeader
+                        title={this.state.user}
+                        avatar=""
+                        className="icon"/>
+                </div>
+                <div className="afterNav"></div>
             </div>
         )
     }
