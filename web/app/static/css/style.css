@@ -5,6 +5,9 @@ input::-webkit-input-placeholder{color:#fff !important;font-size: 14px;}
 .dashboard{overflow: auto!important;}
 .navBar a{background-color: #fff!important;}
 .navBar a:hover{background-color: rgba(0, 0, 0, .035)!important;}
+.icon {position: fixed;right: 0;top: 0;}
+.icon > div:first-child{background: url('../images/icon.jpg') no-repeat center !important;background-size: 40px!important;}
+.icon div span {color: #D7F4F6!important;line-height: 35px;}
 .scrollDialog {width:75%;max-height: 80%;overflow-y: auto;overflow-x:hidden; }
 .scrollDialog select {margin-right: 10px;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
 .dropDownMenu{margin-left: -24px;}
