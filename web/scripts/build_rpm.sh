@@ -13,4 +13,4 @@ chmod +x /etc/init.d/watchtv
 cp ./watchtv.logrotate /etc/logrotate.d/watchtv
 mkdir -p /var/run/watchtv
 
-fpm -d nodejs -v $version -n watchtv -s dir -t rpm /usr/lib/watchtv /var/log/watchtv/watchtv.log /etc/init.d/watchtv /etc/logrotate.d/watchtv
+fpm -d nodejs -v $version -n watchtv -s dir -t rpm /usr/lib/watchtv /var/log/watchtv/watchtv.log /etc/init.d/watchtv /etc/logrotate.d/watchtv /var/run/watchtv

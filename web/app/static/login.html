@@ -5,20 +5,15 @@
 <title>login</title>
 <link type="text/css" href="css/style.css" rel="stylesheet" />
 <script src="js/jquery-2.1.4.min.js"></script>
-<script src="js/jquery.flot.min.js"></script>
-<script src="js/jquery.flot.time.min.js"></script>
-<script src="js/jquery.flot.crosshair.min.js"></script>
-<script src="js/jquery.flot.selection.min.js"></script>
 <script type="text/javascript">
 $(function(){
-    document.cookie="user="; 
 	$("#userSubmit").bind('click',submitForm);
     document.onkeydown=function(event){ 
-        e = event ? event :(window.event ? window.event : null); 
+        var e = event ? event :(window.event ? window.event : null);
         if(e.keyCode==13){
             submitForm();
         } 
-    } 
+    };
     function submitForm(){
         var errInfo;
         var name = $("#user").val();
@@ -39,7 +34,6 @@ $(function(){
             data:{user:name,password:pwd},
             success:function(){
                 window.location.href="/index.html";
-                document.cookie="user="+name; 
             },
             error:function(data){
                 $("#loginErr_msg").text(data.responseText);

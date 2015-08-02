@@ -207,7 +207,8 @@ app.post('/nodes', function(req, res) {
     }
     if (req.user.role != 'Root' && tags[0] == '') {
         res.status(400)
-           .send("You should specify a tag, otherwise you may not able to see the added node");
+           .send("You should specify a tag, otherwise you may not be able to see the added node");
+        return
     }
 
     if (!name) name = '';
@@ -824,13 +825,31 @@ app.put('/user/:user_id', function(req, res){
     if(dashboards && dashboards.constructor === Array) {
         update.dashboards = dashboards;
     }
-    if(!tags) tags = [];
+    if(role) {
+        update.role = role
+    }
+    if(!tags) {
+        db.User.findOneAndUpdate(
+            { _id: user_id },
+            { '$set': update },
+            function(err, u) {  // u is the original user record
+                if(err) {
+                    res.status(500).send('Existence checking failed');
+                    logger(err);
+                    return
+                }
+                if(!u) {
+                    res.status(404).send(user_id + ' does not exist');
+                    return
+                }
+                res.status(200).send('Updated');
+            }
+        );
+        return
+    }
     if(tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
-    }
-    if(role) {
-        update.role = role
     }
     async.map(tags,
         function(tag, map_callback) {
