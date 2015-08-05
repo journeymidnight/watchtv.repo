@@ -79,7 +79,8 @@ var GraphSelector = React.createClass({
         }
     },
     changeHandler: function() {
-        var that = this;
+        var that = this,
+           event = Utility.getEvent();
         ['selectedMeasurement', 'selectedDevice', 'selectedMeasure'].map(function (name) {
             if(that.refs[name]) {
                 that.props.onSelect(name, React.findDOMNode(that.refs[name]).value);

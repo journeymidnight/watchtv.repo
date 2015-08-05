@@ -63,7 +63,7 @@ var NodeList = React.createClass({
                 </td>
             </tr>;
         return (
-            <div>
+            <div className="clear">
             <bootstrap.Table striped bordered hover condensed>
                 <thead>
                     <tr>
@@ -80,7 +80,7 @@ var NodeList = React.createClass({
                     {addNewNodeRow}
                 </tfoot>
             </bootstrap.Table>
-                <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
             </div>
         )
     }

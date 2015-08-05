@@ -309,7 +309,7 @@ var MetricGraph = React.createClass({
                     <mui.Tab label={ip} key={that.props.node_id + ip}>
                         <div>
                             <Graph ip={ip} node_id={that.props.node_id}
-                                render={that.props.render}
+                                render={that.props.render} config={that.props.config}
                                 key={that.props.node_id + ip}
                             />
                         </div>
