@@ -89,26 +89,24 @@ var numberFormatter = function(val, axis, unit) {
 };
 
 var plotGraph = function(placeholder, data, yAxisFormatter) {
-    console.log('placeholder name', placeholder);
+    //console.log('placeholder name', placeholder);
     return $.plot(placeholder,
-        [data],
+        data,
         {
             xaxis: {
                 mode: "time",
                 timezone: "browser",
-                color: "white",
-                font: {color: "white"}
+                color: "#eee",
+                font: {color: "#eee"}
             },
             yaxis: {
-                color: "white",
-                font: {color: "white"},
+                color: "#eee",
+                font: {color: "#eee"},
                 tickFormatter: yAxisFormatter
             },
             series: {
                 lines: {
                     show: true,
-                    fill: true,
-                    fillColor: "rgba(143, 198, 242, 0.7)"
                 }
             },
             grid: {
@@ -116,10 +114,10 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
                 margin: 10,
                 hoverable: true
             },
-            colors: ["white"],
+            colors: ["#EF843C","#B941DA","#71C855","#EAB839","#4E41BB","#CACF15"],
             crosshair: {
                 mode: "x",
-                color: "white"
+                color: "#0089cc"
             },
             selection: {
                 mode: "x"
@@ -142,6 +140,18 @@ var getEvent = function(){ //ie and ff
     return window.event; 
 } 
 
+var catHost = function(ip){
+    var host="";
+    var dot = new RegExp('\\.','g');
+    ip = ip.split(",");
+    for(var i = 0;i<ip.length;i++){
+        host += ip[i].split(':')[0].replace(dot, '_');
+        if(ip.length!=1 && i<ip.length-1)
+            host += ",";
+    }
+    return host;
+}
+
 var Utility = {
     q_param: q_param,
     get_value: get_value,
@@ -151,5 +161,6 @@ var Utility = {
     numberFormatter: numberFormatter,
     plotGraph: plotGraph,
     getEvent: getEvent,
+    catHost:catHost
 };
 module.exports = Utility;

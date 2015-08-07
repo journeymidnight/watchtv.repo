@@ -79,8 +79,7 @@ var GraphList = React.createClass({
 
 var BaseGraph = React.createClass({
     getInitialState: function(){
-        var dot = new RegExp('\\.','g');
-        var host = this.props.selected.ip.split(':')[0].replace(dot, '_');
+        var host = Utility.catHost(this.props.selected.ip);
         return {
             data: [],
             host: host,
@@ -89,7 +88,7 @@ var BaseGraph = React.createClass({
             selectedDevice: this.props.selected.selectedDevice,
             selectedMeasure: this.props.selected.selectedMeasure,
             node_id: this.props.selected.node_id,
-            uniq_id: this.props.selected.node_id + host,
+            uniq_id: this.props.selected.node_id + host.split(",")[0],
             config: this.props.config
         }
     },
@@ -99,30 +98,39 @@ var BaseGraph = React.createClass({
                 $.param(Utility.q_param(this.state.config, queryString)),
             dataType: 'json',
             success: function (data) {
-                this.setState({data: Utility.get_value(data)});
+                var currdata = this.state.data;
+                currdata[currdata.length] = Utility.get_value(data);
+                this.setState({data: currdata});
             }.bind(this)
         })
     },
-    handleGraph: function(){
-        var query = Utility.buildQuery(
-            null,
-            null,
-            this.state.timePeriod,
-            this.state.selectedMeasurement,
-            this.state.host,
-            this.state.selectedDevice,
-            this.state.selectedMeasure
-        );
+    executeQuery: function(fromTime, toTime, timePeriod, measurement, host, device, measure){
+        var query = Utility.buildQuery(fromTime, toTime, timePeriod, measurement, host, device, measure);
         if(query == null) return;
         this.queryInfluxDB(query);
+    },
+    handleGraph: function(fromTime, toTime){
+        var timePeriod = this.state.timePeriod;
+        if(fromTime!=null&&toTime!=null) timePeriod = null;
+        var host = this.state.host.split(',');
+        for(var i = 0;i<host.length;i++){
+            this.executeQuery(
+                fromTime,
+                toTime,
+                timePeriod,
+                this.state.selectedMeasurement,
+                host[i],
+                this.state.selectedDevice,
+                this.state.selectedMeasure
+            );
+        }
     },
     componentWillMount: function(){
         this.handleGraph();
     },
     refreshGraph: function(dashboards,type){
         if(type != "delete"){
-            var dot = new RegExp('\\.','g');
-            var host = dashboards.ip.split(':')[0].replace(dot, '_');
+            var host = Utility.catHost(dashboards.ip);
             var metric = dashboards.metric.split(",");
             var measurement,device,measure;
             if(metric.length==1){
@@ -139,22 +147,29 @@ var BaseGraph = React.createClass({
                 measure = metric[2];
             }
             this.setState({
+                data:[],
                 host:host,
                 time:dashboards.time,
                 timePeriod:Utility.fitTimePeriod(null,dashboards.time),
                 selectedMeasurement:measurement,
                 selectedDevice:device,
                 selectedMeasure:measure,
-                uniq_id:this.state.node_id+host
+                uniq_id:this.state.node_id+host.split(',')[0]
             });
             this.handleGraph();
         }else{
             this.props.onRefresh();
         }
     },
+    getFittedData: function(){
+        var fitted_data=[];
+        for(var i = 0;i<this.state.data.length;i++){
+            fitted_data[i] = Utility.fitData(this.state.data[i]);
+        }
+        return fitted_data;
+    },
     componentDidUpdate: function() {
-        var fitted_data = Utility.fitData(this.state.data);
-
+        var fitted_data=this.getFittedData();
         // unit is the last part of measure name, e.g.
         // tx_Bps, Committed_AS_byte, etc.
         var formatter, unitSuffix;
@@ -178,14 +193,21 @@ var BaseGraph = React.createClass({
             .bind("plothover", function (event, pos, item) {
                 //console.log('item: ', item);
                 //console.log('pos: ', pos);
+                $(".tool").hide();
                 if (item) {
-                    var x = new Date(item.datapoint[0]),
+                    var x = new Date(item.datapoint[0]).toLocaleString(),
                         y = Utility.numberFormatter(item.datapoint[1],
                                             null,
                                             unitSuffix);
-                    $('#tooltip'+that.state.uniq_id)
-                        .html(y + '<br>' + x )
-                        .fadeIn(200);
+                        ip = that.state.host.split(",")[item.seriesIndex]
+
+                    var left = item.pageX + 10,
+                        top = item.pageY + 15;
+                        obj = $('#tooltip'+that.state.uniq_id);
+                    obj.html(ip + '<br>' + y + '<br>' + x );
+                    if((left + obj.width()) > ($("body").width()-30))
+                        left -= obj.width();
+                    obj.css({left:left,top:top}).fadeIn(200);
                 } else {
                     $('#tooltip'+that.state.uniq_id).hide();
                 }
@@ -193,44 +215,44 @@ var BaseGraph = React.createClass({
             .bind("plotselected", function (event, ranges) {
                 var newFromTime = new Date(ranges.xaxis.from),
                     newToTime = new Date(ranges.xaxis.to);
-                that.queryInfluxDB(
-                    Utility.buildQuery(
-                        newFromTime,
-                        newToTime,
-                        null,
-                        that.state.selectedMeasurement,
-                        that.state.host,
-                        that.state.selectedDevice,
-                        that.state.selectedMeasure
-                    ),
+                var host = that.state.host.split(',');
+                that.setState({data:[]});
+                that.handleGraph(
+                    newFromTime,
+                    newToTime,
                     function (data) {
                         Utility.plotGraph('#graph' + that.state.uniq_id,
-                                  Utility.fitData(data),
+                                  that.getFittedData(),
                                   formatter
                         )
                     }
-                );
+                )
+                
             });
     },
     render: function(){
+        var graphTitle = this.state.host+' -- '+this.state.selectedMeasurement+' -- '+this.state.selectedDevice+' -- '+this.state.selectedMeasure;
         return (
             <div>
-                <div className="graphTitle">
-                    {this.state.host+' -- '+this.state.selectedMeasurement+' -- '+this.state.selectedDevice+' -- '+this.state.selectedMeasure}
+                <div className="graph">
+                    <div className="graphTitle" 
+                        title={graphTitle}>
+                        {graphTitle}
+                    </div>
+                    <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '145px',backgroundColor: "#6EB5F0"}}></div>
+                    <div id={'tooltip'+this.state.uniq_id} 
+                        className = "tool"
+                        style={{
+                            position: 'fixed',
+                            display: "none",
+                            padding: "5px",
+                            backgroundColor: "rgba(45, 105, 108,0.8)",
+                            borderRadius: "4px",
+                            zIndex:"1"
+                        }}>
+                    </div>
+                    <GraphInfo type="node" title="Edit"  selected={this.props.selected} index={this.props.index} onRefresh={this.refreshGraph}/>
                 </div>
-                <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '250px',backgroundColor: "#6EB5F0"}}></div>
-                <div id={'tooltip'+this.state.uniq_id} 
-                    className = "tool"
-                    style={{
-                        position: 'absolute',
-                        display: "none",
-                        border: '1px solid rgb(223,255,253)',
-                        padding: "2px",
-                        backgroundColor: "rgb(238,254,255)",
-                        opacity: 0.80
-                    }}>
-                </div>
-                <GraphInfo type="node" title="Edit"  selected={this.props.selected} index={this.props.index} onRefresh={this.refreshGraph}/>
             </div>
         )
     }
@@ -239,7 +261,7 @@ var BaseGraph = React.createClass({
 var GraphInfo = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     getInitialState: function(){
-        var ip,node_id,ips = [],time="21600",selectedMeasurement,selectedDevice,selectedMeasure,selectedIp=0,selectedTime=0;
+        var ip,node_id,host,ips = [],time="21600",selectedMeasurement,selectedDevice,selectedMeasure,selectedIp=0,selectedTime=0;
         var timeList = [
            { payload: '1', text: 'Last 6h' ,value: '21600'},
            { payload: '2', text: 'Last 12h' ,value: '43200'},
@@ -261,8 +283,12 @@ var GraphInfo = React.createClass({
                     ip = data.result[0].ips.toString();
                     node_id = data.result[0]._id;
                     for(var i = 0;i<data.result.length;i++){
-                        ips[i] = {payload: i+1,text: data.result[i].ips.toString(),value:data.result[i]._id};
+                        ips[i] = {text: data.result[i].ips.toString(),value:data.result[i]._id,defalt:false};
                     }
+                    ips[ips.length] = {text: "10.150.130.87:5000",value:data.result[0]._id,defalt:false};//for test
+                    ips[ips.length] = {text: "10.150.130.102:5000",value:data.result[0]._id,defalt:false};//for test
+                    ips[ips.length] = {text: "10.150.130.103:5000",value:data.result[0]._id,defalt:false};//for test
+                    ips[ips.length] = {text: "10.150.130.85:5000",value:data.result[0]._id,defalt:false};//for test
                 }
             },
             error: function(xhr, status, err){
@@ -277,16 +303,19 @@ var GraphInfo = React.createClass({
             selectedDevice = this.props.selected.selectedDevice;
             selectedMeasure = this.props.selected.selectedMeasure;
             for(var i = 0;i<ips.length;i++){
-                if(ip ==ips[i].text) selectedIp = i;
+                var ipArr = ip.split(',');
+                for(var j = 0;j<ipArr.length;j++){
+                    if(ipArr[j] ==ips[i].text)
+                        ips[i].defalt = true;
+                }
             }
             for(var i = 0;i<timeList.length;i++){
                 if(this.props.selected.timePeriod == timeList[i].value)
                     selectedTime = i;
             }
         }
-        var dot = new RegExp('\\.','g');
         if(ip!=null)
-            var host = ip.split(':')[0].replace(dot, '_');
+            host = Utility.catHost(ip);
         return {
             ips:ips,
             ip: ip,
@@ -296,10 +325,9 @@ var GraphInfo = React.createClass({
             selectedMeasurement:selectedMeasurement,
             selectedDevice:selectedDevice,
             selectedMeasure:selectedMeasure,
-            uniq_id: node_id + host,
+            uniq_id: node_id +  host.split(',')[0],
             time:time,
             timeList: timeList,
-            selectedIp: selectedIp,
             selectedTime: selectedTime,
             index:this.props.index
         }
@@ -312,18 +340,24 @@ var GraphInfo = React.createClass({
     showDelDialog:function(){
         this.refs.delDialog.show();
     },
-    changeIp:function(e, selectedIndex, menuItem){
-        var ip = menuItem.text;
-        var node_id = menuItem.value;
-        var dot = new RegExp('\\.','g');
-        var host = ip.split(':')[0].replace(dot, '_');
+    changeIp:function(e, checked){
+        var checkArr = $(e.target).parents('.ipList').find('input');
+        var ip = "";
+        for(var i = 0;i<checkArr.length;i++){
+            if(checkArr[i].checked){
+                if(ip != "")
+                    ip += ",";
+                ip += checkArr[i].name;
+            }
+        }
+        var node_id = checkArr[0].value;
+        var host = Utility.catHost(ip);
         this.setState({
             ip:ip,
             node_id:node_id,
             host: host,
-            uniq_id: node_id + host,
+            uniq_id: node_id + host.split(',')[0],
             selected:{},
-            selectedIp:selectedIndex
         });
     },
     changeTime:function(e, selectedIndex, menuItem){
@@ -430,6 +464,16 @@ var GraphInfo = React.createClass({
             {text: 'Cancel'},
             {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
         ];
+        var _this = this;
+        var ipList = _this.state.ips.map(function(subArr,index) {
+            return <mui.Checkbox
+                        name={subArr.text}
+                        value={subArr.value}
+                        label={subArr.text}
+                        defaultChecked={subArr.defalt}
+                        onCheck={_this.changeIp}
+                        key={index}/>
+        });
         return (
             <div>
                 <div className="graphBtn" onClick={this.addGraph}></div>
@@ -445,14 +489,14 @@ var GraphInfo = React.createClass({
                         ref="delDialog">
                         Confirm to delete ! 
                     </mui.Dialog>
-                    <mui.DropDownMenu menuItems={this.state.ips}
-                        onChange = {this.changeIp}
-                        className="dropDownMenu" selectedIndex={this.state.selectedIp} />
+                    <div className="dropDownMenu ipList">
+                        {ipList}
+                    </div>
                     <mui.DropDownMenu selectedIndex={this.state.selectedTime} menuItems={this.state.timeList}
                         onChange = {this.changeTime}
-                        className="dropDownMenu"/>
+                        className="dropDownMenu timeList"/>
                     <GraphSelector onSelect={this.handleSelect} select={this.props.selected} selected={this.state.selected} onGraph={this.handleGraph}
-                        host={this.state.host} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
+                        host={this.state.host.split(",")[0]} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
                     />
                 </mui.Dialog>
             </div>

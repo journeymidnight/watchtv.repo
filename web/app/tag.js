@@ -63,7 +63,7 @@ var TagList = React.createClass({
                 </td>
             </tr>;
         return (
-            <div>
+            <div className="clear">
                 <bootstrap.Table striped bordered hover condensed>
                     <thead>
                         <tr>

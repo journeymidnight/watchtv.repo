@@ -4,7 +4,7 @@ input::-webkit-input-placeholder{color:#fff !important;font-size: 14px;}
 input::-moz-placeholder{color:#fff !important;font-size: 14px;}
 input::-ms-input-placeholder{color:#fff !important;font-size: 14px;}
 .clear{clear: both;}
-.dashboard{overflow: auto!important;}
+.dashboard{overflow: auto!important;padding: 0 10px;}
 /*navBar*/
 .head {position: fixed;top: 0;left: 0;width: 100%;z-index: 111;}
 .afterNav{height: 75px;}
@@ -18,18 +18,24 @@ input::-ms-input-placeholder{color:#fff !important;font-size: 14px;}
 .table {padding: 0 15px;}
 .table th,.table td{vertical-align: middle!important;}
 .scrollDialog {width:75%;max-height: 80%;overflow-y: auto;overflow-x:hidden; }
-.scrollDialog select {margin-right: 10px;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
+.scrollDialog select {margin: 10px 10px 15px 0;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
 .dropDownMenu{margin-left: -24px;}
 .dropDownMenu svg + div{margin-top: -10px!important;}
-.dropDownMenu svg:not(:root) {fill: #000!important;width: 20px!important;}
-.graphList > div {width:44%;height:310px;margin: 10px 3%;float:left;position: relative;overflow: hidden;}
+.ipList{margin: 10px 20px 0 0px;float: left;border: 1px solid #E0E0E0;padding: 10px 5px 10px 10px;border-radius: 3px;min-width: 205px;height: 150px;overflow: auto;overflow-x: hidden;}
+.ipList > div {line-height: 40px;height: 40px!important;display: block!important;margin: 5px 0;}
+.ipList > div label{color: #4A4A4A;font-weight: 400;}
+.timeList svg:not(:root) {fill: #000!important;width: 20px!important;}
+.timeList > div:last-child{max-height: 300%;overflow-y: scroll!important;overflow-x: hidden;}
+.flot-overlay {cursor: crosshair;}
+.graphList > div {width:33.3%;float:left;}
+.graphList .graph{margin:5px;background-color: #6EB5F0;color: #fff;padding: 010px;position: relative;overflow: hidden;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
-.graphBtn{width:35px;height:38px;background: #0089cc url('../images/add.png') no-repeat center;background-size: 25px;position: fixed;top:50%;left: -30px;cursor: pointer;}
+.graphBtn{width:37px;height:38px;background: #0089cc url('../images/add.png') no-repeat center;background-size: 25px;position: fixed;top:50%;left: -31px;cursor: pointer;}
 .graphBtn:hover{left: 0px;}
 .graphList > div .graphBtn{position: absolute;background: #0089cc url('../images/edit.png') no-repeat center;margin-top:-30px;}
 .delBtn{display:none;}
-.graphTitle{text-align: center;font-family: Roboto, sans-serif;}
-.tool{width:100%;padding:0 20px!important;}
+.graphTitle{text-align: center;font-family: Roboto, sans-serif;text-overflow: ellipsis;white-space: nowrap;overflow: hidden;padding: 15px 0;}
+.tool{min-width: 160px;}
 /*login*/
 .login_body{background-image: url(../images/loginBg.jpg);position: relative;margin: 0;padding: 0;background-size: cover;background-repeat: no-repeat;background-position: center;display:table;overflow: hidden}
 .login_form{padding: 0 20px;float:none;width:30%;margin:0 auto;height: 300px;}
