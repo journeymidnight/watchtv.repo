@@ -23,25 +23,20 @@ var GraphList = React.createClass({
                 user_id = data._id;
                 dashboards = data.dashboards;
                 for(var i = 0;i<dashboards.length;i++){
-                    var metric = dashboards[i].metric.split(',');
-                    var a,b,c;
-                    if(metric.length == 2){
-                        a = metric[0];
-                        b="";
-                        c = metric[1];
-                    }else if(metric.length == 3){
-                        a = metric[0];
-                        b = metric[1];
-                        c = metric[2];
+                    var metricArr = dashboards[i].metric.split(';');
+                    if(metricArr[metricArr.length-1] == ""){
+                        metricArr = metricArr.slice(0,metricArr.length-1);
                     }
+                    var splitMetric = Utility.splitMetric(metricArr[0]).split(",");
                     arr[i] = {
                         ip:dashboards[i].ip,
                         node_id:dashboards[i]._id,
                         timePeriod:dashboards[i].time,
-                        selectedMeasurement: a,
-                        selectedDevice: b,
-                        selectedMeasure: c,
-                        key: dashboards[i].ip+dashboards[i]._id+a+b+c+i
+                        metricArr:metricArr,
+                        selectedMeasurement: splitMetric[0],
+                        selectedDevice: splitMetric[1],
+                        selectedMeasure: splitMetric[2],
+                        key: dashboards[i].ip+dashboards[i]._id+splitMetric[0]+splitMetric[1]+splitMetric[2]+i
                     }
                 }
             }
@@ -84,6 +79,7 @@ var BaseGraph = React.createClass({
             data: [],
             host: host,
             timePeriod:Utility.fitTimePeriod(null,this.props.selected.timePeriod),
+            metricArr: this.props.selected.metricArr,
             selectedMeasurement: this.props.selected.selectedMeasurement,
             selectedDevice: this.props.selected.selectedDevice,
             selectedMeasure: this.props.selected.selectedMeasure,
@@ -92,37 +88,48 @@ var BaseGraph = React.createClass({
             config: this.props.config
         }
     },
-    queryInfluxDB: function(queryString) {
+    queryInfluxDB: function(queryString,ip,metric,type) {
         $.ajax({
             url: this.state.config.influxdbURL + '/query?' +
                 $.param(Utility.q_param(this.state.config, queryString)),
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
-                currdata[currdata.length] = Utility.get_value(data);
+                currdata[currdata.length] = {
+                    data:Utility.get_value(data),
+                    ip:ip,
+                    metric:metric,
+                    type:type
+                }
                 this.setState({data: currdata});
             }.bind(this)
         })
     },
-    executeQuery: function(fromTime, toTime, timePeriod, measurement, host, device, measure){
+    executeQuery: function(fromTime, toTime, timePeriod, measurement, host, device, measure,type,metric){
         var query = Utility.buildQuery(fromTime, toTime, timePeriod, measurement, host, device, measure);
         if(query == null) return;
-        this.queryInfluxDB(query);
+        this.queryInfluxDB(query,host,metric,type);
     },
     handleGraph: function(fromTime, toTime){
         var timePeriod = this.state.timePeriod;
         if(fromTime!=null&&toTime!=null) timePeriod = null;
         var host = this.state.host.split(',');
+        var metricArr = this.state.metricArr;
         for(var i = 0;i<host.length;i++){
-            this.executeQuery(
-                fromTime,
-                toTime,
-                timePeriod,
-                this.state.selectedMeasurement,
-                host[i],
-                this.state.selectedDevice,
-                this.state.selectedMeasure
-            );
+            for(var j = 0;j<metricArr.length;j++){
+                var arr = Utility.splitMetric(metricArr[j]).split(",");
+                this.executeQuery(
+                    fromTime,
+                    toTime,
+                    timePeriod,
+                    arr[0],
+                    host[i],
+                    arr[1],
+                    arr[2],
+                    j+1,
+                    arr
+                );
+            }
         }
     },
     componentWillMount: function(){
@@ -131,29 +138,20 @@ var BaseGraph = React.createClass({
     refreshGraph: function(dashboards,type){
         if(type != "delete"){
             var host = Utility.catHost(dashboards.ip);
-            var metric = dashboards.metric.split(",");
-            var measurement,device,measure;
-            if(metric.length==1){
-                measurement = metric[0];
-                device = '';
-                measure = '';
-            }else if(metric.length==2){
-                measurement = metric[0];
-                device = '';
-                measure = metric[1];
-            }else if(metric.length==3){
-                measurement = metric[0];
-                device = metric[1];
-                measure = metric[2];
+            var metricArr =  dashboards.metric.split(";");
+            if(metricArr[metricArr.length-1] == ""){
+                metricArr = metricArr.slice(0,metricArr.length-1);
             }
+            var splitMetric = Utility.splitMetric(metricArr[0]).split(",");
             this.setState({
                 data:[],
                 host:host,
                 time:dashboards.time,
                 timePeriod:Utility.fitTimePeriod(null,dashboards.time),
-                selectedMeasurement:measurement,
-                selectedDevice:device,
-                selectedMeasure:measure,
+                metricArr:metricArr,
+                selectedMeasurement:splitMetric[0],
+                selectedDevice:splitMetric[1],
+                selectedMeasure:splitMetric[2],
                 uniq_id:this.state.node_id+host.split(',')[0]
             });
             this.handleGraph();
@@ -164,7 +162,12 @@ var BaseGraph = React.createClass({
     getFittedData: function(){
         var fitted_data=[];
         for(var i = 0;i<this.state.data.length;i++){
-            fitted_data[i] = Utility.fitData(this.state.data[i]);
+            fitted_data[i] = {
+                data:Utility.fitData(this.state.data[i].data),
+                ip:this.state.data[i].ip,
+                metric:this.state.data[i].metric,
+                type:this.state.data[i].type
+            }
         }
         return fitted_data;
     },
@@ -172,16 +175,21 @@ var BaseGraph = React.createClass({
         var fitted_data=this.getFittedData();
         // unit is the last part of measure name, e.g.
         // tx_Bps, Committed_AS_byte, etc.
-        var formatter, unitSuffix;
-        if(this.state.selectedMeasure) {
-            var u = this.state.selectedMeasure.split('_').slice(-1)[0];
-        }
-        if(unit[u]) {
-            formatter = unit[u];
-            unitSuffix = u;
-        } else {
-            formatter = Utility.numberFormatter;
-            unitSuffix = null;
+        var formatter=[], unitSuffix=[];
+        var metricArr = this.state.metricArr;
+        for(var i = 0;i<metricArr.length;i++){
+            var split = Utility.splitMetric(metricArr[i]).split(","),
+                measure = split[split.length-1]
+            if(measure) {
+                var u = measure.split('_').slice(-1)[0];
+            }
+            if(unit[u]) {
+                formatter[formatter.length] = unit[u];
+                unitSuffix[unitSuffix.length] = u;
+            } else {
+                formatter[formatter.length] = Utility.numberFormatter;
+                unitSuffix[unitSuffix.length] = "";
+            }
         }
         Utility.plotGraph('#graph' + this.state.uniq_id,
                   fitted_data,
@@ -198,13 +206,12 @@ var BaseGraph = React.createClass({
                     var x = new Date(item.datapoint[0]).toLocaleString(),
                         y = Utility.numberFormatter(item.datapoint[1],
                                             null,
-                                            unitSuffix);
-                        ip = that.state.host.split(",")[item.seriesIndex]
-
+                                            unitSuffix[fitted_data[item.seriesIndex].type-1]);
+                        metric = fitted_data[item.seriesIndex].metric;
                     var left = item.pageX + 10,
                         top = item.pageY + 15;
                         obj = $('#tooltip'+that.state.uniq_id);
-                    obj.html(ip + '<br>' + y + '<br>' + x );
+                    obj.html(metric + '<br>' + y + '<br>' + x );
                     if((left + obj.width()) > ($("body").width()-30))
                         left -= obj.width();
                     obj.css({left:left,top:top}).fadeIn(200);
@@ -231,7 +238,7 @@ var BaseGraph = React.createClass({
             });
     },
     render: function(){
-        var graphTitle = this.state.host+' -- '+this.state.selectedMeasurement+' -- '+this.state.selectedDevice+' -- '+this.state.selectedMeasure;
+        var graphTitle = this.state.metricArr;
         return (
             <div>
                 <div className="graph">
@@ -239,14 +246,14 @@ var BaseGraph = React.createClass({
                         title={graphTitle}>
                         {graphTitle}
                     </div>
-                    <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '145px',backgroundColor: "#6EB5F0"}}></div>
+                    <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f"}}></div>
                     <div id={'tooltip'+this.state.uniq_id} 
                         className = "tool"
                         style={{
                             position: 'fixed',
                             display: "none",
                             padding: "5px",
-                            backgroundColor: "rgba(45, 105, 108,0.8)",
+                            backgroundColor: "#3f3f3f",
                             borderRadius: "4px",
                             zIndex:"1"
                         }}>
@@ -261,7 +268,7 @@ var BaseGraph = React.createClass({
 var GraphInfo = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     getInitialState: function(){
-        var ip,node_id,host,ips = [],time="21600",selectedMeasurement,selectedDevice,selectedMeasure,selectedIp=0,selectedTime=0;
+        var ip,node_id,host,ips = [],time="21600",metricArr=[],selectedMeasurement,selectedDevice,selectedMeasure,selectedIp=0,selectedTime=0;
         var timeList = [
            { payload: '1', text: 'Last 6h' ,value: '21600'},
            { payload: '2', text: 'Last 12h' ,value: '43200'},
@@ -302,6 +309,7 @@ var GraphInfo = React.createClass({
             selectedMeasurement = this.props.selected.selectedMeasurement;
             selectedDevice = this.props.selected.selectedDevice;
             selectedMeasure = this.props.selected.selectedMeasure;
+            metricArr = this.props.selected.metricArr;
             for(var i = 0;i<ips.length;i++){
                 var ipArr = ip.split(',');
                 for(var j = 0;j<ipArr.length;j++){
@@ -322,6 +330,7 @@ var GraphInfo = React.createClass({
             node_id: node_id,
             host:host,
             selected:{},
+            metricArr:metricArr,
             selectedMeasurement:selectedMeasurement,
             selectedDevice:selectedDevice,
             selectedMeasure:selectedMeasure,
@@ -371,10 +380,29 @@ var GraphInfo = React.createClass({
     handleGraph:function(){
         return;
     },
+    addMetric: function(){
+        var event = Utility.getEvent(),
+            metric = this.getMetric(event),
+            obj = $(event.target).parents('.scrollDialog').find(".configInfo");
+        obj.append("<span title='"+metric+"' class='metricInfo'> "+metric+"<button onclick='javascript:$(this).parent().remove();'></button></span>");
+        obj.find("span").unbind().bind({
+            mouseenter:function(){ $(this).find("button").show();},
+            mouseleave: function(){$(this).find("button").hide();}
+        });
+    },
+    deleteMetric:function(){
+        var event = Utility.getEvent(),
+            obj = $(event.target);
+        obj.parent().remove();
+    },
     saveConfig: function(){
         var event = Utility.getEvent();
-        var metric = this.getMetric(event),
+        var metric = this.getTotalMetric(event),
             _this = this;
+        if(metric == 0){
+            alert("还没有添加Metric哦~");
+            return;
+        }
         var user,user_id,dashboards;
         $.ajax({
             url:"/user",
@@ -433,6 +461,21 @@ var GraphInfo = React.createClass({
         }
         return measurement+device+measure;
     },
+    getTotalMetric:function(){
+        var obj = $(event.target).parents('.scrollDialog').find(".configInfo .metricInfo"),
+            result="";
+        for(var i = 0;i<obj.size();i++){
+            var text = obj.eq(i).prop("title") + ";";
+            result += text;
+        }
+        return result;
+    },
+    componentDidMount:function(){
+        $(".configInfo span").unbind().bind({
+            mouseenter:function(){$(this).find("button").show();},
+            mouseleave: function(){$(this).find("button").hide();}
+        });
+    },
     deleteConfig: function(){
         var _this = this;
         var user_id,dashboards;
@@ -474,6 +517,16 @@ var GraphInfo = React.createClass({
                         onCheck={_this.changeIp}
                         key={index}/>
         });
+        var metricArr = _this.state.metricArr.map(function(subArr,index) {
+            if(subArr.length>0)
+                return (
+                        <span title={subArr} key={index} className="metricInfo">
+                            {subArr}
+                            <button onClick={_this.deleteMetric}></button>
+                        </span>
+                        );
+            else return;
+        });
         return (
             <div>
                 <div className="graphBtn" onClick={this.addGraph}></div>
@@ -489,15 +542,21 @@ var GraphInfo = React.createClass({
                         ref="delDialog">
                         Confirm to delete ! 
                     </mui.Dialog>
-                    <div className="dropDownMenu ipList">
-                        {ipList}
+                    <div style={{minHeight:'170px'}}>
+                        <div className="dropDownMenu ipList">
+                            {ipList}
+                        </div>
+                        <div className="dropDownMenu configList">
+                            <GraphSelector onSelect={this.handleSelect} select={this.props.selected} selected={this.state.selected} onGraph={this.handleGraph}
+                                host={this.state.host.split(",")[0]} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
+                            />
+                            <div className="addMetricBtn" onClick={this.addMetric}></div>
+                        </div>
+                        <mui.DropDownMenu selectedIndex={this.state.selectedTime} menuItems={this.state.timeList}
+                            onChange = {this.changeTime}
+                            className="dropDownMenu timeList"/>
+                        <div className="configInfo">{metricArr}</div>
                     </div>
-                    <mui.DropDownMenu selectedIndex={this.state.selectedTime} menuItems={this.state.timeList}
-                        onChange = {this.changeTime}
-                        className="dropDownMenu timeList"/>
-                    <GraphSelector onSelect={this.handleSelect} select={this.props.selected} selected={this.state.selected} onGraph={this.handleGraph}
-                        host={this.state.host.split(",")[0]} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
-                    />
                 </mui.Dialog>
             </div>
         );

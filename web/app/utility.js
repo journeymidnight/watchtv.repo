@@ -90,23 +90,44 @@ var numberFormatter = function(val, axis, unit) {
 
 var plotGraph = function(placeholder, data, yAxisFormatter) {
     //console.log('placeholder name', placeholder);
+    var dataArr = [],yaxis,lineWidth = 1;
+    if(data.length == 1) lineWidth = 2;
+    for(var i = 0;i<data.length;i++){
+        var type = data[i].type;
+        if(type>=2) type = 2;
+        dataArr[i] = {
+            data:data[i].data,
+            label:data[i].ip,
+            yaxis:type
+        }
+    }
     return $.plot(placeholder,
-        data,
+        dataArr,
         {
             xaxis: {
                 mode: "time",
+                show: true,
                 timezone: "browser",
-                color: "#eee",
-                font: {color: "#eee"}
+                color: "#444",
+                font: {color: "#AFB2B5"}
             },
-            yaxis: {
-                color: "#eee",
-                font: {color: "#eee"},
-                tickFormatter: yAxisFormatter
-            },
+            yaxes: [
+                {
+                    color: "#444",
+                    font: {color: "#AFB2B5"},
+                    tickFormatter: yAxisFormatter[0]
+                },
+                {
+                    color: "#444",
+                    font: {color: "#AFB2B5"},
+                    position:"right",
+                    tickFormatter: yAxisFormatter[yAxisFormatter.length-1]
+                },
+            ],
             series: {
                 lines: {
                     show: true,
+                    lineWidth:lineWidth
                 }
             },
             grid: {
@@ -114,10 +135,10 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
                 margin: 10,
                 hoverable: true
             },
-            colors: ["#EF843C","#B941DA","#71C855","#EAB839","#4E41BB","#CACF15"],
+            colors: ["#CACF15","#71C855","#6ED0E0","#B941DA","#EF843C","#4E41BB","#E24D42"],
             crosshair: {
                 mode: "x",
-                color: "#0089cc"
+                color: "#444"
             },
             selection: {
                 mode: "x"
@@ -152,6 +173,29 @@ var catHost = function(ip){
     return host;
 }
 
+var splitMetric = function(metric){
+    var metricArr = metric.split(",");
+    var semicolon = new RegExp('\\;','g');
+    var measurement = '',
+        device = '',
+        measure = '';
+    if(metricArr.length==1){
+        measurement = metricArr[0];
+        device = '';
+        measure = '';
+    }else if(metricArr.length==2){
+        measurement = metricArr[0];
+        device = '';
+        measure = metricArr[1];
+    }else if(metricArr.length==3){
+        measurement = metricArr[0];
+        device = metricArr[1];
+        measure = metricArr[2];
+    }
+    measure = measure.replace(semicolon,'');
+    return measurement + "," + device + "," + measure;
+}
+
 var Utility = {
     q_param: q_param,
     get_value: get_value,
@@ -161,6 +205,7 @@ var Utility = {
     numberFormatter: numberFormatter,
     plotGraph: plotGraph,
     getEvent: getEvent,
-    catHost:catHost
+    catHost:catHost,
+    splitMetric:splitMetric
 };
 module.exports = Utility;
