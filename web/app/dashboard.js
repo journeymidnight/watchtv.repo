@@ -400,7 +400,7 @@ var GraphInfo = React.createClass({
         var metric = this.getTotalMetric(event),
             _this = this;
         if(metric == 0){
-            alert("还没有添加Metric哦~");
+            alert("No metric added !!");
             return;
         }
         var user,user_id,dashboards;
