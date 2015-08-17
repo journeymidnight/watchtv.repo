@@ -97,7 +97,7 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
         if(type>=2) type = 2;
         dataArr[i] = {
             data:data[i].data,
-            label:data[i].ip,
+            label:data[i].ip + ": " + data[i].metric,
             yaxis:type
         }
     }
@@ -196,6 +196,18 @@ var splitMetric = function(metric){
     return measurement + "," + device + "," + measure;
 }
 
+var getElePosition = function(obj){ 
+    var topValue = 0,leftValue = 0,result = {};
+    while(obj){  
+        leftValue += obj.offsetLeft;
+        topValue += obj.offsetTop; 
+        obj = obj.offsetParent;   
+    }   
+   result.left = leftValue;
+   result.top = topValue;  
+   return result; 
+}
+
 var Utility = {
     q_param: q_param,
     get_value: get_value,
@@ -206,6 +218,7 @@ var Utility = {
     plotGraph: plotGraph,
     getEvent: getEvent,
     catHost:catHost,
-    splitMetric:splitMetric
+    splitMetric:splitMetric,
+    getElePosition:getElePosition
 };
 module.exports = Utility;

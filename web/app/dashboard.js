@@ -207,14 +207,15 @@ var BaseGraph = React.createClass({
                         y = Utility.numberFormatter(item.datapoint[1],
                                             null,
                                             unitSuffix[fitted_data[item.seriesIndex].type-1]);
-                        metric = fitted_data[item.seriesIndex].metric;
-                    var left = item.pageX + 10,
-                        top = item.pageY + 15;
+                        metric = fitted_data[item.seriesIndex].metric,
+                        position = Utility.getElePosition(this);
+                    var left = item.pageX - position.left + 20,
+                        top = item.pageY - position.top + 20,
                         obj = $('#tooltip'+that.state.uniq_id);
                     obj.html(metric + '<br>' + y + '<br>' + x );
-                    if((left + obj.width()) > ($("body").width()-30))
-                        left -= obj.width();
-                    obj.css({left:left,top:top}).fadeIn(200);
+                    if((item.pageX + obj.width()) > ($("body").width()-30))
+                        left -= (obj.width()+30);
+                    obj.css({left:left,top:top}).show();
                 } else {
                     $('#tooltip'+that.state.uniq_id).hide();
                 }
@@ -250,7 +251,7 @@ var BaseGraph = React.createClass({
                     <div id={'tooltip'+this.state.uniq_id} 
                         className = "tool"
                         style={{
-                            position: 'fixed',
+                            position: 'absolute',
                             display: "none",
                             padding: "5px",
                             backgroundColor: "#3f3f3f",
@@ -528,7 +529,7 @@ var GraphInfo = React.createClass({
             else return;
         });
         return (
-            <div>
+            <div className="btnParent">
                 <div className="graphBtn" onClick={this.addGraph}></div>
                 <mui.Dialog title={this.props.title} actions={addGraphAction} contentClassName="scrollDialog graph" ref="addGraphDialog">
                     <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog}/>
