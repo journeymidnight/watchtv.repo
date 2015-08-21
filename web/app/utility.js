@@ -81,6 +81,9 @@ var numberFormatter = function(val, axis, unit) {
     if (str[0].length >= 5) {
         str[0] = str[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
     }
+    if (str.length>1 && str[1].length >= 3) {
+        str[1] =str[1].slice(0,3);
+    }
     if (unit) {
         return str.join('.') + ' ' + unit;
     } else {

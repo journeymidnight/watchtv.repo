@@ -57,12 +57,9 @@ app.use('/', express.static(path.join(__dirname, 'app', 'static')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-
 app.listen(app.get('port'), function() {
     logger('Server started: http://0.0.0.0:' + app.get('port'));
 });
-
-
 
 var handlePluralGet = function(req, res, name, model, query, extraModelActions) {
     // used in GET /nodes, /tags, /users and queryTag
@@ -265,7 +262,6 @@ app.post('/nodes', function(req, res) {
             }
         })
 });
-
 
 app.put('/node/:node_id', function (req, res) {
     var node_id = req.params.node_id;
@@ -725,7 +721,6 @@ app.get('/config',
     function(req, res) {
         res.status(200).send(config.webApp);
 });
-
 
 app.get('/users', requireRoot,
     function(req, res) {
