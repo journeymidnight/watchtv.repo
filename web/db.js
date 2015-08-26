@@ -27,8 +27,8 @@ var nodeSchema = new Schema({
         ips: [String],
         tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}],
         graphInfo: [{
-            dashboard: [{type: Schema.Types.ObjectId, ref: 'Dashboard'}],
-            user: {type: Schema.Types.ObjectId, ref: 'User'}
+            user: {type: Schema.Types.ObjectId, ref: 'User'},
+            graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}]
         }],
         state: {type: String, enum: states},
         failedRules: [String]
@@ -45,7 +45,7 @@ var Node = mongoose.model('Node', nodeSchema);
 var roles = ['Root', 'User'];
 var userSchema = new Schema({
         name: String,
-        dashboard: [{type: Schema.Types.ObjectId, ref: 'Dashboard'}],
+        graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],
         tags: [{type: Schema.Types.ObjectId, ref: 'Tag'}],
         role: {type: String, enum: roles}
     },
@@ -56,17 +56,17 @@ var userSchema = new Schema({
 
 var User = mongoose.model('User', userSchema);
 
-var dashboardSchema = new Schema({
-        ip: String,
-        metric: String,  // comma separated metric name, e.g. "ceph,read_Bps"
-        time: String
+var graphSchema = new Schema({
+        ips: [String],
+        metrics: [String],
+        time: Number  // in sec, how long period of graph to show
     },
     {
-        collection: "Dashboard"
+        collection: "Graph"
     }
 );
 
-var Dashboard = mongoose.model('Dashboard', dashboardSchema);
+var Graph = mongoose.model('Graph', graphSchema);
 
 mongoose.connect(config.db.mongodbURL);
 
@@ -74,5 +74,5 @@ module.exports = {
     Tag: Tag,
     Node: Node,
     User: User,
-    Dashboard: Dashboard
+    Graph: Graph
 };
