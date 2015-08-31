@@ -12,7 +12,10 @@ var session = require('client-sessions');
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-
+var argument = {
+    path:"tags graphs",
+    select:"name ips metrics time"
+}
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
@@ -32,7 +35,7 @@ var requireLogin = function(req, res, next) {
                     res.redirect('/login.html')
                 }
             }
-        )
+        ).populate(argument.path,argument.select);
     } else {
         res.redirect('/login.html')
     }
@@ -664,7 +667,7 @@ var queryUser = function(req, res) {
         'user', db.User, q,
         [{
             methodName: 'populate',
-            arguments: ['tags', 'name']
+            arguments: [argument.path,argument.select]
         }]);
 };
 
@@ -728,7 +731,7 @@ app.get('/users', requireRoot,
             'user', db.User, {},
             [{
                 methodName: 'populate',
-                arguments: ['tags', 'name']
+                arguments: [argument.path,argument.select]
             }]
         )
     }
@@ -737,14 +740,14 @@ app.get('/users', requireRoot,
 app.post('/users', requireRoot,
     function(req, res){
     var name = req.body.name,
-        dashboards = req.body.dashboards,
+        graphs = req.body.graphs,
         tags = req.body.tags,
         role = req.body.role;
     if(!name) {
         res.status(400).send('Must specify a name');
         return
     }
-    if(!dashboards) dashboards = [];
+    if(!graphs) graphs = [];
     if(!tags) tags = [''];
     if(!role) role = 'User';
 
@@ -782,7 +785,7 @@ app.post('/users', requireRoot,
                         );
                         db.User.create({
                                 name: name,
-                                dashboards: dashboards,
+                                graphs: graphs,
                                 tags: tags,
                                 role: role
                             },
@@ -806,19 +809,51 @@ app.post('/users', requireRoot,
 });
 
 app.put('/user/:user_id', function(req, res){
-    var user_id = req.params.user_id;
-    var name = req.body.name,
-        dashboards = req.body.dashboards,
-        tags = req.body.tags,
-        role = req.body.role;
+    var graph = req.body.graph,
+        modifyGraphId = req.body.modifyGraphId,
+        originGraphs = req.body.originGraphs;
+    if(modifyGraphId!=null){//modify graph
+        updateGraph(graph,modifyGraphId,req,res);
+        return;
+    }else if(graph){//add new graph
+        async.map([graph],
+            function (graph, map_callback) {
+                db.Graph.create(graph,function(err,found){
+                    if (err) {
+                        res.status(500).send('Graph create failed');
+                        logger(err);
+                        return;
+                    }
+                    map_callback(null, found._id);
+                });
+            },
+            function (err, results) {
+                modifyUser(req, res,results[0]);
+                return;
+            }
+        );
+    }else {
+        modifyUser(req, res);
+    }
 
+});
+
+var modifyUser = function(req, res,result){
+    var name = req.body.name,
+        tags = req.body.tags,
+        role = req.body.role,
+        originGraphs = req.body.originGraphs;
+    if(result!=null){
+        originGraphs.push(result);
+    }
+    console.log(originGraphs);
     var update = {};
     if(name) {
         res.status(403).send('Cannot modify user name');
         return
     }
-    if(dashboards && dashboards.constructor === Array) {
-        update.dashboards = dashboards;
+    if(originGraphs&& originGraphs.constructor === Array){
+        update.graphs = originGraphs;
     }
     if(role) {
         update.role = role
@@ -882,7 +917,7 @@ app.put('/user/:user_id', function(req, res){
             )
         }
     );
-});
+}
 
 app.get('/user',
     function(req, res) {
@@ -904,7 +939,7 @@ app.get('/user/:user_id', requireRoot,
                 return
             }
             res.send(found);
-        }).populate('tags', 'name'); // return only name
+        }).populate(argument.path,argument.select);
     }
 );
 
