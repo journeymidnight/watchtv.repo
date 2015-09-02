@@ -37,6 +37,11 @@ var NodeList = React.createClass({
             }.bind(this)
         })
     },
+    // componentDidUpdate: function(){
+    //     $(".table tr.nodeEntry td:not(.toolBtn)").unbind().bind('click',function(){
+    //         $(this).parent().find('.toolBtn .infoBtn').trigger("click");
+    //     });
+    // },
     render: function() {
         var that = this;
         var nodeList = this.props.data.map(function(node){
@@ -86,7 +91,6 @@ var NodeList = React.createClass({
     }
 });
 
-
 var NodeEntry = React.createClass({
     render: function(){
         var that = this;
@@ -98,11 +102,11 @@ var NodeEntry = React.createClass({
             )
         });
         return (
-            <tr>
+            <tr className="nodeEntry">
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
                 <td key={this.props.id + 'ip'}>{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
-                <td key={this.props.id + 'actions'}>
+                <td key={this.props.id + 'actions'} className="toolBtn">
                     <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} nodeTags={this.props.tags}
                         onRefresh={this.props.onRefresh}
@@ -153,7 +157,6 @@ var NodeEditButton = React.createClass({
             {text: 'Cancel'},
             {text: 'Update', onClick: this.updateNode}
         ];
-        console.log(this.props.nodeTags);
         var tags = this.props.nodeTags.map(function(t){
             return t.name;
         });
@@ -185,7 +188,6 @@ var NodeEditButton = React.createClass({
             <mui.Dialog
                 title={"Edit info for " + this.props.nodeName}
                 actions={editActions}
-                modal={true}
                 ref="editDialog">
             {edits}
             </mui.Dialog>
@@ -203,8 +205,9 @@ var NodeInfoButton = React.createClass({
         }
     },
     showInfo: function(){
-        this.setState({renderGraph: true});
-        this.refs.infoDialog.show();
+        //this.setState({renderGraph: true});
+        //this.refs.infoDialog.show();
+        window.location.href = "/single.html?_id="+this.props.nodeId;
     },
     createMarkdown: function(){
         return {
@@ -222,7 +225,7 @@ var NodeInfoButton = React.createClass({
         }
         return (
             <span>
-                <mui.IconButton tooltip="Info" onClick={this.showInfo}>
+                <mui.IconButton tooltip="Info" onClick={this.showInfo} className="infoBtn">
                     <mui.SvgIcon>
                         <svg fill={fillColor} height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
@@ -230,20 +233,6 @@ var NodeInfoButton = React.createClass({
                         </svg>
                     </mui.SvgIcon>
                 </mui.IconButton>
-                <mui.Dialog
-                    title={title}
-                    actions={infoAction}
-                    contentClassName="scrollDialog"
-                    ref="infoDialog">
-                    <div>
-                        <bootstrap.Panel collapsible={this.props.description == ''}>
-                            <div dangerouslySetInnerHTML={this.createMarkdown()} />
-                        </bootstrap.Panel>
-                        <MetricGraph node_id={this.props.nodeId} node_ips={this.props.nodeIps}
-                            render={this.state.renderGraph} config={this.props.config}
-                        />
-                    </div>
-                </mui.Dialog>
             </span>
         )
     }

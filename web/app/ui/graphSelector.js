@@ -9,14 +9,9 @@ var Utility = require('../utility.js');
 var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
-        var select;
-        if(this.props.select)
-            select = this.props.select;
-        else
-            select = this.props.selected;
         return {
             measurements: null,
-            select:select
+            select:this.props.selected
         }
     },
     componentWillMount: function(){
@@ -88,19 +83,6 @@ var GraphSelector = React.createClass({
                 that.props.onSelect(name, null)
             }
         })
-        if(event.target.id == 'graphBtn'){//for refresh button
-            return;
-        }else if(event.target.id == 'selectParent'){//for parent-select list
-            setTimeout(function(){
-                $('#graphBtn').trigger('click');
-            },200);
-        }else{//for timePeriod and sub-select list
-            this.props.onGraph();
-        }
-    },
-    handleGraph: function(){
-        this.changeHandler();
-        this.props.onGraph();
     },
     render: function(){
         var that = this;
@@ -111,7 +93,7 @@ var GraphSelector = React.createClass({
                 measurementOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
             selectors.push(
-                <select onChange={this.changeHandler} ref="selectedMeasurement" id="selectParent" defaultValue = {that.state.select.selectedMeasurement}
+                <select onChange={this.changeHandler} ref="selectedMeasurement" id="selectParent" 
                     key={this.props.id+"selectedMeasurement"} >
                     <optgroup label="Measurements">
                         {measurementOptions}
@@ -127,7 +109,7 @@ var GraphSelector = React.createClass({
                     deviceOptions.push(<option key={that.props.id+d} value={d}>{d}</option>)
                 });
                 selectors.push(
-                    <select onChange={this.changeHandler} ref='selectedDevice' defaultValue = {that.state.select.selectedDevice}
+                    <select onChange={this.changeHandler} ref='selectedDevice'
                         key={this.props.id+"selectedDevice"} >
                         <optgroup label="Devices">
                             {deviceOptions}
@@ -141,7 +123,7 @@ var GraphSelector = React.createClass({
                 measureOptions.push(<option key={that.props.id+m} value={m}>{m}</option>)
             });
             selectors.push(
-                <select onChange={this.changeHandler} ref='selectedMeasure' defaultValue = {that.state.select.selectedMeasure}
+                <select onChange={this.changeHandler} ref='selectedMeasure'
                     key={this.props.id+"selectedMeasure"} >
                     <optgroup label="Measures">
                         {measureOptions}
@@ -152,7 +134,6 @@ var GraphSelector = React.createClass({
         return (
             <div>
                 {selectors}
-                <mui.FlatButton label="Refresh" onClick={this.handleGraph} id="graphBtn"/>
             </div>
         )
     }
