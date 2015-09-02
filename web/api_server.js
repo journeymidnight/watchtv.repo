@@ -12,7 +12,10 @@ var session = require('client-sessions');
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-
+var argument = {
+    path:"tags graphs",
+    select:"name ips metrics time"
+}
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
@@ -32,7 +35,7 @@ var requireLogin = function(req, res, next) {
                     res.redirect('/login.html')
                 }
             }
-        )
+        ).populate(argument.path,argument.select);
     } else {
         res.redirect('/login.html')
     }
@@ -265,12 +268,42 @@ app.post('/nodes', function(req, res) {
 
 app.put('/node/:node_id', function (req, res) {
     var node_id = req.params.node_id;
+    var graph = req.body.graph,
+        deleteId = req.body.deleteId;
+    if(deleteId!=null){//delete graph
+        deleteGraph(deleteId,req,res);
+        modifyNode(node_id,req, res);
+    }else if(graph){//add new graph
+        async.map([graph],
+            function (graph, map_callback) {
+                db.Graph.create(graph,function(err,found){
+                    if (err) {
+                        res.status(500).send('Graph create failed');
+                        logger(err);
+                        return;
+                    }
+                    map_callback(null, found._id);
+                });
+            },
+            function (err, results) {
+                modifyNode(node_id,req, res,results[0]);
+                return;
+            }
+        );
+    }else {
+        modifyNode(node_id,req, res);
+    }
+});
+
+var modifyNode = function(node_id,req,res,result){
+    var node_id = req.params.node_id;
     var name = req.body.name,
         nickname = req.body.nickname,
         description = req.body.description,
         ips = req.body.ips,
-        tags = req.body.tags;
-
+        tags = req.body.tags,
+        nodeGraph = req.body.nodeGraph,
+        graphInfo = req.body.graphInfo;//delete
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
@@ -279,6 +312,19 @@ app.put('/node/:node_id', function (req, res) {
             return
         }
     }
+    if(result != null && graphInfo == null){ //add
+        graphInfo = nodeGraph.graphInfo;
+        var graphListIndex = nodeGraph.graphListIndex,
+            graphs = graphInfo[graphListIndex].graphs;
+        if(graphs == null) graphs = [];
+        graphs.push(result);
+        graphInfo[graphListIndex] ={
+            user:graphInfo[graphListIndex].user,
+            graphs:graphs
+        };
+    }
+    if(graphInfo&&graphInfo.constructor === Array)
+        update.graphInfo = graphInfo;
     if (name) update.name = name;
     if (nickname) update.nickname = nickname;
     if (description) update.description = description;
@@ -360,30 +406,28 @@ app.put('/node/:node_id', function (req, res) {
                             }
                         }
                     );
-                    res.status(200).send('Updated');
+                    res.status(200).send(result);
                 }
             );
         }
     );
-});
+};
 
-app.get('/node/:node_id',
-    function(req, res) {
-        var node_id = req.params.node_id;
-        db.Node.findById(node_id, function (err, found) {
-            if (err) {
-                res.status(500).send("Cannot fetch node info");
-                logger(err);
-                return
-            }
-            if(!found) {
-                res.status(404).send("Cannot get info about node " + node_id);
-                return
-            }
-            res.send(found);
-        }).populate('tags', 'name'); // return only name
-    }
-);
+app.get('/node/:node_id',function(req, res) {
+    var node_id = req.params.node_id;
+    db.Node.findById(node_id, function (err, found) {
+        if (err) {
+            res.status(500).send("Cannot fetch node info");
+            logger(err);
+            return
+        }
+        if(!found) {
+            res.status(404).send("Cannot get info about node " + node_id);
+            return
+        }
+        res.send(found);
+    }).populate('tags', 'name'); // return only name
+});
 
 app.delete('/node/:node_id', function(req, res) {
     var node_id = req.params.node_id;
@@ -398,14 +442,13 @@ app.delete('/node/:node_id', function(req, res) {
 });
 
 app.get('/tags', function(req, res) {
-        var q = {};
-        if(req.user.role != 'Root') {
-            q = {_id: {$in: req.user.tags}}
-        }
-        handlePluralGet(req, res,
-            'tag', db.Tag, q, [])
+    var q = {};
+    if(req.user.role != 'Root') {
+        q = {_id: {$in: req.user.tags}}
     }
-);
+    handlePluralGet(req, res,
+        'tag', db.Tag, q, [])
+});
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
@@ -442,24 +485,22 @@ app.post('/tags', function (req, res) {
     )
 });
 
-app.get('/tag/:tag_id',
-    function(req, res){
-        var tag_id = req.params.tag_id;
-        db.Tag.findById(tag_id, function (err, found) {
-            if(err) {
-                res.status(500).send("Cannot fetch tag info");
-                logger(err);
-                return
-            }
-            if(!found){
-                res.status(404).send("Cannot get info about tag " + tag_id);
-                return
-            }
-            res.setHeader('Content-Type', 'application/json');
-            res.send(found);
-        })
-    }
-);
+app.get('/tag/:tag_id', function(req, res){
+    var tag_id = req.params.tag_id;
+    db.Tag.findById(tag_id, function (err, found) {
+        if(err) {
+            res.status(500).send("Cannot fetch tag info");
+            logger(err);
+            return
+        }
+        if(!found){
+            res.status(404).send("Cannot get info about tag " + tag_id);
+            return
+        }
+        res.setHeader('Content-Type', 'application/json');
+        res.send(found);
+    })
+});
 
 app.put('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
@@ -664,7 +705,7 @@ var queryUser = function(req, res) {
         'user', db.User, q,
         [{
             methodName: 'populate',
-            arguments: ['tags', 'name']
+            arguments: [argument.path,argument.select]
         }]);
 };
 
@@ -717,34 +758,31 @@ app.get('/q', function(req, res){
     }
 });
 
-app.get('/config',
-    function(req, res) {
-        res.status(200).send(config.webApp);
+app.get('/config', function(req, res) {
+    res.status(200).send(config.webApp);
 });
 
-app.get('/users', requireRoot,
-    function(req, res) {
-        handlePluralGet(req, res,
-            'user', db.User, {},
-            [{
-                methodName: 'populate',
-                arguments: ['tags', 'name']
-            }]
-        )
-    }
-);
+app.get('/users', requireRoot, function(req, res) {
+    handlePluralGet(req, res,
+        'user', db.User, {},
+        [{
+            methodName: 'populate',
+            arguments: [argument.path,argument.select]
+        }]
+    )
+});
 
 app.post('/users', requireRoot,
     function(req, res){
     var name = req.body.name,
-        dashboards = req.body.dashboards,
+        graphs = req.body.graphs,
         tags = req.body.tags,
         role = req.body.role;
     if(!name) {
         res.status(400).send('Must specify a name');
         return
     }
-    if(!dashboards) dashboards = [];
+    if(!graphs) graphs = [];
     if(!tags) tags = [''];
     if(!role) role = 'User';
 
@@ -782,7 +820,7 @@ app.post('/users', requireRoot,
                         );
                         db.User.create({
                                 name: name,
-                                dashboards: dashboards,
+                                graphs: graphs,
                                 tags: tags,
                                 role: role
                             },
@@ -806,19 +844,50 @@ app.post('/users', requireRoot,
 });
 
 app.put('/user/:user_id', function(req, res){
+    var graph = req.body.graph,
+        deleteId = req.body.deleteId;
     var user_id = req.params.user_id;
-    var name = req.body.name,
-        dashboards = req.body.dashboards,
-        tags = req.body.tags,
-        role = req.body.role;
+    if(deleteId!=null){//delete graph
+        deleteGraph(deleteId,req,res);
+        modifyUser(user_id,req, res);
+    }else if(graph){//add new graph
+        async.map([graph],
+            function (graph, map_callback) {
+                db.Graph.create(graph,function(err,found){
+                    if (err) {
+                        res.status(500).send('Graph create failed');
+                        logger(err);
+                        return;
+                    }
+                    map_callback(null, found._id);
+                });
+            },
+            function (err, results) {
+                modifyUser(user_id,req, res,results[0]);
+                return;
+            }
+        );
+    }else {
+        modifyUser(user_id,req, res);
+    }
+});
 
+var modifyUser = function(user_id,req,res,result){
+    var name = req.body.name,
+        tags = req.body.tags,
+        role = req.body.role,
+        graphs = req.body.graphs;
+    if(result!=null){
+        if(graphs == null) graphs = [];
+        graphs.push(result);
+    }
     var update = {};
     if(name) {
         res.status(403).send('Cannot modify user name');
         return
     }
-    if(dashboards && dashboards.constructor === Array) {
-        update.dashboards = dashboards;
+    if(graphs&& graphs.constructor === Array){
+        update.graphs = graphs;
     }
     if(role) {
         update.role = role
@@ -882,31 +951,27 @@ app.put('/user/:user_id', function(req, res){
             )
         }
     );
+}
+
+app.get('/user', function(req, res) {
+    res.send(req.user); // req.user is assigned in `requireLogin`
 });
 
-app.get('/user',
-    function(req, res) {
-        res.send(req.user); // req.user is assigned in `requireLogin`
-    }
-);
-
-app.get('/user/:user_id', requireRoot,
-    function(req, res) {
-        var user_id = req.params.user_id;
-        db.User.findById(user_id, function (err, found) {
-            if (err) {
-                res.status(500).send("Cannot fetch node info");
-                logger(err);
-                return
-            }
-            if(!found) {
-                res.status(404).send("Cannot get info about node " + user_id);
-                return
-            }
-            res.send(found);
-        }).populate('tags', 'name'); // return only name
-    }
-);
+app.get('/user/:user_id', requireRoot, function(req, res) {
+    var user_id = req.params.user_id;
+    db.User.findById(user_id, function (err, found) {
+        if (err) {
+            res.status(500).send("Cannot fetch node info");
+            logger(err);
+            return
+        }
+        if(!found) {
+            res.status(404).send("Cannot get info about node " + user_id);
+            return
+        }
+        res.send(found);
+    }).populate(argument.path,argument.select);
+});
 
 app.delete('/user/:user_id', requireRoot,
     function(req, res) {
@@ -918,6 +983,72 @@ app.delete('/user/:user_id', requireRoot,
             return
         }
         res.send(user_id + " has been deleted.")
+    })
+});
+
+app.put('/graph/:grapph_id', requireRoot, function(req, res) {
+    var id = req.params.grapph_id,
+    graph = req.body.graph;
+    db.Graph.findOneAndUpdate(
+        { _id: id },
+        { '$set': graph },
+        function(err, u) {
+            if(err) {
+                res.status(500).send('Existence checking failed');
+                logger(err);
+                return
+            }
+            if(!u) {
+                res.status(404).send(id + ' does not exist');
+                return
+            }
+            res.status(200).send('Updated');
+        }
+    );
+});
+
+var deleteGraph = function(id,req, res){
+    db.Graph.findByIdAndRemove(id, function (err) {
+        if (err) {
+            res.status(500).send("Failed to execute delete");
+            logger(err);
+            return
+        }
+    })
+};
+
+app.get('/graph/:graph_id', requireRoot, function(req, res) {
+    var graph_id = req.params.graph_id;
+    db.Graph.findById(graph_id, function (err, found) {
+        if (err) {
+            res.status(500).send("Cannot fetch graph info");
+            logger(err);
+            return
+        }
+        if(!found) {
+            res.status(404).send("Cannot get info about graph " + graph_id);
+            return
+        }
+        res.send(found);
+    });
+});
+
+app.put('/graphs',function(req,res){
+    var ip = req.params.ip;
+    var metric = req.params.metric;
+    var time = req.params.time;
+    db.Graph.create({
+        ip:ip,
+        metric:metric,
+        time:time
+    },function(err,found){
+        if (err) {
+            res.status(500).send('Graph create failed');
+            logger(err);
+            return
+        }
+        logger('Graph created', found);
+        res.status(201).send('Graph added');
     })
 });
 
@@ -959,7 +1090,7 @@ app.post('/login', function(req, res) {
                 {upsert: true}, // save user to our db if not exist
                 function() {
                     req.session.user = user;
-                    res.redirect('/index.html');
+                    res.redirect('/dashboard.html');
                 }
             );
         }

@@ -6,10 +6,10 @@ input::-moz-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 input::-ms-input-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 th, td {padding-left: 20px!important;}
 li{list-style: none;}
-::-webkit-scrollbar {width: 8px;height: 8px;background-color: rgba(190, 190, 190, 0.77);-webkit-border-radius: 4px;-moz-border-radius: 4px;border-radius: 4px;}
-::-webkit-scrollbar-thumb {background-color: rgba(0, 0, 0, 0.73);-webkit-border-radius: 4px;-moz-border-radius: 4px;border-radius: 4px;}
+::-webkit-scrollbar {width: 6px;height: 6px;background-color: rgba(190, 190, 190, 0.77);-webkit-border-radius: 3px;-moz-border-radius: 3px;border-radius: 3px;}
+::-webkit-scrollbar-thumb {background-color: rgba(0, 0, 0, 0.73);-webkit-border-radius: 3px;-moz-border-radius: 3px;border-radius: 3px;}
 .clear{clear: both;}
-.dashboard,.single{overflow: auto!important;overflow-x: hidden!important;padding: 0 10px;background-color: #000;}
+.dashboard,.single{overflow: auto!important;overflow-x: hidden!important;padding: 0 10px;background-color: #fff;}
 /*navBar*/
 .head {position: fixed;top: 0;left: 0;width: 100%;z-index: 111;}
 .afterNav{height: 75px;}
@@ -61,12 +61,11 @@ li{list-style: none;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
 .legendLabel{color: #AFB2B5;transform: scale(.9);}
 /*content - single*/
-.zoomTime{position: fixed;z-index: 111;top: 0;right: 170px;color: #fff;line-height: 64px;width: 250px;cursor: pointer;}
+.zoomTime{position: fixed;z-index: 111;top: 0;right: 170px;color: #D7F4F6!important;font-size: 15px;line-height: 64px;width: 250px;cursor: pointer;}
 .zoomTime .zoom{display: block;float: left;margin: 0 10px;width: 75px;text-align: center;}
-.zoomTime .zoom:hover{line-height: 62px;font-size: 16px;font-weight: bold;border-bottom: 2px solid #fff;}
+.zoomTime .zoom:hover,.zoomTime .zoomInfo:hover,.zoomTime .zoomInfo.selected{line-height: 62px;font-size: 16px;font-weight: bold;border-bottom: 2px solid #fff;}
 .zoomTime .zoom + div{float: left;width: 150px;}
 .zoomTime .zoomInfo {width: inherit;padding-left: 20px;}
-.zoomTime .zoomInfo:hover,.zoomTime .zoomInfo.selected{background-color: #01CAE4;border-radius: 5px;font-size: 16px;font-weight: bold;}
 .zoomTime ul {display:none;clear: both;background-color: #262626;padding: 10px 0;border-radius: 3px;}
 .zoomTime li {padding-left:20px;line-height: 25px;}
 .zoomTime li:hover,.zoomTime li.selected {background-color: #3C3C3C;}
