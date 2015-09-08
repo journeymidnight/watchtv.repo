@@ -108,7 +108,8 @@ var GraphInfo = React.createClass({
     saveConfig: function(){
         var event = Utility.getEvent(),
             index = this.getCurrIndex(event),
-            metric = this.getTotalMetric(event);
+            metric = this.getTotalMetric(event),
+            obj = $(event.target).parents('.graph').not('.scrollDialog').find('.loading');
         if(metric.length == 0){
             alert("No metric added !!");
             return;
@@ -117,11 +118,14 @@ var GraphInfo = React.createClass({
             alert("No ip selected !!");
             return;
         }
+        obj.show;
+        this.refs.addGraphDialog.dismiss();
         var nodeGraph = this.state.nodeGraph;
         if(nodeGraph == null)
             this.saveUserGraph(metric,index);
         else 
             this.saveNodeGraph(metric,index);
+        obj.hide();
     },
     saveUserGraph:function(metric,index){
         var user_id,graph,graphs;//graph为新增或修改的当前信息 graphs为之前的所有的信息
@@ -143,7 +147,6 @@ var GraphInfo = React.createClass({
                         url: 'graph/'+graphs[index]._id,
                         data: {graph: graph},
                         success: function(){
-                            _this.refs.addGraphDialog.dismiss();
                             _this.props.onRefresh(graph);
                         }
                     });
@@ -153,7 +156,6 @@ var GraphInfo = React.createClass({
                         url: 'user/'+user_id,
                         data: {graph: graph,graphs:graphs},
                         success: function(){
-                            _this.refs.addGraphDialog.dismiss();
                             _this.props.onRefresh(graph);
                         }
                     });
@@ -176,7 +178,6 @@ var GraphInfo = React.createClass({
                 url: 'graph/'+graphs[index],
                 data: {graph: graph},
                 success: function(){
-                    _this.refs.addGraphDialog.dismiss();
                     _this.props.onRefresh(graph);
                 }
             });
@@ -189,7 +190,6 @@ var GraphInfo = React.createClass({
                     graphs[graphs.length] = data;
                     nodeGraph.graphInfo[nodeGraph.graphListIndex].graphs = graphs;
                     _this.setState({nodeGraph:nodeGraph});
-                    _this.refs.addGraphDialog.dismiss();
                     _this.props.onRefresh(graph);
                 }
             });
@@ -230,13 +230,16 @@ var GraphInfo = React.createClass({
     },
     deleteConfig: function(){
         var nodeGraph = this.state.nodeGraph,
-            event = Utility.getEvent();
+            event = Utility.getEvent(),
+            obj = $(event.target).parents('.graph').not('.scrollDialog').find('.loading');
+        obj.show();
+        this.refs.addGraphDialog.dismiss();
+        this.refs.delDialog.dismiss();
         if(nodeGraph == null)
             this.deleteUserGraph(event);
         else 
             this.deleteNodeGraph(event);
-        this.refs.addGraphDialog.dismiss();
-        this.refs.delDialog.dismiss();
+        obj.hide();
         this.props.onRefresh(null,"delete");
     },
     deleteUserGraph:function(event){

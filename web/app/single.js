@@ -84,9 +84,11 @@ var GraphList = React.createClass({
             }
         };
     },
-    refreshGraph: function(dashboards){
-        var state = this.init();
-        this.setState({arr:state.arr});
+    refreshGraph: function(dashboards,fromTime,toTime){
+        var state = this.init(),timePeriod;
+        if(fromTime!=null && toTime!=null)
+            timePeriod = [new Date(fromTime),new Date(toTime)]
+        this.setState({arr:state.arr,timePeriod:timePeriod});
     },
     showZoomTime:function(){
         $(".zoomTime ul").toggle();
@@ -114,13 +116,13 @@ var GraphList = React.createClass({
         for(var i=0;i<arr.length;i++){
             arr[i].timePeriod = value;
         }
-        this.setState({arr:arr,zoomTimeIndex:obj.index()});
+        this.setState({arr:arr,zoomTimeIndex:obj.index(),timePeriod:null});
     },
     render: function(){
         var _this = this;
         var graphList = _this.state.arr.map(function(subArr) {
             return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key}
-                              timeList = {_this.state.timeList} ips = {_this.state.ips}
+                              timeList = {_this.state.timeList} ips = {_this.state.ips} timePeriod = {_this.state.timePeriod}
                               onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph} type='single'/>
         });
         var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){

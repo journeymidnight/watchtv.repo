@@ -137,33 +137,40 @@ var BaseGraph = React.createClass({
                 }
             })
             .bind("plotselected", function (event, ranges) {
-                var fitted_data=that.getFittedData();
-                var start = that.state.timePeriod[0].getTime(),
-                    end = that.state.timePeriod[1].getTime();
-                var from = (ranges.xaxis.from - start)/(end - start),
-                    to = (ranges.xaxis.to - start)/(end - start);
-                var data = that.state.data;
-                for(var i = 0;i<fitted_data.length;i++){
-                    var arr = fitted_data[i].data;
-                    var oriData = data[i].data;
-                    fitted_data[i].data = arr.slice(parseInt(from*arr.length),parseInt(to*arr.length));
-                    var dataStart = parseInt(from*oriData.length),
-                        dataEnd = parseInt(to*oriData.length);
-                    dataStart%2 == 0?dataStart = dataStart:dataStart = dataStart+1;
-                    dataEnd%2 == 0?dataEnd = dataEnd:dataEnd = dataEnd+1;
-                    data[i].data = oriData.slice(dataStart,dataEnd);
+                if(that.props.type == 'single'){
+                    that.props.onRefresh(null,ranges.xaxis.from,ranges.xaxis.to);
+                }else{
+                    var fitted_data=that.getFittedData();
+                    var start = that.state.timePeriod[0].getTime(),
+                        end = that.state.timePeriod[1].getTime();
+                    var from = (ranges.xaxis.from - start)/(end - start),
+                        to = (ranges.xaxis.to - start)/(end - start);
+                    var data = that.state.data;
+                    for(var i = 0;i<fitted_data.length;i++){
+                        var arr = fitted_data[i].data;
+                        var oriData = data[i].data;
+                        fitted_data[i].data = arr.slice(parseInt(from*arr.length),parseInt(to*arr.length));
+                        var dataStart = parseInt(from*oriData.length),
+                            dataEnd = parseInt(to*oriData.length);
+                        dataStart%2 == 0?dataStart = dataStart:dataStart = dataStart+1;
+                        dataEnd%2 == 0?dataEnd = dataEnd:dataEnd = dataEnd+1;
+                        data[i].data = oriData.slice(dataStart,dataEnd);
+                    }
+                    that.setState({data:data,timePeriod:[new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)]});
+                    Utility.plotGraph('#graph' + that.state.uniq_id,
+                              fitted_data,
+                              formatter
+                    )
                 }
-                that.setState({data:data,timePeriod:[new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)]});
-                Utility.plotGraph('#graph' + that.state.uniq_id,
-                          fitted_data,
-                          formatter
-                )
             });
     },
-    componentWillReceiveProps:function(){
-        if(this.props.type == 'single'){
+    componentWillReceiveProps:function(nextProps){
+        if(nextProps.type == 'single'){
             this.setState({data:[]});
-            this.handleGraph(null,null,Utility.fitTimePeriod(null,this.props.selected.timePeriod));
+            if(nextProps.timePeriod!=null)
+                this.handleGraph(null,null,nextProps.timePeriod);
+            else
+                this.handleGraph(null,null,Utility.fitTimePeriod(null,nextProps.selected.timePeriod));
         }
     },
     render: function(){
@@ -171,6 +178,7 @@ var BaseGraph = React.createClass({
         return (
             <div>
                 <div className="graph">
+                    <div className="loading"></div>
                     <div className="graphTitle" 
                         title={graphTitle}>
                         {graphTitle}
