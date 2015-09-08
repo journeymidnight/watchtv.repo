@@ -60,7 +60,7 @@ var GraphList = React.createClass({
                                 node_id:data._id,
                                 timePeriod:"300",
                                 metricArr:data.metrics,
-                                key: data.ips+data._id+data.metrics
+                                key: data._id
                             }
                         }
                     });
@@ -118,10 +118,10 @@ var GraphList = React.createClass({
     },
     render: function(){
         var _this = this;
-        var graphList = _this.state.arr.map(function(subArr,index) {
-            return <BaseGraph selected={subArr} config={_this.state.config} index={index} key = {subArr.key}
+        var graphList = _this.state.arr.map(function(subArr) {
+            return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key}
                               timeList = {_this.state.timeList} ips = {_this.state.ips}
-                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}/>
+                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph} type='single'/>
         });
         var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){
             return <li value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
@@ -140,6 +140,9 @@ var GraphList = React.createClass({
                 <div className="graphList">
                     {graphList}
                 </div>
+                <GraphInfo type="node" title="add new dashboard" 
+                           timeList = {this.state.timeList} ips = {this.state.ips}
+                           onRefresh={this.refreshGraph} nodeGraph={this.state.nodeGraph}/>
             </div>
         );
     }

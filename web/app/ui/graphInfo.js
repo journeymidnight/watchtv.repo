@@ -8,6 +8,9 @@ var Utility = require('../utility.js');
 var GraphInfo = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     getInitialState: function(){
+        return this.init();
+    },
+    init:function(){
         var ip=[],node_id,host="",time="300",metricArr=[],selectedIp=0,selectedTime=0,selected={};
         var ipList = this.props.ips,
             timeList = this.props.timeList,
@@ -35,7 +38,10 @@ var GraphInfo = React.createClass({
                     selectedTime = i;
             }
         }
-        if(ip.length == 0) ip[0] = ipList[0].text;
+        if(ip.length == 0){
+            ip[0] = ipList[0].text;
+            ipList[0].defalt = true;
+        }
         return {
             ipList:ipList,
             ip: ip,
@@ -47,7 +53,6 @@ var GraphInfo = React.createClass({
             time:time,
             timeList: timeList,
             selectedTime: selectedTime,
-            index:this.props.index,
             nodeGraph:nodeGraph
         }
     },
@@ -101,8 +106,9 @@ var GraphInfo = React.createClass({
         obj.parent().remove();
     },
     saveConfig: function(){
-        var event = Utility.getEvent();
-        var metric = this.getTotalMetric(event);
+        var event = Utility.getEvent(),
+            index = this.getCurrIndex(event),
+            metric = this.getTotalMetric(event);
         if(metric.length == 0){
             alert("No metric added !!");
             return;
@@ -113,11 +119,11 @@ var GraphInfo = React.createClass({
         }
         var nodeGraph = this.state.nodeGraph;
         if(nodeGraph == null)
-            this.saveUserGraph(metric);
+            this.saveUserGraph(metric,index);
         else 
-            this.saveNodeGraph(metric);
+            this.saveNodeGraph(metric,index);
     },
-    saveUserGraph:function(metric){
+    saveUserGraph:function(metric,index){
         var user_id,graph,graphs;//graph为新增或修改的当前信息 graphs为之前的所有的信息
         var _this = this;
         $.ajax({
@@ -131,10 +137,10 @@ var GraphInfo = React.createClass({
                     metrics: metric,
                     time: _this.state.time
                 }
-                if(_this.state.index != null){//modify
+                if(index != null){//modify
                     $.ajax({
                         type: 'PUT',
-                        url: 'graph/'+graphs[_this.state.index]._id,
+                        url: 'graph/'+graphs[index]._id,
                         data: {graph: graph},
                         success: function(){
                             _this.refs.addGraphDialog.dismiss();
@@ -155,7 +161,7 @@ var GraphInfo = React.createClass({
             }
         });
     },
-    saveNodeGraph:function(metric){
+    saveNodeGraph:function(metric,index){
         var user_id,_this = this,
             nodeGraph = this.state.nodeGraph,
             graphs = nodeGraph.graphInfo[nodeGraph.graphListIndex].graphs,
@@ -164,10 +170,10 @@ var GraphInfo = React.createClass({
                 metrics: metric,
                 time: _this.state.time
             };
-        if(_this.state.index != null){//modify
+        if(index != null){//modify
             $.ajax({
                 type: 'PUT',
-                url: 'graph/'+graphs[_this.state.index],
+                url: 'graph/'+graphs[index],
                 data: {graph: graph},
                 success: function(){
                     _this.refs.addGraphDialog.dismiss();
@@ -219,19 +225,21 @@ var GraphInfo = React.createClass({
         });
     },
     componentWillReceiveProps:function(){
-        this.setState({index:this.props.index});
+        var state = this.init();
+        this.setState({selected:state.selected,ipList:state.ipList});
     },
     deleteConfig: function(){
-        var nodeGraph = this.state.nodeGraph;
+        var nodeGraph = this.state.nodeGraph,
+            event = Utility.getEvent();
         if(nodeGraph == null)
-            this.deleteUserGraph();
+            this.deleteUserGraph(event);
         else 
-            this.deleteNodeGraph();
+            this.deleteNodeGraph(event);
         this.refs.addGraphDialog.dismiss();
         this.refs.delDialog.dismiss();
         this.props.onRefresh(null,"delete");
     },
-    deleteUserGraph:function(){
+    deleteUserGraph:function(event){
         var _this = this;
         var user_id,graphs,deleteId;
         $.ajax({
@@ -241,7 +249,7 @@ var GraphInfo = React.createClass({
             success:function(data){
                 user_id = data._id;
                 graphs = data.graphs;
-                var i = _this.state.index;  
+                var i = _this.getCurrIndex(event);
                 if(i != null){
                     deleteId= graphs[i]._id;
                     graphs = graphs.slice(0,i).concat(graphs.slice(i+1));
@@ -258,14 +266,14 @@ var GraphInfo = React.createClass({
             async:false
         });
     },
-    deleteNodeGraph:function(){
+    deleteNodeGraph:function(event){
         var _this = this,
             nodeGraph = this.state.nodeGraph,
             node_id = nodeGraph.node_id,
             graphInfo = nodeGraph.graphInfo,
             graphListIndex = nodeGraph.graphListIndex,
             graphs = graphInfo[graphListIndex].graphs;
-        var i = this.state.index;  
+        var i = this.getCurrIndex(event);
         if(i != null){
             deleteId= graphs[i];
             graphs = graphs.slice(0,i).concat(graphs.slice(i+1));
@@ -284,6 +292,13 @@ var GraphInfo = React.createClass({
                 _this.setState({nodeGraph:nodeGraph});
             }
         });
+    },
+    getCurrIndex:function(event){
+        var obj = $(event.target).parents('.graph').not('.scrollDialog');
+        if(obj.length > 0)
+            return $('.graph').not(".scrollDialog").index(obj);
+        else 
+            return null;
     },
     render: function(){
         var addGraphAction = [

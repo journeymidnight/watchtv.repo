@@ -13,7 +13,7 @@ var BaseGraph = React.createClass({
             timePeriod:Utility.fitTimePeriod(null,this.props.selected.timePeriod),
             metricArr: this.props.selected.metricArr,
             node_id: this.props.selected.node_id,
-            uniq_id: this.props.selected.node_id + host.split(",")[0]+this.props.index,
+            uniq_id: this.props.selected.key,
             config: this.props.config
         }
     },
@@ -138,8 +138,6 @@ var BaseGraph = React.createClass({
             })
             .bind("plotselected", function (event, ranges) {
                 var fitted_data=that.getFittedData();
-                var newFromTime = new Date(ranges.xaxis.from),
-                    newToTime = new Date(ranges.xaxis.to);
                 var start = that.state.timePeriod[0].getTime(),
                     end = that.state.timePeriod[1].getTime();
                 var from = (ranges.xaxis.from - start)/(end - start),
@@ -149,9 +147,13 @@ var BaseGraph = React.createClass({
                     var arr = fitted_data[i].data;
                     var oriData = data[i].data;
                     fitted_data[i].data = arr.slice(parseInt(from*arr.length),parseInt(to*arr.length));
-                    data[i].data = oriData.slice(parseInt(from*oriData.length),parseInt(to*oriData.length));
+                    var dataStart = parseInt(from*oriData.length),
+                        dataEnd = parseInt(to*oriData.length);
+                    dataStart%2 == 0?dataStart = dataStart:dataStart = dataStart+1;
+                    dataEnd%2 == 0?dataEnd = dataEnd:dataEnd = dataEnd+1;
+                    data[i].data = oriData.slice(dataStart,dataEnd);
                 }
-                that.setState({data:data,timePeriod:[newFromTime,newToTime]});
+                that.setState({data:data,timePeriod:[new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)]});
                 Utility.plotGraph('#graph' + that.state.uniq_id,
                           fitted_data,
                           formatter
@@ -159,8 +161,10 @@ var BaseGraph = React.createClass({
             });
     },
     componentWillReceiveProps:function(){
-        this.setState({data:[]});
-        this.handleGraph(null,null,Utility.fitTimePeriod(null,this.props.selected.timePeriod));
+        if(this.props.type == 'single'){
+            this.setState({data:[]});
+            this.handleGraph(null,null,Utility.fitTimePeriod(null,this.props.selected.timePeriod));
+        }
     },
     render: function(){
         var graphTitle = this.state.metricArr;
@@ -184,8 +188,7 @@ var BaseGraph = React.createClass({
                         }}>
                     </div>
                     <GraphInfo title="Edit"  ips = {this.props.ips} nodeGraph={this.props.nodeGraph}
-                               selected={this.props.selected} index={this.props.index} 
-                               timeList = {this.props.timeList} onRefresh={this.refreshGraph}/>
+                               selected={this.props.selected} timeList = {this.props.timeList} onRefresh={this.refreshGraph}/>
                 </div>
             </div>
         )

@@ -274,22 +274,14 @@ app.put('/node/:node_id', function (req, res) {
         deleteGraph(deleteId,req,res);
         modifyNode(node_id,req, res);
     }else if(graph){//add new graph
-        async.map([graph],
-            function (graph, map_callback) {
-                db.Graph.create(graph,function(err,found){
-                    if (err) {
-                        res.status(500).send('Graph create failed');
-                        logger(err);
-                        return;
-                    }
-                    map_callback(null, found._id);
-                });
-            },
-            function (err, results) {
-                modifyNode(node_id,req, res,results[0]);
+        db.Graph.create(graph,function(err,found){
+            if (err) {
+                res.status(500).send('Graph create failed');
+                logger(err);
                 return;
             }
-        );
+            modifyNode(node_id,req, res,found._id);
+        });
     }else {
         modifyNode(node_id,req, res);
     }
@@ -851,22 +843,14 @@ app.put('/user/:user_id', function(req, res){
         deleteGraph(deleteId,req,res);
         modifyUser(user_id,req, res);
     }else if(graph){//add new graph
-        async.map([graph],
-            function (graph, map_callback) {
-                db.Graph.create(graph,function(err,found){
-                    if (err) {
-                        res.status(500).send('Graph create failed');
-                        logger(err);
-                        return;
-                    }
-                    map_callback(null, found._id);
-                });
-            },
-            function (err, results) {
-                modifyUser(user_id,req, res,results[0]);
+        db.Graph.create(graph,function(err,found){
+            if (err) {
+                res.status(500).send('Graph create failed');
+                logger(err);
                 return;
             }
-        );
+            modifyUser(user_id,req, res,found._id);
+        });
     }else {
         modifyUser(user_id,req, res);
     }
@@ -1032,26 +1016,6 @@ app.get('/graph/:graph_id', requireRoot, function(req, res) {
         res.send(found);
     });
 });
-
-app.put('/graphs',function(req,res){
-    var ip = req.params.ip;
-    var metric = req.params.metric;
-    var time = req.params.time;
-    db.Graph.create({
-        ip:ip,
-        metric:metric,
-        time:time
-    },function(err,found){
-        if (err) {
-            res.status(500).send('Graph create failed');
-            logger(err);
-            return
-        }
-        logger('Graph created', found);
-        res.status(201).send('Graph added');
-    })
-});
-
 app.post('/login', function(req, res) {
     var user = req.body.user,
         password = encodeURIComponent(req.body.password);

@@ -6,7 +6,6 @@ var markdown = require('markdown').markdown;
 var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
-var MetricGraph = require('./ui/metricgraph.js');
 var SearchableList = require('./ui/searchablelist.js');
 
 

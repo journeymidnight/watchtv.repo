@@ -27,7 +27,7 @@ var GraphList = React.createClass({
                         node_id:graphs[i]._id,
                         timePeriod:graphs[i].time,
                         metricArr:metricArr,
-                        key: graphs[i].ips+graphs[i]._id+metricArr
+                        key: graphs[i]._id
                     }
                 }
             }
@@ -60,16 +60,18 @@ var GraphList = React.createClass({
     },
     render: function(){
         var _this = this;
-        var graphList = _this.state.arr.map(function(subArr,index) {
-            return <BaseGraph selected={subArr} config={_this.state.config} index={index} key = {subArr.key} 
+        var graphList = _this.state.arr.map(function(subArr) {
+            return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key} 
                               timeList = {_this.state.timeList} ips = {_this.state.ips}
-                              onRefresh={_this.refreshGraph} />
+                              onRefresh={_this.refreshGraph}/>
         });
         return (
             <div>
                 <div className="graphList">
                     {graphList}
                 </div>
+                <GraphInfo type="node" title="add new dashboard" ips= {this.state.ips}
+                           onRefresh={this.refreshGraph} timeList = {this.state.timeList}/>
             </div>
         );
     }
