@@ -37,8 +37,8 @@ li{list-style: none;}
 .timeList svg:not(:root) {fill: #000!important;width: 20px!important;}
 .timeList > div:last-child{max-height: 300%;overflow-y: scroll!important;overflow-x: hidden;}
 .flot-overlay {cursor: crosshair;}
-.graphList > div {width:33.3%;float:left;}
-.graphList .graph{margin:5px;background-color: #1f1f1f;color: #AFB2B5;padding: 010px;position: relative;min-height: 210px;}
+.graphList > div {width:50%;float:left;}
+.graphList .graph{margin:5px;background-color: #1f1f1f;color: #AFB2B5;padding: 010px;position: relative;min-height: 220px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
 .btnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 50%;height: 38px;margin-top: -18px;}
 .btnParent:hover{width:37px;}

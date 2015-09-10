@@ -40,7 +40,9 @@ var GraphList = React.createClass({
                 if(data.total > 0){
                     node_id = data.result[0]._id;
                     for(var i = 0;i<data.result.length;i++){
-                        ips[i] = {text: data.result[i].ips.toString(),value:data.result[i]._id,defalt:false};
+                        ips[i] = {text: data.result[i].ips.toString(),
+                                  value:data.result[i]._id,
+                                  default:false};
                     }
                 }
             },

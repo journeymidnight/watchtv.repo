@@ -120,7 +120,8 @@ var BaseGraph = React.createClass({
             .bind("plothover", function (event, pos, item) {
                 if (item) {
                     var x = new Date(item.datapoint[0]).toLocaleString(),
-                        y = Utility.numberFormatter(item.datapoint[1],null,unitSuffix[fitted_data[item.seriesIndex].type-1]);
+                        y = Utility.numberFormatter(item.datapoint[1],
+                                null,unitSuffix[fitted_data[item.seriesIndex].type-1]),
                         metric = fitted_data[item.seriesIndex].metric,
                         ip = fitted_data[item.seriesIndex].ip,
                         position = Utility.getElePosition(this);
@@ -183,7 +184,9 @@ var BaseGraph = React.createClass({
                         title={graphTitle}>
                         {graphTitle}
                     </div>
-                    <div id={'graph'+this.state.uniq_id} style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f"}}></div>
+                    <div id={'graph'+this.state.uniq_id}
+                         style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f"}}>
+                    </div>
                     <div id={'tooltip'+this.state.uniq_id} 
                         className = "tool"
                         style={{
@@ -195,8 +198,9 @@ var BaseGraph = React.createClass({
                             zIndex:"1"
                         }}>
                     </div>
-                    <GraphInfo title="Edit"  ips = {this.props.ips} nodeGraph={this.props.nodeGraph}
-                               selected={this.props.selected} timeList = {this.props.timeList} onRefresh={this.refreshGraph}/>
+                    <GraphInfo title="Edit" ips={this.props.ips} nodeGraph={this.props.nodeGraph}
+                               selected={this.props.selected} timeList={this.props.timeList}
+                               onRefresh={this.refreshGraph}/>
                 </div>
             </div>
         )

@@ -9,28 +9,28 @@ var GraphInfo = require('./ui/graphInfo.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
-    getInitialState:function(){
+    getInitialState: function () {
         return this.init();
     },
-    init: function(){
-        var graphs=[],arr=[],ips,_id,graphListIndex=0,graphInfo=[];
-        var url = window.location.href,
-            node_id = url.split("?")[1].split("=")[1];
-        var zoomTimeList = Utility.getTimeList();
-        var currUser;
+    init: function () {
+        var graphs = [], arr = [], ips, _id, graphListIndex = 0, graphInfo = [],
+            url = window.location.href,
+            node_id = url.split("?")[1].split("=")[1],
+            zoomTimeList = Utility.getTimeList(),
+            currUser;
         $.ajax({
-            url:"/user",
-            type:"get",
-            async:false,
-            success:function(data){
+            url: "/user",
+            type: "get",
+            async: false,
+            success: function (data) {
                 currUser = data._id;
             }
         });
         $.ajax({
-            url:"node/"+node_id,
-            type:"get",
-            async:false,
-            success:function(data){
+            url: "node/" + node_id,
+            type: "get",
+            async: false,
+            success: function (data) {
                 ips = data.ips;
                 _id = data._id;
                 graphInfo = data.graphInfo;
@@ -69,7 +69,7 @@ var GraphList = React.createClass({
         });
         //ips  需要一个_id值
         for(var i = 0;i<ips.length;i++){
-            ips[i] = {text: ips[i],value:_id,defalt:false};
+            ips[i] = {text: ips[i],value:_id,default:false};
         }
         return {
             arr:arr,
@@ -121,9 +121,11 @@ var GraphList = React.createClass({
     render: function(){
         var _this = this;
         var graphList = _this.state.arr.map(function(subArr) {
-            return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key}
-                              timeList = {_this.state.timeList} ips = {_this.state.ips} timePeriod = {_this.state.timePeriod}
-                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph} type='single'/>
+            return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
+                              timeList={_this.state.timeList} ips={_this.state.ips}
+                              timePeriod={_this.state.timePeriod}
+                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
+                              type='single' />
         });
         var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){
             return <li value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;

@@ -92,7 +92,6 @@ var numberFormatter = function(val, axis, unit) {
 };
 
 var plotGraph = function(placeholder, data, yAxisFormatter) {
-    //console.log('placeholder name', placeholder);
     var dataArr = [],yaxis,lineWidth = 1;
     if(data.length == 1) lineWidth = 2;
     for(var i = 0;i<data.length;i++){
@@ -125,7 +124,7 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
                     font: {color: "#AFB2B5"},
                     position:"right",
                     tickFormatter: yAxisFormatter[yAxisFormatter.length-1]
-                },
+                }
             ],
             series: {
                 lines: {
@@ -138,7 +137,8 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
                 margin: 10,
                 hoverable: true
             },
-            colors: ["#CACF15","#71C855","#6ED0E0","#B941DA","#EF843C","#4E41BB","#E24D42","#E600FF","#FF0000","#48FF00","#FFE600"],
+            colors: ["#CACF15","#71C855","#6ED0E0","#B941DA","#EF843C","#4E41BB",
+                     "#E24D42","#E600FF","#FF0000","#48FF00","#FFE600"],
             crosshair: {
                 mode: "x",
                 color: "#444"
@@ -151,7 +151,7 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
 
 var getEvent = function(){ //ie and ff 
     if(document.all)  return window.event;    
-    func=getEvent.caller;        
+    var func=getEvent.caller;
     while(func!=null){  
         var arg0=func.arguments[0]; 
         if(arg0) { 
@@ -163,7 +163,7 @@ var getEvent = function(){ //ie and ff
         func=func.caller; 
     } 
     return window.event; 
-} 
+};
 
 var catHost = function(ips){//ips is arr
     var host="";
@@ -174,7 +174,7 @@ var catHost = function(ips){//ips is arr
             host += ",";
     }
     return host;
-}
+};
 
 var splitMetric = function(metric){
     var metricArr = metric.split(",");
@@ -197,7 +197,7 @@ var splitMetric = function(metric){
     }
     measure = measure.replace(semicolon,'');
     return measurement + "," + device + "," + measure;
-}
+};
 
 var getElePosition = function(obj){ 
     var topValue = 0,leftValue = 0,result = {};
@@ -209,7 +209,7 @@ var getElePosition = function(obj){
    result.left = leftValue;
    result.top = topValue;  
    return result; 
-}
+};
 
 var getTimeList = function(){
     var arr1 = ['Last 5m' ,'Last 10m','Last 30m','Last 1h' ,'Last 6h' ,'Last 12h','Last 1d' ,
@@ -221,7 +221,7 @@ var getTimeList = function(){
         timeList[i] = {payload: i+1, text: arr1[i] ,value: arr2[i]}
     }
     return timeList;
-}
+};
 
 var Utility = {
     q_param: q_param,

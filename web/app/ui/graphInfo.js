@@ -16,7 +16,7 @@ var GraphInfo = React.createClass({
             timeList = this.props.timeList,
             nodeGraph = this.props.nodeGraph;
         for(var i = 0;i<ipList.length;i++){
-            ipList[i].defalt = false;
+            ipList[i].default = false;
         }
         if(this.props.selected!=null){
             selected = this.props.selected;
@@ -27,7 +27,7 @@ var GraphInfo = React.createClass({
             for(var i = 0;i<ipList.length;i++){
                 for(var j = 0;j<ipArr.length;j++){
                     if(ipList[i].text == ipArr[j]){
-                        ipList[i].defalt = true;
+                        ipList[i].default = true;
                         ip[ip.length] = ipList[i].text;
                         break;
                     }
@@ -40,7 +40,7 @@ var GraphInfo = React.createClass({
         }
         if(ip.length == 0){
             ip[0] = ipList[0].text;
-            ipList[0].defalt = true;
+            ipList[0].default = true;
         }
         return {
             ipList:ipList,
@@ -79,7 +79,7 @@ var GraphInfo = React.createClass({
             node_id:node_id,
             host: host,
             uniq_id: node_id + host.split(',')[0],
-            selected:{},
+            selected:{}
         });
     },
     changeTime:function(e, selectedIndex, menuItem){
@@ -94,7 +94,8 @@ var GraphInfo = React.createClass({
         var event = Utility.getEvent(),
             metric = this.getMetric(event),
             obj = $(event.target).parents('.scrollDialog').find(".configInfo");
-        obj.append("<span title='"+metric+"' class='metricInfo'> "+metric+"<button onclick='javascript:$(this).parent().remove();'></button></span>");
+        obj.append("<span title='"+metric+"' class='metricInfo'> "+
+                metric+"<button onclick='javascript:$(this).parent().remove();'></button></span>");
         obj.find("span").unbind().bind({
             mouseenter:function(){ $(this).find("button").show();},
             mouseleave: function(){$(this).find("button").hide();}
@@ -118,13 +119,14 @@ var GraphInfo = React.createClass({
             alert("No ip selected !!");
             return;
         }
-        obj.show;
+        obj.show();
         this.refs.addGraphDialog.dismiss();
         var nodeGraph = this.state.nodeGraph;
-        if(nodeGraph == null)
-            this.saveUserGraph(metric,index);
-        else 
-            this.saveNodeGraph(metric,index);
+        if(nodeGraph == null) {
+            this.saveUserGraph(metric, index);
+        } else {
+            this.saveNodeGraph(metric, index);
+        }
         obj.hide();
     },
     saveUserGraph:function(metric,index){
@@ -314,7 +316,7 @@ var GraphInfo = React.createClass({
                         name={subArr.text}
                         value={subArr.value}
                         label={subArr.text}
-                        defaultChecked={subArr.defalt}
+                        defaultChecked={subArr.default}
                         onCheck={_this.changeIp}
                         key={index}/>
         });
@@ -326,7 +328,6 @@ var GraphInfo = React.createClass({
                             <button onClick={_this.deleteMetric}></button>
                         </span>
                         );
-            else return;
         });
         return (
             <div className="btnParent">

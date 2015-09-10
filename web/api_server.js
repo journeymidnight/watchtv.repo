@@ -13,17 +13,18 @@ var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
 var argument = {
-    path:"tags graphs",
-    select:"name ips metrics time"
-}
+    path: "tags graphs",
+    select: "name ips metrics time"
+};
+
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
     logger('visited:', req.url);
-    if(req.url.indexOf('/login')>=0||req.url.indexOf('/js')>=0
-        ||req.url.indexOf('/css')>=0||req.url.indexOf('/images')>=0) {
+    if(req.url.indexOf('/login') >= 0 || req.url.indexOf('/js') >= 0
+        || req.url.indexOf('/css') >= 0 || req.url.indexOf('/images') >= 0) {
         next();
-        return
+        return;
     }
     if(req.session && req.session.user) {
         db.User.findOne({name: req.session.user},
@@ -43,9 +44,9 @@ var requireLogin = function(req, res, next) {
 
 var requireRoot = function(req, res, next) {
     if(req.user.role == 'Root') {
-        next()
+        next();
     } else {
-        res.status(401).send('You must be Root to perform this action')
+        res.status(401).send('You must be Root to perform this action');
     }
 };
 
@@ -935,7 +936,7 @@ var modifyUser = function(user_id,req,res,result){
             )
         }
     );
-}
+};
 
 app.get('/user', function(req, res) {
     res.send(req.user); // req.user is assigned in `requireLogin`
@@ -970,8 +971,8 @@ app.delete('/user/:user_id', requireRoot,
     })
 });
 
-app.put('/graph/:grapph_id', requireRoot, function(req, res) {
-    var id = req.params.grapph_id,
+app.put('/graph/:graph_id', requireRoot, function(req, res) {
+    var id = req.params.graph_id,
     graph = req.body.graph;
     db.Graph.findOneAndUpdate(
         { _id: id },
