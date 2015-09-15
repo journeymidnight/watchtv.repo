@@ -212,7 +212,7 @@ var GraphInfo = React.createClass({
         }
         return measurement+device+measure;
     },
-    getTotalMetric:function(){
+    getTotalMetric:function(event){
         var obj = $(event.target).parents('.scrollDialog').find(".configInfo .metricInfo"),
             result=[];
         for(var i = 0;i<obj.size();i++){
