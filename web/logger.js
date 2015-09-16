@@ -1,3 +1,5 @@
+"use strict";
+
 var mkdirp = require('mkdirp');
 var getDirName = require('path').dirname;
 var fs = require('fs');

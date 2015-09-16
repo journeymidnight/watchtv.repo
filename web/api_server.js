@@ -1,3 +1,5 @@
+"use strict";
+
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
@@ -12,9 +14,21 @@ var session = require('client-sessions');
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-var argument = {
-    path: "tags graphs",
+
+var userPopulateArgument = {
+    path: "projects graphs",
     select: "name ips metrics time"
+};
+
+var isUndefined = function(value) {
+    return (value === 'undefined');
+};
+
+var valueWithDefault = function(value, defaultValue) {
+    if (isUndefined(value)) {
+        return defaultValue;
+    }
+    return value;
 };
 
 app.set('port', (config.webServer.port || 3000));
@@ -36,7 +50,7 @@ var requireLogin = function(req, res, next) {
                     res.redirect('/login.html')
                 }
             }
-        ).populate(argument.path,argument.select);
+        ).populate(userPopulateArgument.path,userPopulateArgument.select);
     } else {
         res.redirect('/login.html')
     }
@@ -79,10 +93,8 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
     //                  { ... }, ...]
     if(!extraModelActions) extraModelActions = [];
 
-    var skip = req.query.skip,
-        limit = req.query.limit;
-    if (!skip) skip = 0;
-    if (!limit) limit = 15;
+    var skip = valueWithDefault(req.query.skip, 0),
+        limit = valueWithDefault(req.query.limit, 15);
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -120,18 +132,34 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
 app.get('/nodes', function(req, res) {
     var q = {};
     if(req.user.role != 'Root') {
-        q = {tags: {$in: req.user.tags}}
+        q = {project: {$in: req.user.projects}}
     }
     handlePluralGet(req, res,
         'node', db.Node, q,
-        [{
-            methodName: 'populate',
-            arguments: ['tags', 'name']
-        }])
+        [
+            {
+                methodName: 'populate',
+                arguments: ['tags', 'name']
+            },
+            {
+                methodName: 'populate',
+                arguments: ['region', 'name']
+            },
+            {
+                methodName: 'populate',
+                arguments: ['idc', 'name']
+            },
+            {
+                methodName: 'populate',
+                arguments: ['project', 'name']
+            }
+        ]);
 });
 
 var isIPandPort = function(s) {
-    if (s.endsWith(':')){ return false }
+    // Some old versions of nodejs don't support `endsWith`
+    //if (s.endsWith(':')){ return false }
+    if (s[s.length-1] === ':'){ return false }
     var addr = s.split(':')[0],
         port = s.split(':')[1];  // could be `undefined`
     return (
@@ -190,81 +218,130 @@ var nodeCommander = function(nodes, enables, disables) {
     )
 };
 
+// Find document by name from collection model `databaseModel`,
+// if `insertIfNotExist` is true, then insert if not exist
+var documentFromName = function (name, databaseModel, insertIfNotExist) {
+    if(isUndefined(insertIfNotExist)) {
+        insertIfNotExist = false;
+    }
+    var result;  // now undefined
+    databaseModel.findOne({name: name},
+        function(err, doc) {
+            if (!err) {
+                if(doc === null && insertIfNotExist) {
+                    databaseModel.create({name: name},
+                        function(err, doc) {
+                            if(!err) {
+                                result = doc;
+                            }
+                        }
+                    );
+                }
+                result = result || doc;
+            }
+        }
+    );
+    return result;
+};
+
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
-        nickname = req.body.nickname,
-        description = req.body.description,
+        nickname = valueWithDefault(req.body.nickname, ''),
+        description = valueWithDefault(req.body.description, ''),
         ips = req.body.ips,
-        tags = req.body.tags;
+        tags = valueWithDefault(req.body.tags, ['']),
+        region = valueWithDefault(req.body.region, ''),
+        idc = valueWithDefault(req.body.idc, ''),
+        project = valueWithDefault(req.body.project, '');
 
-    if (!ips) {
+    if (isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+
+    if (isUndefined(ips)) {
         res.status(400).send("IP address is required for adding new nodes");
         return
     }
     ips = ips.filter(isIPandPort);
-    if (ips.length==0) {
+    if (ips.length===0) {
         res.status(400).send("At least one valid IP address is required");
         return
     }
-    if (req.user.role != 'Root' && tags[0] == '') {
+    if (req.user.role !== 'Root' && tags[0] === '') {
         res.status(400)
            .send("You should specify a tag, otherwise you may not be able to see the added node");
         return
     }
 
-    if (!name) name = '';
-    if (!nickname) nickname = '';
-    if (!description) description = '';
-    if (!tags) tags = [''];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(tags,
-        function (tag, map_callback) {
-            db.Tag.findOne({name: tag},
-                function (err, t) {
-                    if (err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                })
+
+    var region_doc, idc_doc, project_doc;
+    async.parallel([  // expand region, idc, project to corresponding documents
+        function (callback) {
+            region_doc = documentFromName(region, db.Region, true);
+            callback();
         },
-        function (err, results) {
-            var monitorItems = new Set([]);
-            tags = results.filter(
-                function (t) {
-                    if (t) {
-                        monitorItems.merge(new Set(t.monitorItems));
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            );
-            db.Node.create(
-                {
-                    name: name,
-                    nickname: nickname,
-                    description: description,
-                    ips: ips,
-                    tags: tags
-                },
-                function (err, n) {
-                    if (err) {
-                        res.status(500).send('Node create failed');
-                        logger(err);
-                        return
-                    }
-                    logger('Node created', n);
-                    res.status(201).send('Node added');
-                }
-            );
-            if (monitorItems.entries().length != 0) {
-                nodeCommander(ips, monitorItems.entries(), []);
+        function (callback) {
+            idc_doc = documentFromName(idc, db.Idc, true);
+            callback();
+        },
+        function (callback) {
+            project_doc = documentFromName(project, db.Project, true);
+            callback();
+        }
+    ],  function(err) {
+            if(err) {
+                res.status(500).send('Some database error');
+                logger(err);
+                return;
             }
-        })
+            async.map(tags,
+                function (tag, map_callback) {
+                    map_callback(null, documentFromName(tag, db.Tag, false));
+                },
+                function (err, results) {
+                    var monitorItems = new Set([]);
+                    tags = results.filter(
+                        function (t) {
+                            if (t) {
+                                monitorItems.merge(new Set(t.monitorItems));
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+                    );
+                    db.Node.create(
+                        {
+                            name: name,
+                            nickname: nickname,
+                            description: description,
+                            ips: ips,
+                            tags: tags,
+                            region: region_doc,
+                            idc: idc_doc,
+                            project: project_doc
+                        },
+                        function (err, n) {
+                            if (err) {
+                                res.status(500).send('Node create failed');
+                                logger(err);
+                                return;
+                            }
+                            logger('Node created', n);
+                            res.status(201).send('Node added');
+                        }
+                    );
+                    if (monitorItems.entries().length !== 0) {
+                        nodeCommander(ips, monitorItems.entries(), []);
+                    }
+                });
+        }
+    );
 });
 
 app.put('/node/:node_id', function (req, res) {
@@ -272,8 +349,8 @@ app.put('/node/:node_id', function (req, res) {
     var graph = req.body.graph,
         deleteId = req.body.deleteId;
     if(deleteId!=null){//delete graph
-        deleteGraph(deleteId,req,res);
-        modifyNode(node_id,req, res);
+        deleteGraph(deleteId, req, res);
+        modifyNode(node_id, req, res);
     }else if(graph){//add new graph
         db.Graph.create(graph,function(err,found){
             if (err) {
@@ -281,28 +358,31 @@ app.put('/node/:node_id', function (req, res) {
                 logger(err);
                 return;
             }
-            modifyNode(node_id,req, res,found._id);
+            modifyNode(node_id, req, res, found._id);
         });
     }else {
-        modifyNode(node_id,req, res);
+        modifyNode(node_id, req, res);
     }
 });
 
+// FIXME too long a function
 var modifyNode = function(node_id,req,res,result){
-    var node_id = req.params.node_id;
     var name = req.body.name,
         nickname = req.body.nickname,
         description = req.body.description,
         ips = req.body.ips,
-        tags = req.body.tags,
+        tags = valueWithDefault(req.body.tags, []),
+        region = req.body.region,
+        idc = req.body.idc,
+        project = req.body.project,
         nodeGraph = req.body.nodeGraph,
         graphInfo = req.body.graphInfo;//delete
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
-        if (ips.length==0) {
+        if (ips.length===0) {
             res.status(400).send("At least one valid IP address is required");
-            return
+            return;
         }
     }
     if(result != null && graphInfo == null){ //add
@@ -322,84 +402,104 @@ var modifyNode = function(node_id,req,res,result){
     if (nickname) update.nickname = nickname;
     if (description) update.description = description;
     if (ips) update.ips = ips;
-    if (!tags) tags = [];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
-        return
+        return;
     }
-    async.map(tags,
-        function(tag, map_callback){
-            db.Tag.findOne({name:tag},
-                function(err, t) {
-                    if(err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                })
-        },
-        function(err, results) {
-            var updatedMonitorItems = new Set([]);
-            update.tags = results.filter(
-                function (t) {
-                    if (t) {
-                        updatedMonitorItems.merge(new Set(t.monitorItems));
-                        return true;
-                    } else {
-                        return false;
-                    }
+
+    async.parallel([  // expand region, idc, project to corresponding documents
+            function (callback) {
+                if(region) {
+                    update.region = documentFromName(region, db.Region, true);
                 }
-            );
-            logger('update', update);
-            db.Node.findOneAndUpdate(
-                { _id: node_id },
-                { '$set': update },
-                function (err, n) {
-                    // n is the original node record before update
-                    if(err) {
-                        res.status(500).send('Existence checking failed');
-                        logger(err);
-                        return
-                    }
-                    if(!n) {
-                        res.status(404).send(node_id + ' does not exist');
-                        return
-                    }
-                    logger('origin', n);
-                    async.map(n.tags, // n.tags is an array of ids
-                        function (tag, map_callback) {
-                            db.Tag.findById(tag,
-                                function (err, t) {
-                                    if (err) {
-                                        logger(err);
-                                        return
-                                    }
-                                    map_callback(null, t)
-                                })
-                        },
-                        function (err, results) {
-                            var originalMonitorItems = new Set([]);
-                            tags = results.filter(
-                                function (t) {
-                                    if (t) {
-                                        originalMonitorItems.merge(new Set(t.monitorItems));
-                                        return true;
-                                    } else {
-                                        return false;
-                                    }
-                                }
-                            );
-                            var toDisable = originalMonitorItems.difference(updatedMonitorItems);
-                            var toEnable = updatedMonitorItems.difference(originalMonitorItems);
-                            if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
-                                nodeCommander(n.ips, toEnable, toDisable);
-                            }
-                            if(ips) {
-                                nodeCommander(ips, updatedMonitorItems, []);
+                callback();
+            },
+            function (callback) {
+                if(idc) {
+                    update.idc = documentFromName(idc, db.Idc, true);
+                }
+                callback();
+            },
+            function (callback) {
+                if(project) {
+                    update.project = documentFromName(project, db.Project, true);
+                }
+                callback();
+            }
+        ], function(err) {
+            if(err) {
+                res.status(500).send('Some database error');
+                logger(err);
+                return;
+            }
+            async.map(tags,
+                function(tag, map_callback){
+                    map_callback(null, documentFromName(tag, db.Tag, false));
+                },
+                function(err, results) {
+                    var updatedMonitorItems = new Set([]);
+                    update.tags = results.filter(
+                        function (t) {
+                            if (t) {
+                                updatedMonitorItems.merge(new Set(t.monitorItems));
+                                return true;
+                            } else {
+                                return false;
                             }
                         }
                     );
-                    res.status(200).send(result);
+                    logger('update', update);
+                    db.Node.findOneAndUpdate(
+                        { _id: node_id },
+                        { '$set': update },
+                        function (err, n) {
+                            // n is the original node record before update
+                            if(err) {
+                                res.status(500).send('Existence checking failed');
+                                logger(err);
+                                return
+                            }
+                            if(!n) {
+                                res.status(404).send(node_id + ' does not exist');
+                                return
+                            }
+                            logger('origin', n);
+                            async.map(n.tags, // n.tags is an array of ids
+                                function (tag, map_callback) {
+                                    db.Tag.findById(tag,
+                                        function (err, t) {
+                                            if (err) {
+                                                logger(err);
+                                                return
+                                            }
+                                            map_callback(null, t)
+                                        })
+                                },
+                                function (err, results) {
+                                    var originalMonitorItems = new Set([]);
+                                    tags = results.filter(
+                                        function (t) {
+                                            if (t) {
+                                                originalMonitorItems.merge(new Set(t.monitorItems));
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        }
+                                    );
+                                    var toDisable = originalMonitorItems.difference(updatedMonitorItems);
+                                    var toEnable = updatedMonitorItems.difference(originalMonitorItems);
+                                    if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
+                                        nodeCommander(n.ips, toEnable, toDisable);
+                                    }
+                                    if(ips) {
+                                        nodeCommander(ips, updatedMonitorItems, []);
+                                    }
+                                }
+                            );
+                            res.status(200).send(result);
+                        }
+                    );
                 }
             );
         }
@@ -419,7 +519,10 @@ app.get('/node/:node_id',function(req, res) {
             return
         }
         res.send(found);
-    }).populate('tags', 'name'); // return only name
+    }).populate('tags', 'name')
+      .populate('region', 'name')
+      .populate('idc', 'name')
+      .populate('project', 'name'); // return only names for them
 });
 
 app.delete('/node/:node_id', function(req, res) {
@@ -445,16 +548,13 @@ app.get('/tags', function(req, res) {
 
 app.post('/tags', function (req, res) {
     var name = req.body.name,
-        monitorItems = req.body.monitorItems,
-        alarmRules = req.body.alarmRules,
-        alarmReceiverGroups = req.body.alarmReceiverGroups;
-    if(!name) {
+        monitorItems = valueWithDefault(req.body.monitorItems, []),
+        alarmRules = valueWithDefault(req.body.alarmRules, []),
+        alarmReceiverGroups = valueWithDefault(req.body.alarmReceiverGroups, []);
+    if(isUndefined(name)) {
         res.status(400).send("Tag name is required");
         return
     }
-    if(!monitorItems) monitorItems = [];
-    if(!alarmRules) alarmRules = [];
-    if(!alarmReceiverGroups) alarmReceiverGroups = [];
     if(monitorItems.constructor !== Array ||
     alarmRules.constructor !== Array ||
     alarmReceiverGroups.constructor !== Array) {
@@ -563,11 +663,9 @@ app.delete('/tag/:tag_id', function(req, res) {
 });
 
 var queryNode = function(req, res) {
-    var skip = req.query.skip,
-        limit = req.query.limit,
+    var skip = valueWithDefault(req.query.skip, 0),
+        limit = valueWithDefault(req.query.limit, 15),
         query = req.query.node;
-    if (!skip) skip = 0;
-    if (!limit) limit = 15;
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -578,9 +676,6 @@ var queryNode = function(req, res) {
             async.parallel([
                     function (callback) {
                         var q = {name: sregx};
-                        if(req.user.role != 'Root') {
-                            q = {name: sregx, _id: {$in: req.user.tags}}
-                        }
                         db.Tag.find(q, {_id: 1}, // only return id
                             function (err, tags) {
                                 if (err) {
@@ -620,7 +715,7 @@ var queryNode = function(req, res) {
                                             {ips: sregx}
                                         ]
                                     },
-                                    {tags: {$in: req.user.tags}}
+                                    {project: {$in: req.user.projects}}
                                 ]
                             }
                         }
@@ -698,7 +793,7 @@ var queryUser = function(req, res) {
         'user', db.User, q,
         [{
             methodName: 'populate',
-            arguments: [argument.path,argument.select]
+            arguments: [userPopulateArgument.path,userPopulateArgument.select]
         }]);
 };
 
@@ -713,7 +808,7 @@ var queryOauthUser = function(req, res) {
     request({
         rejectUnauthorized: false,  // same reason as app.post('/login')
         method: 'GET',
-        url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+        url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
         + query + '&appid=watchtv&appkey=watchtv&limit=5',
         json: true
     },
@@ -760,7 +855,7 @@ app.get('/users', requireRoot, function(req, res) {
         'user', db.User, {},
         [{
             methodName: 'populate',
-            arguments: [argument.path,argument.select]
+            arguments: [userPopulateArgument.path,userPopulateArgument.select]
         }]
     )
 });
@@ -768,54 +863,44 @@ app.get('/users', requireRoot, function(req, res) {
 app.post('/users', requireRoot,
     function(req, res){
     var name = req.body.name,
-        graphs = req.body.graphs,
-        tags = req.body.tags,
-        role = req.body.role;
-    if(!name) {
+        graphs = valueWithDefault(req.body.graphs, []),
+        role = valueWithDefault(req.body.role, 'User'),
+        projects = valueWithDefault(req.body.projects, ['']);
+    if(isUndefined(name)) {
         res.status(400).send('Must specify a name');
         return
     }
-    if(!graphs) graphs = [];
-    if(!tags) tags = [''];
-    if(!role) role = 'User';
 
     request({
             rejectUnauthorized: false,  // same reason as app.post('/login')
             method: 'GET',
-            url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+            url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
                  + name + '&appid=watchtv&appkey=watchtv&limit=3',
             json: true
         },
         function(err, resp, body) {
             if(err) {
-                logger('Error connecting to OAuth server');
+                logger('Error connecting to OAuth server', err);
                 res.status(500).send('Error connecting to OAuth server');
                 return
             }
 
             if(body.length > 0 && body[0].email == name+'@letv.com') {
-                async.map(tags,
-                    function(tag, map_callback) {
-                        db.Tag.findOne({name: tag},
-                            function (err, t) {
-                                if (err) {
-                                    logger(err);
-                                    return
-                                }
-                                map_callback(null, t)
-                            })
+                async.map(projects,
+                    function(project, map_callback) {
+                        map_callback(null, documentFromName(project, db.Project, false));
                     },
                     function(err, results) {
-                        tags = results.filter(
-                            function(t) {
-                                return t;
+                        projects = results.filter(
+                            function(p) {
+                                return p;
                             }
                         );
                         db.User.create({
                                 name: name,
                                 graphs: graphs,
-                                tags: tags,
-                                role: role
+                                role: role,
+                                projects: projects
                             },
                             function(err, u) {
                                 if(err) {
@@ -850,16 +935,16 @@ app.put('/user/:user_id', function(req, res){
                 logger(err);
                 return;
             }
-            modifyUser(user_id,req, res,found._id);
+            modifyUser(user_id, req, res, found._id);
         });
     }else {
-        modifyUser(user_id,req, res);
+        modifyUser(user_id, req, res);
     }
 });
 
-var modifyUser = function(user_id,req,res,result){
+var modifyUser = function(user_id, req, res, result){
     var name = req.body.name,
-        tags = req.body.tags,
+        projects = req.body.projects,
         role = req.body.role,
         graphs = req.body.graphs;
     if(result!=null){
@@ -871,13 +956,13 @@ var modifyUser = function(user_id,req,res,result){
         res.status(403).send('Cannot modify user name');
         return
     }
-    if(graphs&& graphs.constructor === Array){
+    if(graphs && graphs.constructor === Array){
         update.graphs = graphs;
     }
     if(role) {
         update.role = role
     }
-    if(!tags) {
+    if(!projects) {
         db.User.findOneAndUpdate(
             { _id: user_id },
             { '$set': update },
@@ -896,26 +981,18 @@ var modifyUser = function(user_id,req,res,result){
         );
         return
     }
-    if(tags.constructor !== Array) {
+    if(projects.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(tags,
-        function(tag, map_callback) {
-            db.Tag.findOne({name: tag},
-                function(err, t) {
-                    if(err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                }
-            )
+    async.map(projects,
+        function(project, map_callback) {
+            map_callback(null, documentFromName(project, db.Project, false));
         },
         function(err, results) {
-            update.tags = results.filter(
-                function(t) {
-                    return t;
+            update.projects= results.filter(
+                function(p) {
+                    return p;
                 }
             );
             db.User.findOneAndUpdate(
@@ -955,7 +1032,7 @@ app.get('/user/:user_id', requireRoot, function(req, res) {
             return
         }
         res.send(found);
-    }).populate(argument.path,argument.select);
+    }).populate(userPopulateArgument.path,userPopulateArgument.select);
 });
 
 app.delete('/user/:user_id', requireRoot,
@@ -992,12 +1069,11 @@ app.put('/graph/:graph_id', requireRoot, function(req, res) {
     );
 });
 
-var deleteGraph = function(id,req, res){
+var deleteGraph = function(id, req, res){
     db.Graph.findByIdAndRemove(id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
             logger(err);
-            return
         }
     })
 };
@@ -1066,3 +1142,34 @@ app.get('/logout', function(req, res) {
     req.session.reset();
     res.redirect('/login.html');
 });
+
+
+app.get('/regions', function(req, res) {
+    handlePluralGet(req, res,
+        'region', db.Region, {}, []
+    )
+});
+
+app.post('/regions', function(req, res) {
+    var name = req.body.name;
+    if(isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+    db.Region.create({
+        name: name
+    }, function(err, r){
+        if (err) {
+            res.status(500).send('Region create failed');
+            logger(err);
+            return;
+        }
+        res.status(201).send('Region created');
+    })
+});
+
+app.put('/region/:region_id');
+
+app.delete('/region/:region_id');
+
+app.get('/region/:region_id');
