@@ -91,7 +91,7 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
     //                      arguments: ['arg1', 'arg2', ...]
     //                  },
     //                  { ... }, ...]
-    if(!extraModelActions) extraModelActions = [];
+    if(isUndefined(extraModelActions)) extraModelActions = [];
 
     var skip = valueWithDefault(req.query.skip, 0),
         limit = valueWithDefault(req.query.limit, 15);
@@ -102,11 +102,11 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
         if (err) {
             res.status(500).send("Cannot count " + name + " number");
             logger(err);
-            return
+            return;
         }
         var q = extraModelActions.reduce(
             function(preValue, currValue){
-                return preValue[currValue.methodName].apply(preValue, currValue.arguments)
+                return preValue[currValue.methodName].apply(preValue, currValue.arguments);
         },
         model.find(query)
              .skip(skip)
@@ -116,7 +116,7 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
             if(err) {
                 res.status(500).send("Cannot fetch " + name + " list");
                 logger(err);
-                return
+                return;
             }
             res.setHeader('Content-Type', 'application/json');
             res.send({
@@ -124,9 +124,60 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
                 skip: skip,
                 limit: limit,
                 result: instances
-            })
-        })
-    })
+            });
+        });
+    });
+};
+
+var handleDeleteById = function(req, res, name, model) {
+    // Used to simplify DELETE /<name>/<name_id> methods
+    //
+    // name: string, used 1) to get corresponding id, 2) in error string
+    // model: mongoose model
+
+    var id = req.params[name + '_id'];
+    model.findByIdAndRemove(id, function(err) {
+        if(err) {
+            var errString = 'Failed to delete ' + name + ' ' + id;
+            res.status(500).send(errString);
+            logger(errString, err);
+            return;
+        }
+        res.status(200).send(name + ' ' + id + ' has been deleted');
+    });
+};
+
+var handleGetById = function(req, res, name, model, extraModelActions) {
+    // Used to simplify GET /<name>/<name_id> methods
+    //
+    // Meanings of name, model and extraModelActions are same as
+    // in `handlePluralGet`
+
+    if (isUndefined(extraModelActions)) extraModelActions = [];
+
+    var id = req.params[name + '_id'];
+
+    var q = extraModelActions.reduce(
+        function(preValue, currValue) {
+            return preValue[currValue.methodName].apply(preValue, currValue.arguments);
+        },
+        model.findById(id)
+    );
+    q.exec(function (err, found) {
+        var errString;
+        if(err) {
+            errString = 'Error fetching ' + name + ' info';
+            res.status(500).send(errString);
+            logger(errString);
+            return;
+        }
+        if(!found) {
+            errString = name + ' ' + id + ' does not exist';
+            res.status(404).send(errString);
+            return;
+        }
+        res.send(found);
+    });
 };
 
 app.get('/nodes', function(req, res) {
@@ -139,19 +190,7 @@ app.get('/nodes', function(req, res) {
         [
             {
                 methodName: 'populate',
-                arguments: ['tags', 'name']
-            },
-            {
-                methodName: 'populate',
-                arguments: ['region', 'name']
-            },
-            {
-                methodName: 'populate',
-                arguments: ['idc', 'name']
-            },
-            {
-                methodName: 'populate',
-                arguments: ['project', 'name']
+                arguments: ['tags region idc project', 'name']
             }
         ]);
 });
@@ -507,34 +546,19 @@ var modifyNode = function(node_id,req,res,result){
 };
 
 app.get('/node/:node_id',function(req, res) {
-    var node_id = req.params.node_id;
-    db.Node.findById(node_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + node_id);
-            return
-        }
-        res.send(found);
-    }).populate('tags', 'name')
-      .populate('region', 'name')
-      .populate('idc', 'name')
-      .populate('project', 'name'); // return only names for them
+    handleGetById(req, res, 'node', db.Node,
+        [
+            {
+                methodName: 'populate',
+                // return only names for them
+                arguments: ['tags region idc project', 'name']
+            }
+        ]
+    );
 });
 
 app.delete('/node/:node_id', function(req, res) {
-    var node_id = req.params.node_id;
-    db.Node.findByIdAndRemove(node_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(node_id + " has been deleted.")
-    })
+    handleDeleteById(req, res, 'node', db.Node);
 });
 
 app.get('/tags', function(req, res) {
@@ -579,20 +603,7 @@ app.post('/tags', function (req, res) {
 });
 
 app.get('/tag/:tag_id', function(req, res){
-    var tag_id = req.params.tag_id;
-    db.Tag.findById(tag_id, function (err, found) {
-        if(err) {
-            res.status(500).send("Cannot fetch tag info");
-            logger(err);
-            return
-        }
-        if(!found){
-            res.status(404).send("Cannot get info about tag " + tag_id);
-            return
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.send(found);
-    })
+    handleGetById(req, res, 'tag', db.Tag);
 });
 
 app.put('/tag/:tag_id', function(req, res){
@@ -651,15 +662,7 @@ app.put('/tag/:tag_id', function(req, res){
 });
 
 app.delete('/tag/:tag_id', function(req, res) {
-    var tag_id = req.params.tag_id;
-    db.Tag.findByIdAndRemove(tag_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(tag_id + " has been deleted.")
-    })
+    handleDeleteById(req, res, 'tag', db.Tag);
 });
 
 var queryNode = function(req, res) {
@@ -1020,33 +1023,20 @@ app.get('/user', function(req, res) {
 });
 
 app.get('/user/:user_id', requireRoot, function(req, res) {
-    var user_id = req.params.user_id;
-    db.User.findById(user_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
+    handleGetById(req, res, 'user', db.User,
+    [
+        {
+            methodName: 'populate',
+            arguments: [userPopulateArgument.path, userPopulateArgument.select]
         }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + user_id);
-            return
-        }
-        res.send(found);
-    }).populate(userPopulateArgument.path,userPopulateArgument.select);
+    ])
 });
 
 app.delete('/user/:user_id', requireRoot,
     function(req, res) {
-    var user_id = req.params.user_id;
-    db.User.findByIdAndRemove(user_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(user_id + " has been deleted.")
-    })
-});
+        handleDeleteById(req, res, 'user', db.User);
+    }
+);
 
 app.put('/graph/:graph_id', requireRoot, function(req, res) {
     var id = req.params.graph_id,
@@ -1078,21 +1068,10 @@ var deleteGraph = function(id, req, res){
     })
 };
 
-app.get('/graph/:graph_id', requireRoot, function(req, res) {
-    var graph_id = req.params.graph_id;
-    db.Graph.findById(graph_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch graph info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about graph " + graph_id);
-            return
-        }
-        res.send(found);
-    });
+app.get('/graph/:graph_id', function(req, res) {
+    handleGetById(req, res, 'graph', db.Graph)
 });
+
 app.post('/login', function(req, res) {
     var user = req.body.user,
         password = encodeURIComponent(req.body.password);
@@ -1168,8 +1147,37 @@ app.post('/regions', function(req, res) {
     })
 });
 
-app.put('/region/:region_id');
+app.put('/region/:region_id', function(req, res) {
+    var name = req.body.name,
+        region_id = req.params.region_id;
+    if(isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+    var update = {};
+    update.name = name;
+    db.Region.findOneAndUpdate(
+        { _id: region_id },
+        { '$set': update },
+        function (err, t) {
+            if(err) {
+                res.status(500).send('Existence checking failed');
+                logger(err);
+                return;
+            }
+            if(!t) {
+                res.status(404).send(region_id + ' does not exist');
+                return;
+            }
+            res.status(200).send('Updated');
+        }
+    )
+});
 
-app.delete('/region/:region_id');
+app.delete('/region/:region_id', function(req, res) {
+    handleDeleteById(req, res, 'region', db.Region)
+});
 
-app.get('/region/:region_id');
+app.get('/region/:region_id', function(req, res) {
+    handleGetById(req, res, 'region', db.Region);
+});
