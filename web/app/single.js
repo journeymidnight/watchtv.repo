@@ -13,7 +13,7 @@ var GraphList = React.createClass({
         return this.init();
     },
     init: function () {
-        var graphs = [], arr = [], ips, _id, graphListIndex = 0, graphInfo = [],
+        var graphs = [], arr = [], ips, _id, graphListIndex, graphInfo = [],
             url = window.location.href,
             node_id = url.split("?")[1].split("=")[1],
             zoomTimeList = Utility.getTimeList(),
@@ -34,6 +34,13 @@ var GraphList = React.createClass({
                 ips = data.ips;
                 _id = data._id;
                 graphInfo = data.graphInfo;
+                if(graphInfo == null || graphInfo.length == 0){
+                    graphInfo = [{
+                        user:currUser,
+                        graphs:[]
+                    }];
+                    graphListIndex = 0;
+                }
                 for(var i = 0;i<graphInfo.length;i++){
                     var userId = graphInfo[i].user;
                     if(currUser == userId){
@@ -42,12 +49,12 @@ var GraphList = React.createClass({
                         break;
                     }
                 }
-                if(graphInfo == null || graphInfo.length == 0){
-                    graphInfo = [{
-                        user:currUser,
-                        graphs:[]
-                    }];
-                    graphListIndex = 0;
+                if(!graphListIndex) {
+                    graphListIndex = graphInfo.length;
+                    graphInfo[graphListIndex] = {
+                        user: currUser,
+                        graphs: []
+                    };
                 }
                 for(var i = 0;i<graphs.length;i++){
                     $.ajax({
