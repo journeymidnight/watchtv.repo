@@ -20,8 +20,16 @@ var userPopulateArgument = {
     select: "name ips metrics time"
 };
 
-var isUndefined = function(value) {
+var isArray = function (value) {
+    return (value.constructor === Array);
+};
+
+var isUndefined = function (value) {
     return (value === 'undefined');
+};
+
+var notUndefined = function (value) {
+    return (value !== 'undefined');
 };
 
 var valueWithDefault = function(value, defaultValue) {
@@ -177,6 +185,70 @@ var handleGetById = function(req, res, name, model, extraModelActions) {
             return;
         }
         res.send(found);
+    });
+};
+
+var handlePost = function(req, res, name, model, requiredFields, optionalFields) {
+    // Used to simplify POST /<name>s methods
+    //
+    // name: string, used in logs and error strings
+    // model: mongoose model
+    // requiredFields: mandatory field names and functions to check them, in format:
+    //                  [{
+    //                      name: 'fieldName',
+    //                      checkFunction: function(fieldValue) {
+    //                                          return true or false to denote if
+    //                                          the field is acceptable
+    //                                     }
+    //                    }, {...}, ...]
+    // optionalFields: optional field names and their default values if not provided in
+    //                 POST body; checkFunction is optional. in format:
+    //                  [{
+    //                      name: 'fieldName',
+    //                      defaultValue: value,
+    //                      checkFunction: function(fieldValue) {
+    //                                          return true or false to denote if
+    //                                          the field is acceptable
+    //                                     }
+    //                   }, {...}, ...]
+
+    if(isUndefined(optionalFields)) optionalFields = [];
+
+    var toCreate = {}, failed = false, failedField = null;
+    requiredFields.map(function (field) {
+        var value = req.body[field.name];
+        if (field.checkFunction(value)) {
+            toCreate[field.name] = value;
+        } else {
+            failed = true;
+            failedField = field;
+        }
+    });
+    if(failed) {
+        res.status(400).send('Mandatory field [' + failedField.name + '] checking failed');
+        return;
+    }
+    optionalFields.map(function (field){
+        var value = valueWithDefault(req.body[field.name], field.defaultValue);
+        if (isUndefined(field.checkFunction) || field.checkFunction(value)) {
+            toCreate[field.name] = value;
+        } else {
+            failed = true;
+            failedField = field;
+        }
+    });
+    if(failed) {
+        res.status(400).send('Optional field [' + failedField.name + '] checking failed');
+        return;
+    }
+
+    model.create(toCreate, function(err, created) {
+        if(err) {
+            res.status(500).send(name + ' create failed');
+            logger(name + ' create failed: ', err);
+            return;
+        }
+        res.status(201).send(name + ' created');
     });
 };
 
@@ -571,35 +643,29 @@ app.get('/tags', function(req, res) {
 });
 
 app.post('/tags', function (req, res) {
-    var name = req.body.name,
-        monitorItems = valueWithDefault(req.body.monitorItems, []),
-        alarmRules = valueWithDefault(req.body.alarmRules, []),
-        alarmReceiverGroups = valueWithDefault(req.body.alarmReceiverGroups, []);
-    if(isUndefined(name)) {
-        res.status(400).send("Tag name is required");
-        return
-    }
-    if(monitorItems.constructor !== Array ||
-    alarmRules.constructor !== Array ||
-    alarmReceiverGroups.constructor !== Array) {
-        res.status(400).send('Invalid request format');
-        return
-    }
-    db.Tag.create({
-        name: name,
-        monitorItems: monitorItems,
-        alarmRules: alarmRules,
-        alarmReceiverGroups: alarmReceiverGroups
-    },
-        function (err, t) {
-            if(err) {
-                res.status.send('Tag create failed');
-                logger(err);
-                return
+    handlePost(req, res, 'Tag', db.Tag,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }],
+        [
+            {
+                name: 'monitorItems',
+                defaultValue: [],
+                checkFunction: isArray
+            },
+            {
+                name: 'alarmRules',
+                defaultValue: [],
+                checkFunction: isArray
+            },
+            {
+                name: 'alarmReceiverGroups',
+                defaultValue: [],
+                checkFunction: isArray
             }
-            res.status(201).send('Tag added');
-        }
-    )
+        ]
+    );
 });
 
 app.get('/tag/:tag_id', function(req, res){
@@ -875,7 +941,7 @@ app.post('/users', requireRoot,
     }
 
     request({
-            rejectUnauthorized: false,  // same reason as app.post('/login')
+            rejectUnauthorized: false,  // same reason as in app.post('/login')
             method: 'GET',
             url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
                  + name + '&appid=watchtv&appkey=watchtv&limit=3',
@@ -1130,21 +1196,12 @@ app.get('/regions', function(req, res) {
 });
 
 app.post('/regions', function(req, res) {
-    var name = req.body.name;
-    if(isUndefined(name)) {
-        res.status(400).send("Must specify a name");
-        return;
-    }
-    db.Region.create({
-        name: name
-    }, function(err, r){
-        if (err) {
-            res.status(500).send('Region create failed');
-            logger(err);
-            return;
-        }
-        res.status(201).send('Region created');
-    })
+    handlePost(req, res, 'Region', db.Region,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }]
+    )
 });
 
 app.put('/region/:region_id', function(req, res) {
@@ -1180,4 +1237,258 @@ app.delete('/region/:region_id', function(req, res) {
 
 app.get('/region/:region_id', function(req, res) {
     handleGetById(req, res, 'region', db.Region);
+});
+
+
+app.get('/idcs', function(req, res){
+    handlePluralGet(req, res,
+        'IDC', db.Idc, {}, [])
+});
+
+app.post('/idcs', function(req, res){
+    handlePost(req, res, 'IDC', db.Idc,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }]
+    )
+});
+
+app.put('/idc/:idc_id', function(req, res) {
+    var name = req.body.name,
+        idc_id = req.params.idc_id;
+    if(isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+    var update = {};
+    update.name = name;
+    db.Idc.findOneAndUpdate(
+        { _id: idc_id },
+        { '$set': update },
+        function (err, t) {
+            if(err) {
+                res.status(500).send('Existence checking failed');
+                logger(err);
+                return;
+            }
+            if(!t) {
+                res.status(404).send(idc_id + ' does not exist');
+                return;
+            }
+            res.status(200).send('Updated');
+        }
+    )
+});
+
+app.delete('/idc/:idc_id', function(req, res){
+    handleDeleteById(req, res, 'idc', db.Idc);
+});
+
+app.get('/idc/:idc_id', function(req, res){
+    handleGetById(req, res, 'idc', db.Idc);
+});
+
+
+app.get('/projects', function(req, res){
+    handlePluralGet(req, res, 'project', db.Project, {},
+    [{
+        methodName: 'populate',
+        arguments: ['leader', 'name']
+    }])
+});
+
+app.post('/projects', function(req, res){
+    var name = req.body.name,
+        leader = req.body.leader;
+    if(isUndefined(name)) {
+        res.status(400).send('Must specify a name');
+        return;
+    }
+    if(notUndefined(leader)) {
+        async.parallel({
+            existsInDB: function (callback) {
+                db.User.findOne({name: leader},
+                    function(err, u) {
+                        if(err) {
+                            callback(err, false);
+                            return;
+                        }
+                        if(u) {
+                            callback(null, u);
+                        } else {
+                            callback(null, false);
+                        }
+                    }
+                )
+            },
+            existsInOauth: function (callback) {
+                request({
+                    rejectUnauthorized: false,  // same reason as in app.post('/login')
+                    method: 'GET',
+                    url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
+                    + leader + '&appid=watchtv&appkey=watchtv&limit=3',
+                    json: true
+                }, function(err, resp, body) {
+                    if(err) {
+                        callback(err, false);
+                        return;
+                    }
+                    if(body.length > 0 && body[0].email == name+'@letv.com') {
+                        callback(null, true);
+                    } else {
+                        callback(null, false);
+                    }
+                })
+            }
+        }, function(err, results){
+            if(err) {
+                res.status(500).send('Project create failed');
+                return
+            }
+            if(results.existsInDB) {
+                leader = results.existsInDB
+            } else if (results.existsInOauth) {
+                db.User.create({
+                    name: leader,
+                    role: 'Leader'
+                }, function(err, u) {
+                    if(err) {
+                        res.status(500).send('Project create failed');
+                        return
+                    }
+                    leader = u;
+                })
+            } else {
+                res.status(400).send('Leader not found');
+                return
+            }
+
+            db.Project.create({
+                name: name,
+                leader: leader
+            }, function(err, p) {
+                if(err) {
+                    res.status(500).send('Project create failed');
+                    return
+                }
+                res.status(201).send('Project created');
+            })
+        })
+    } else { // `leader` is undefined
+        db.Project.create({
+            name: name
+        }, function(err, p) {
+            if(err) {
+                res.status(500).send('Project create failed');
+                return
+            }
+            res.status(201).send('Project created');
+        })
+    }
+});
+
+app.put('/project/:project_id', function(req, res){
+    var project_id = req.params.project_id;
+    var name = req.body.name,
+        leader = req.body.leader;
+    var update = {};
+    if(notUndefined(name)) update.name = name;
+
+    if(notUndefined(leader)) {
+        async.parallel({
+            existsInDB: function (callback) {
+                db.User.findOne({name: leader},
+                    function(err, u) {
+                        if(err) {
+                            callback(err, false);
+                            return;
+                        }
+                        if(u) {
+                            callback(null, u);
+                        } else {
+                            callback(null, false);
+                        }
+                    }
+                )
+            },
+            existsInOauth: function (callback) {
+                request({
+                    rejectUnauthorized: false,  // same reason as in app.post('/login')
+                    method: 'GET',
+                    url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
+                    + leader + '&appid=watchtv&appkey=watchtv&limit=3',
+                    json: true
+                }, function(err, resp, body) {
+                    if(err) {
+                        callback(err, false);
+                        return;
+                    }
+                    if(body.length > 0 && body[0].email == name+'@letv.com') {
+                        callback(null, true);
+                    } else {
+                        callback(null, false);
+                    }
+                })
+            }
+        }, function(err, results){
+            if(err) {
+                res.status(500).send('Project update failed');
+                return
+            }
+            if(results.existsInDB) {
+                update.leader = results.existsInDB
+            } else if (results.existsInOauth) {
+                db.User.create({
+                    name: leader,
+                    role: 'Leader'
+                }, function(err, u) {
+                    if(err) {
+                        res.status(500).send('Project update failed');
+                        return
+                    }
+                    update.leader = u;
+                })
+            } else {
+                res.status(400).send('Leader not found');
+                return
+            }
+            db.Project.findOneAndUpdate(
+                { _id: project_id },
+                { '$set' : update },
+                function(err, p) {
+                    if(err) {
+                        res.status(500).send('Project update failed');
+                        return
+                    }
+                    res.status(201).send('Project updated');
+                }
+            )
+        })
+    } else { // `leader` is undefined
+        db.Project.findOneAndUpdate(
+            { _id: project_id },
+            { '$set' : update },
+            function(err, p) {
+                if(err) {
+                    res.status(500).send('Project update failed');
+                    return
+                }
+                res.status(201).send('Project updated');
+            }
+        )
+    }
+});
+
+app.delete('/project/:project_id', function(req, res){
+    handleDeleteById(req, res, 'project', db.Project);
+});
+
+app.get('/project/:project_id', function(req, res){
+    handleGetById(req, res, 'project', db.Project,
+        [{
+            methodName: 'populate',
+            arguments: ['leader', 'name']
+        }]
+    );
 });
