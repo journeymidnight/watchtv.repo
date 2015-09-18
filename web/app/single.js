@@ -49,7 +49,7 @@ var GraphList = React.createClass({
                         break;
                     }
                 }
-                if(!graphListIndex) {
+                if(graphListIndex == null) {
                     graphListIndex = graphInfo.length;
                     graphInfo[graphListIndex] = {
                         user: currUser,
