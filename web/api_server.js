@@ -188,6 +188,17 @@ var handleGetById = function(req, res, name, model, extraModelActions) {
     });
 };
 
+var handleCreate = function(res, toCreate, name, model) {
+    model.create(toCreate, function(err, created) {
+        if(err) {
+            res.status(500).send(name + ' create failed');
+            logger(name + ' create failed: ', err);
+            return;
+        }
+        res.status(201).send(name + ' created');
+    });
+};
+
 var handlePost = function(req, res, name, model, requiredFields, optionalFields) {
     // Used to simplify POST /<name>s methods
     //
@@ -242,14 +253,26 @@ var handlePost = function(req, res, name, model, requiredFields, optionalFields)
         return;
     }
 
-    model.create(toCreate, function(err, created) {
-        if(err) {
-            res.status(500).send(name + ' create failed');
-            logger(name + ' create failed: ', err);
-            return;
+    handleCreate(res, toCreate, name, model);
+};
+
+var findByIdAndUpdate = function(res, documentId, toUpdate, name, model) {
+    model.findOneAndUpdate(
+        { _id: documentId },
+        { '$set': toUpdate },
+        function(err, original) {
+            if(err) {
+                res.status(500).send(name + ' update failed');
+                logger('DB error when updating ' + name, err);
+                return;
+            }
+            if(!original) {
+                res.status(404).send(name + ' '  + documentId + ' does not exist');
+                return;
+            }
+            res.status(200).send(name + ' updated');
         }
-        res.status(201).send(name + ' created');
-    });
+    );
 };
 
 app.get('/nodes', function(req, res) {
@@ -426,27 +449,16 @@ app.post('/nodes', function(req, res) {
                             }
                         }
                     );
-                    db.Node.create(
-                        {
-                            name: name,
-                            nickname: nickname,
-                            description: description,
-                            ips: ips,
-                            tags: tags,
-                            region: region_doc,
-                            idc: idc_doc,
-                            project: project_doc
-                        },
-                        function (err, n) {
-                            if (err) {
-                                res.status(500).send('Node create failed');
-                                logger(err);
-                                return;
-                            }
-                            logger('Node created', n);
-                            res.status(201).send('Node added');
-                        }
-                    );
+                    handleCreate(res, {
+                        name: name,
+                        nickname: nickname,
+                        description: description,
+                        ips: ips,
+                        tags: tags,
+                        region: region_doc,
+                        idc: idc_doc,
+                        project: project_doc
+                    }, 'Node', db.Node);
                     if (monitorItems.entries().length !== 0) {
                         nodeCommander(ips, monitorItems.entries(), []);
                     }
@@ -1032,22 +1044,7 @@ var modifyUser = function(user_id, req, res, result){
         update.role = role
     }
     if(!projects) {
-        db.User.findOneAndUpdate(
-            { _id: user_id },
-            { '$set': update },
-            function(err, u) {  // u is the original user record
-                if(err) {
-                    res.status(500).send('Existence checking failed');
-                    logger(err);
-                    return
-                }
-                if(!u) {
-                    res.status(404).send(user_id + ' does not exist');
-                    return
-                }
-                res.status(200).send('Updated');
-            }
-        );
+        findByIdAndUpdate(res, user_id, update, 'User', db.User);
         return
     }
     if(projects.constructor !== Array) {
@@ -1064,22 +1061,7 @@ var modifyUser = function(user_id, req, res, result){
                     return p;
                 }
             );
-            db.User.findOneAndUpdate(
-                { _id: user_id },
-                { '$set': update },
-                function(err, u) {  // u is the original user record
-                    if(err) {
-                        res.status(500).send('Existence checking failed');
-                        logger(err);
-                        return
-                    }
-                    if(!u) {
-                        res.status(404).send(user_id + ' does not exist');
-                        return
-                    }
-                    res.status(200).send('Updated');
-                }
-            )
+            findByIdAndUpdate(res, user_id, update, 'User', db.User);
         }
     );
 };
@@ -1104,25 +1086,12 @@ app.delete('/user/:user_id', requireRoot,
     }
 );
 
-app.put('/graph/:graph_id', requireRoot, function(req, res) {
-    var id = req.params.graph_id,
+app.put('/graph/:graph_id', function(req, res) {
+    var graph_id = req.params.graph_id,
     graph = req.body.graph;
-    db.Graph.findOneAndUpdate(
-        { _id: id },
-        { '$set': graph },
-        function(err, u) {
-            if(err) {
-                res.status(500).send('Existence checking failed');
-                logger(err);
-                return
-            }
-            if(!u) {
-                res.status(404).send(id + ' does not exist');
-                return
-            }
-            res.status(200).send('Updated');
-        }
-    );
+
+    // currently graph is in format {graph: graph}, so no need to reformat
+    findByIdAndUpdate(res, graph_id, graph, 'Graph', db.Graph);
 });
 
 var deleteGraph = function(id, req, res){
@@ -1213,22 +1182,7 @@ app.put('/region/:region_id', function(req, res) {
     }
     var update = {};
     update.name = name;
-    db.Region.findOneAndUpdate(
-        { _id: region_id },
-        { '$set': update },
-        function (err, t) {
-            if(err) {
-                res.status(500).send('Existence checking failed');
-                logger(err);
-                return;
-            }
-            if(!t) {
-                res.status(404).send(region_id + ' does not exist');
-                return;
-            }
-            res.status(200).send('Updated');
-        }
-    )
+    findByIdAndUpdate(res, region_id, update, 'Region', db.Region);
 });
 
 app.delete('/region/:region_id', function(req, res) {
@@ -1263,22 +1217,7 @@ app.put('/idc/:idc_id', function(req, res) {
     }
     var update = {};
     update.name = name;
-    db.Idc.findOneAndUpdate(
-        { _id: idc_id },
-        { '$set': update },
-        function (err, t) {
-            if(err) {
-                res.status(500).send('Existence checking failed');
-                logger(err);
-                return;
-            }
-            if(!t) {
-                res.status(404).send(idc_id + ' does not exist');
-                return;
-            }
-            res.status(200).send('Updated');
-        }
-    )
+    findByIdAndUpdate(res, idc_id, update, 'IDC', db.Idc);
 });
 
 app.delete('/idc/:idc_id', function(req, res){
@@ -1298,6 +1237,75 @@ app.get('/projects', function(req, res){
     }])
 });
 
+var ensureUserExistence = function(user, callback) {
+    // used in POST and PUT /project to create project leader(a user) if the
+    // user not already exists in DB
+    //
+    // user: string, user name
+    // callback: function(userDocument) {
+    //              do something with the user document from DB
+    //           }
+    async.parallel({
+        existsInDB: function (callback) {
+            db.User.findOne({name: user},
+                function(err, u) {
+                    if(err) {
+                        callback(err, false);
+                        return;
+                    }
+                    if(u) {
+                        callback(null, u);
+                    } else {
+                        callback(null, false);
+                    }
+                }
+            )
+        },
+        existsInOauth: function (callback) {
+            request({
+                rejectUnauthorized: false,  // same reason as in app.post('/login')
+                method: 'GET',
+                url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
+                + user + '&appid=watchtv&appkey=watchtv&limit=3',
+                json: true
+            }, function(err, resp, body) {
+                if(err) {
+                    callback(err, false);
+                    return;
+                }
+                if(body.length > 0 && body[0].email == user + '@letv.com') {
+                    callback(null, true);
+                } else {
+                    callback(null, false);
+                }
+            })
+        }
+    }, function(err, results) {
+        if (err) {
+            res.status(500).send('Project create failed');
+            return
+        }
+        if (results.existsInDB) {
+            user = results.existsInDB
+        } else if (results.existsInOauth) {
+            db.User.create({
+                name: user,
+                role: 'Leader'
+            }, function (err, u) {
+                if (err) {
+                    res.status(500).send('Project create failed');
+                    return
+                }
+                user = u;
+            })
+        } else {
+            res.status(400).send('User [' + user + '] not found');
+            return
+        }
+        callback(user)
+    })
+};
+
 app.post('/projects', function(req, res){
     var name = req.body.name,
         leader = req.body.leader;
@@ -1306,85 +1314,14 @@ app.post('/projects', function(req, res){
         return;
     }
     if(notUndefined(leader)) {
-        async.parallel({
-            existsInDB: function (callback) {
-                db.User.findOne({name: leader},
-                    function(err, u) {
-                        if(err) {
-                            callback(err, false);
-                            return;
-                        }
-                        if(u) {
-                            callback(null, u);
-                        } else {
-                            callback(null, false);
-                        }
-                    }
-                )
-            },
-            existsInOauth: function (callback) {
-                request({
-                    rejectUnauthorized: false,  // same reason as in app.post('/login')
-                    method: 'GET',
-                    url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
-                    + leader + '&appid=watchtv&appkey=watchtv&limit=3',
-                    json: true
-                }, function(err, resp, body) {
-                    if(err) {
-                        callback(err, false);
-                        return;
-                    }
-                    if(body.length > 0 && body[0].email == name+'@letv.com') {
-                        callback(null, true);
-                    } else {
-                        callback(null, false);
-                    }
-                })
-            }
-        }, function(err, results){
-            if(err) {
-                res.status(500).send('Project create failed');
-                return
-            }
-            if(results.existsInDB) {
-                leader = results.existsInDB
-            } else if (results.existsInOauth) {
-                db.User.create({
-                    name: leader,
-                    role: 'Leader'
-                }, function(err, u) {
-                    if(err) {
-                        res.status(500).send('Project create failed');
-                        return
-                    }
-                    leader = u;
-                })
-            } else {
-                res.status(400).send('Leader not found');
-                return
-            }
-
-            db.Project.create({
+        ensureUserExistence(leader, function(user) {
+            handleCreate(res, {
                 name: name,
-                leader: leader
-            }, function(err, p) {
-                if(err) {
-                    res.status(500).send('Project create failed');
-                    return
-                }
-                res.status(201).send('Project created');
-            })
+                leader: user
+            }, 'Project', db.Project);
         })
-    } else { // `leader` is undefined
-        db.Project.create({
-            name: name
-        }, function(err, p) {
-            if(err) {
-                res.status(500).send('Project create failed');
-                return
-            }
-            res.status(201).send('Project created');
-        })
+    } else {
+        handleCreate(res, {name: name}, 'Project', db.Project);
     }
 });
 
@@ -1396,87 +1333,12 @@ app.put('/project/:project_id', function(req, res){
     if(notUndefined(name)) update.name = name;
 
     if(notUndefined(leader)) {
-        async.parallel({
-            existsInDB: function (callback) {
-                db.User.findOne({name: leader},
-                    function(err, u) {
-                        if(err) {
-                            callback(err, false);
-                            return;
-                        }
-                        if(u) {
-                            callback(null, u);
-                        } else {
-                            callback(null, false);
-                        }
-                    }
-                )
-            },
-            existsInOauth: function (callback) {
-                request({
-                    rejectUnauthorized: false,  // same reason as in app.post('/login')
-                    method: 'GET',
-                    url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
-                    + leader + '&appid=watchtv&appkey=watchtv&limit=3',
-                    json: true
-                }, function(err, resp, body) {
-                    if(err) {
-                        callback(err, false);
-                        return;
-                    }
-                    if(body.length > 0 && body[0].email == name+'@letv.com') {
-                        callback(null, true);
-                    } else {
-                        callback(null, false);
-                    }
-                })
-            }
-        }, function(err, results){
-            if(err) {
-                res.status(500).send('Project update failed');
-                return
-            }
-            if(results.existsInDB) {
-                update.leader = results.existsInDB
-            } else if (results.existsInOauth) {
-                db.User.create({
-                    name: leader,
-                    role: 'Leader'
-                }, function(err, u) {
-                    if(err) {
-                        res.status(500).send('Project update failed');
-                        return
-                    }
-                    update.leader = u;
-                })
-            } else {
-                res.status(400).send('Leader not found');
-                return
-            }
-            db.Project.findOneAndUpdate(
-                { _id: project_id },
-                { '$set' : update },
-                function(err, p) {
-                    if(err) {
-                        res.status(500).send('Project update failed');
-                        return
-                    }
-                    res.status(201).send('Project updated');
-                }
-            )
+        ensureUserExistence(leader, function(user) {
+            update.user = user;
+            findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
         })
-    } else { // `leader` is undefined
-        db.Project.findOneAndUpdate(
-            { _id: project_id },
-            { '$set' : update },
-            function(err, p) {
-                if(err) {
-                    res.status(500).send('Project update failed');
-                    return
-                }
-                res.status(201).send('Project updated');
-            }
-        )
+    } else {
+        findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
     }
 });
 
