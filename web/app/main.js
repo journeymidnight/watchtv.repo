@@ -1,7 +1,6 @@
 var React = require('react');
 var mui = require('material-ui');
 var bootstrap = require('react-bootstrap');
-var markdown = require('markdown').markdown;
 
 var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deletebutton.js');
@@ -12,7 +11,7 @@ var SearchableList = require('./ui/searchablelist.js');
 var NodeList = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function () {
-        return {snackMsg: ''}
+        return {snackMsg: ''};
     },
     handleCreateNewNode: function() {
         var name = this.refs.newName.getValue().trim(),
@@ -26,21 +25,21 @@ var NodeList = React.createClass({
                 "ips": ips,
                 "tags": tags
             },
-            success: function(_) {
-                this.props.onRefresh()
+            success: function() {
+                this.props.onRefresh();
             }.bind(this),
             error: function(xhr, status, err) {
                 console.error(xhr, status, err.toString());
                 this.setState({snackMsg: xhr.responseText});
-                this.refs.snackbar.show()
+                this.refs.snackbar.show();
             }.bind(this)
-        })
+        });
     },
-    // componentDidUpdate: function(){
-    //     $(".table tr.nodeEntry td:not(.toolBtn)").unbind().bind('click',function(){
-    //         $(this).parent().find('.toolBtn .infoBtn').trigger("click");
-    //     });
-    // },
+    componentDidUpdate: function(){
+        $(".table tr.nodeEntry td:not(.toolBtn)").unbind().bind('click',function(){
+            $(this).parent().find('.toolBtn .infoBtn').trigger("click");
+        });
+    },
     render: function() {
         var that = this;
         var nodeList = this.props.data.map(function(node){
@@ -199,25 +198,12 @@ var NodeEditButton = React.createClass({
 var NodeInfoButton = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
-        return {
-            renderGraph: false  // don't render the graph at startup
-        }
+        return {}
     },
     showInfo: function(){
-        //this.setState({renderGraph: true});
-        //this.refs.infoDialog.show();
         window.location.href = "/single.html?_id="+this.props.nodeId;
     },
-    createMarkdown: function(){
-        return {
-            __html: markdown.toHTML(this.props.description)
-        }
-    },
     render: function(){
-        var title = this.props.nodeName + '(' + this.props.nodeIps.join(', ') + ')';
-        var infoAction = [
-            {text: 'Close'}
-        ];
         var fillColor = "#019875"; // green, signifies the node is in good condition
         if(this.props.state != "Good") {
             fillColor = "#444444"; // grey
@@ -248,6 +234,7 @@ var NodeApp = React.createClass({
                     listClass={NodeList}
                     hintText="Find anything"
                     config={this.state.config}
+                    additionalFilter="region idc project"
                 />
             </mui.AppCanvas>
         )

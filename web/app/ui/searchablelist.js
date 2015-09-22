@@ -21,13 +21,13 @@ var SearchableList = React.createClass({
             success: function(data) {
                 this.setState({
                     data:data.result,
-                    totalPages: Math.ceil(data.total/itemsPerPage)
-                })
+                    totalPages: Math.ceil(data.total / itemsPerPage)
+                });
             }.bind(this),
             error: function(xhr, status, err){
-                console.error(this.props.url, status, err.toString())
+                console.error(this.props.url, status, err.toString());
             }.bind(this)
-        })
+        });
     },
     getInitialState: function () {
         return {
@@ -40,7 +40,7 @@ var SearchableList = React.createClass({
     handleKeyword: function(keyword, pageNumber){
         var itemsPerPage = this.props.config.itemsPerPage;
         if(keyword == undefined) {
-            keyword = this.state.keyword
+            keyword = this.state.keyword;
         }
         if(!pageNumber) {
             pageNumber = 1;
@@ -56,9 +56,9 @@ var SearchableList = React.createClass({
             dataType: 'json',
             success: function(data){
                 that.setState({
-                    data:data.result,
+                    data: data.result,
                     keyword: keyword,
-                    totalPages: Math.ceil(data.total/itemsPerPage),
+                    totalPages: Math.ceil(data.total / itemsPerPage),
                     activePage: pageNumber
                 });
             }
@@ -69,6 +69,7 @@ var SearchableList = React.createClass({
             <div>
                 <SearchBar onNewKeywords={this.handleKeyword} hintText={this.props.hintText}
                     totalPages={this.state.totalPages} activePage={this.state.activePage}
+                    additionalFilter={this.props.additionalFilter}
                 />
                 <this.props.listClass data={this.state.data} onRefresh={this.handleKeyword}
                     config={this.props.config}

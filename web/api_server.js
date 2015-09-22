@@ -25,11 +25,11 @@ var isArray = function (value) {
 };
 
 var isUndefined = function (value) {
-    return (value === 'undefined');
+    return (value === undefined);
 };
 
 var notUndefined = function (value) {
-    return (value !== 'undefined');
+    return (value !== undefined);
 };
 
 var valueWithDefault = function(value, defaultValue) {
