@@ -65,7 +65,7 @@ var GraphList = React.createClass({
                             arr[i] = {
                                 ip:data.ips,
                                 node_id:data._id,
-                                timePeriod:"300",
+                                timePeriod:"43200",//last 12h
                                 metricArr:data.metrics,
                                 key: data._id
                             }
@@ -81,7 +81,7 @@ var GraphList = React.createClass({
         return {
             arr:arr,
             zoomTimeList:zoomTimeList,
-            zoomTimeIndex:0,
+            zoomTimeIndex:5,//last 12h
             timeList:[],
             ips:ips,
             nodeGraph:{
@@ -125,6 +125,15 @@ var GraphList = React.createClass({
         }
         this.setState({arr:arr,zoomTimeIndex:obj.index(),timePeriod:null});
     },
+    componentWillMount:function(){
+        $("body").bind("click",function(){
+            var event = Utility.getEvent();
+            if($(event.target).parents(".zoomTime").size()==0){
+                $(".zoomTime ul").hide();
+                $(".zoomTime .zoomInfo").removeClass("selected");
+            }
+        });
+    },
     render: function(){
         var _this = this;
         var graphList = _this.state.arr.map(function(subArr) {
@@ -135,14 +144,17 @@ var GraphList = React.createClass({
                               type='single' />
         });
         var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){
-            return <li value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
+            if(index == 5)//last 12h
+                return <li className="selected" value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
+            else
+                return <li value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
         });
         return (
             <div>
                 <div className="zoomTime">
                     <div className="zoom" onClick = {this.zoomOut}>Zoom Out</div>
                     <div>
-                        <div className="zoomInfo" onClick={this.showZoomTime}>{_this.state.zoomTimeList[0].text}</div>
+                        <div className="zoomInfo" onClick={this.showZoomTime}>last 12h</div>
                         <ul>
                             {zoomTimeList}
                         </ul>
