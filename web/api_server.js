@@ -131,7 +131,9 @@ app.get('/nodes', function(req, res) {
 });
 
 var isIPandPort = function(s) {
-    if (s.endsWith(':')){ return false }
+    // Some old versions of nodejs don't support `endsWith`
+    //if (s.endsWith(':')){ return false }
+    if (s[s.length-1] === ':'){ return false }
     var addr = s.split(':')[0],
         port = s.split(':')[1];  // could be `undefined`
     return (
