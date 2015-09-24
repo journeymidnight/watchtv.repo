@@ -16,14 +16,20 @@ var NodeList = React.createClass({
     handleCreateNewNode: function() {
         var name = this.refs.newName.getValue().trim(),
             ips = this.refs.newIP.getValue().trim().split(/[\s,]+/),
-            tags = this.refs.newTag.getValue().trim().split(/[\s,]+/);
+            tags = this.refs.newTag.getValue().trim().split(/[\s,]+/),
+            region = this.refs.newRegion.getValue().trim(),
+            idc = this.refs.newIdc.getValue().trim(),
+            project = this.refs.newProject.getValue().trim();
         $.ajax({
             type: "POST",
             url: "nodes",
             data: {
                 "name": name,
                 "ips": ips,
-                "tags": tags
+                "tags": tags,
+                "region": region,
+                "idc": idc,
+                "project": project
             },
             success: function() {
                 this.props.onRefresh();
@@ -36,6 +42,7 @@ var NodeList = React.createClass({
         });
     },
     componentDidUpdate: function(){
+        // clicking on table also triggers info button(show single page)
         $(".table tr.nodeEntry td:not(.toolBtn)").unbind().bind('click',function(){
             $(this).parent().find('.toolBtn .infoBtn').trigger("click");
         });
@@ -45,6 +52,7 @@ var NodeList = React.createClass({
         var nodeList = this.props.data.map(function(node){
             return(
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
+                    region={node.region} idc={node.idc} project={node.project}
                     id={node._id} description={node.description} state={node.state}
                     onRefresh={that.props.onRefresh} config={that.props.config} />
             )
@@ -54,6 +62,9 @@ var NodeList = React.createClass({
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newIP" /></td>
                 <td><mui.TextField ref="newTag" /></td>
+                <td><mui.TextField ref="newRegion" /></td>
+                <td><mui.TextField ref="newIdc" /></td>
+                <td><mui.TextField ref="newProject" /></td>
                 <td>
                     <mui.IconButton tooltip="Add" onClick={this.handleCreateNewNode}>
                         <mui.SvgIcon>
@@ -73,6 +84,9 @@ var NodeList = React.createClass({
                         <th>Name</th>
                         <th>IP Addresses</th>
                         <th>Tags</th>
+                        <th>Region</th>
+                        <th>IDC</th>
+                        <th>Project</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -104,9 +118,14 @@ var NodeEntry = React.createClass({
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
                 <td key={this.props.id + 'ip'}>{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
+                <td key={this.props.id + 'region'}>{this.props.region.name}</td>
+                <td key={this.props.id + 'idc'}>{this.props.idc.name}</td>
+                <td key={this.props.id + 'project'}>{this.props.project.name}</td>
                 <td key={this.props.id + 'actions'} className="toolBtn">
                     <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} nodeTags={this.props.tags}
+                        nodeRegion={this.props.region} nodeIdc={this.props.idc}
+                        nodeProject={this.props.project}
                         onRefresh={this.props.onRefresh}
                         nodeDescription={this.props.description}
                     />
@@ -138,7 +157,10 @@ var NodeEditButton = React.createClass({
                 "name": this.refs.nameInput.getValue().trim(),
                 "description": this.refs.descriptionInput.getValue().trim(),
                 "ips": this.refs.ipInput.getValue().trim().split(/[\s,]+/),
-                "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/)
+                "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/),
+                "region": this.refs.regionInput.getValue().trim(),
+                "idc": this.refs.idcInput.getValue().trim(),
+                "project": this.refs.projectInput.getValue().trim()
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
@@ -165,7 +187,13 @@ var NodeEditButton = React.createClass({
                 defaultValue={this.props.nodeIps.join("  ")}
                 ref="ipInput" />
             <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
-                ref="tagInput" multiLine={true} />
+                ref="tagInput" />
+            <mui.TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
+                ref="regionInput" />
+            <mui.TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
+                ref="idcInput" />
+            <mui.TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
+                ref="projectInput" />
                 <div>
                     <mui.TextField floatingLabelText="Description"
                         defaultValue={this.props.nodeDescription}

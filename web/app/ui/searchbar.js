@@ -12,6 +12,10 @@ var mixins = require('../mixins.js');
 //     +---+ +---+ +---+ +---+ +---+
 //     | < | | 1 | | 2 | | 3 | | > |
 //     +---+ +---+ +---+ +---+ +---+
+// and optionally some dropdown menus to filter region, idc and project, like
+//     +----------------+
+//     | Region: All  \/|
+//     +----------------+
 
 
 // props:
@@ -32,7 +36,12 @@ var SearchBar = React.createClass({
     mixins: [mixins.materialMixin],
     handleSearch: function(event){
         event.preventDefault();
-        var keywords = this.refs.keywords.getValue().trim();
+        var filter = {},
+            that = this;
+        this.props.additionalFilter.split(' ').map(function(dropdownName){
+            filter[dropdownName] = that.state[dropdownName + 'Selected'];
+        });
+        filter['keywords'] = this.refs.keywords.getValue().trim();
         this.props.onNewKeywords(keywords);
     },
     handlePageSelect: function(event, selectedEvent) {
@@ -41,10 +50,19 @@ var SearchBar = React.createClass({
         this.props.onNewKeywords(undefined, selectedEvent.eventKey);
     },
     getInitialState: function() {
-        var state = {};
+        var state = {},
+            that = this;
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
+
             state[dropdownName] = [];
+            state[dropdownName + 'Selected'] = '';  // Selected value for dropdown
+            // dropdown change handler functions
+            that[dropdownName + 'Handler'] = function(err, selectedIndex, menuItem) {
+                var newState = {};
+                newState[dropdownName + 'Selected'] = menuItem.payload;
+                that.setState(newState);
+            };
         });
         return state;
     },
@@ -73,11 +91,13 @@ var SearchBar = React.createClass({
         searchComponents.push(<mui.RaisedButton label="Find" />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
+
             var menuItems = [{payload: '', text: displayName[dropdownName] + ': All'}];
             that.state[dropdownName].map(function (entry) {
                 menuItems.push({payload: entry.name, text: entry.name});
             });
-            searchComponents.push(<mui.DropDownMenu menuItems={menuItems} />);
+            searchComponents.push(<mui.DropDownMenu menuItems={menuItems}
+                                    onChange={that[dropdownName + 'Handler']} />);
         });
 
         return (
@@ -105,7 +125,7 @@ var SearchBar = React.createClass({
                         {
                             float: 'right',
                             marginRight: '50px',
-                            marginTop: '10px'
+                            marginTop: '15px'
                         }
                     }
                 />

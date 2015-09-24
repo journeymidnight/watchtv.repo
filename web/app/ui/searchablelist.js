@@ -50,7 +50,13 @@ var SearchableList = React.createClass({
             skip: itemsPerPage * (pageNumber - 1),
             limit: itemsPerPage
         };
-        urlParameter[this.props.type] = keyword;
+        for (var k in keyword) {
+            if (k === 'keywords') {
+                urlParameter[this.props.type] = keyword[k];
+                continue;
+            }
+            urlParameter[k] = keyword[k];
+        }
         $.ajax({
             url: 'q?' + $.param(urlParameter),
             dataType: 'json',

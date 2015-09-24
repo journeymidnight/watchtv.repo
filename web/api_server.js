@@ -354,28 +354,36 @@ var nodeCommander = function(nodes, enables, disables) {
 
 // Find document by name from collection model `databaseModel`,
 // if `insertIfNotExist` is true, then insert if not exist
-var documentFromName = function (name, databaseModel, insertIfNotExist) {
+// return results via callback
+var documentFromName = function (name, databaseModel, insertIfNotExist, callback) {
     if(isUndefined(insertIfNotExist)) {
         insertIfNotExist = false;
     }
     var result;  // now undefined
     databaseModel.findOne({name: name},
         function(err, doc) {
+            var needCreate = false;
             if (!err) {
                 if(doc === null && insertIfNotExist) {
+                    needCreate = true;
                     databaseModel.create({name: name},
                         function(err, doc) {
                             if(!err) {
                                 result = doc;
                             }
+                            return callback(err, doc);
                         }
                     );
                 }
                 result = result || doc;
             }
+            // if needCreate === true, callback is called in
+            // databaseModel.create, so don't call it again here
+            if(!needCreate) {
+                return callback(err, result);
+            }
         }
     );
-    return result;
 };
 
 app.post('/nodes', function(req, res) {
@@ -413,29 +421,28 @@ app.post('/nodes', function(req, res) {
         return
     }
 
-    var region_doc, idc_doc, project_doc;
     async.parallel([  // expand region, idc, project to corresponding documents
         function (callback) {
-            region_doc = documentFromName(region, db.Region, true);
-            callback();
+            documentFromName(region, db.Region, true, callback);
         },
         function (callback) {
-            idc_doc = documentFromName(idc, db.Idc, true);
-            callback();
+            documentFromName(idc, db.Idc, true, callback);
         },
         function (callback) {
-            project_doc = documentFromName(project, db.Project, true);
-            callback();
+            documentFromName(project, db.Project, true, callback);
         }
-    ],  function(err) {
+    ],  function(err, results) {
             if(err) {
                 res.status(500).send('Some database error');
                 logger(err);
                 return;
             }
+            var region_doc = results[0],
+                idc_doc = results[1],
+                project_doc = results[2];
             async.map(tags,
                 function (tag, map_callback) {
-                    map_callback(null, documentFromName(tag, db.Tag, false));
+                    documentFromName(tag, db.Tag, false, map_callback);
                 },
                 function (err, results) {
                     var monitorItems = new Set([]);
@@ -533,31 +540,34 @@ var modifyNode = function(node_id,req,res,result){
     async.parallel([  // expand region, idc, project to corresponding documents
             function (callback) {
                 if(region) {
-                    update.region = documentFromName(region, db.Region, true);
+                    documentFromName(region, db.Region, true, callback);
                 }
-                callback();
+                callback(null, null);
             },
             function (callback) {
                 if(idc) {
-                    update.idc = documentFromName(idc, db.Idc, true);
+                    documentFromName(idc, db.Idc, true, callback);
                 }
-                callback();
+                callback(null, null);
             },
             function (callback) {
                 if(project) {
-                    update.project = documentFromName(project, db.Project, true);
+                    documentFromName(project, db.Project, true, callback);
                 }
-                callback();
+                callback(null, null);
             }
-        ], function(err) {
+        ], function(err, results) {
             if(err) {
                 res.status(500).send('Some database error');
                 logger(err);
                 return;
             }
+            if(results[0]) update.region = results[0];
+            if(results[1]) update.idc = results[1];
+            if(results[2]) update.project = results[2];
             async.map(tags,
                 function(tag, map_callback){
-                    map_callback(null, documentFromName(tag, db.Tag, false));
+                    documentFromName(tag, db.Tag, false, map_callback);
                 },
                 function(err, results) {
                     var updatedMonitorItems = new Set([]);
@@ -746,113 +756,142 @@ app.delete('/tag/:tag_id', function(req, res) {
 var queryNode = function(req, res) {
     var skip = valueWithDefault(req.query.skip, 0),
         limit = valueWithDefault(req.query.limit, 15),
-        query = req.query.node;
+        node = req.query.node,
+        region = req.query.region,
+        idc = req.query.idc,
+        project = req.query.project;
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    async.map(
-        query.split(' '),
-        function(s, map_callback){
-            var sregx = new RegExp(s, 'i');
-            async.parallel([
-                    function (callback) {
-                        var q = {name: sregx};
-                        db.Tag.find(q, {_id: 1}, // only return id
-                            function (err, tags) {
-                                if (err) {
-                                    callback(err, {})
-                                }
-                                var ids = tags.map(function (tag) {
-                                    return tag._id
-                                });
-                                if(req.user.role != 'Root') {
-                                    ids = ids.filter(function(x){
-                                        return req.user.tags.indexOf(x) != -1
-                                    }); // intersection of ids and user.tags
-                                }
-                                db.Node.find({tags: {$in: ids}},
-                                    function (err, nodes) {
-                                        if (err) {
-                                            callback(err, {})
-                                        }
-                                        callback(null, nodes)
-                                    }).populate('tags', 'name');  // return only name of tag
-                            }
-                        )
-                    },
-                    function (callback) {
-                        var q = {$or:[
-                            {name: sregx},
-                            {nickname: sregx},
-                            {ips: sregx}
-                        ]};
-                        if(req.user.role != 'Root') {
-                            q = {
-                                $and: [
-                                    {
-                                        $or: [
-                                            {name: sregx},
-                                            {nickname: sregx},
-                                            {ips: sregx}
-                                        ]
-                                    },
-                                    {project: {$in: req.user.projects}}
-                                ]
-                            }
-                        }
-                        db.Node.find(q,
-                            function (err, nodes) {
-                            callback(err, nodes)
-                        }).populate('tags', 'name');  // return only name of tag
-                    }
-                ],
-                function(err, r){
-                    if(err){
-                        logger(err);
-                        res.status(500).send("Cannot complete your query");
-                        return
-                    }
-                    var uniq_nodes = {};
-                    r.map(function(nodes){
-                        nodes.map(function (node) {
-                            uniq_nodes[node._id] = node
-                        })
-                    });
-                    map_callback(null, uniq_nodes)
-                })
-        },
-        function(err, results) {
-            var ans = results.reduce(
-                function(pre, curr, index, array){
-                    if(pre == null){
-                        return curr
-                    } else {
-                        var ans = {};
-                        // intersection of pre and curr
-                        for (var p in pre) {
-                            if (curr[p] != undefined){
-                                ans[p] = pre[p]
-                            }
-                        }
-                        return ans
-                    }
-                },
-                null
-            );
-            var resultNodes = [];
-            for (var k in ans) {
-                resultNodes.push(ans[k])
+    async.parallel([  // expand region, idc, and project to db documents
+        function(callback) {
+            if(notUndefined(region)) {
+                documentFromName(region, db.Region, false, callback);
             }
-            var returnObject = {
-                total: resultNodes.length,
-                skip: skip,
-                limit: limit,
-                result: resultNodes.slice(skip, skip + limit)
-            };
-            res.setHeader('Content-Type', 'application/json');
-            res.status(200).send(returnObject);
+            return callback(null, null)
+        },
+        function(callback) {
+            if(notUndefined(idc)) {
+                documentFromName(idc, db.Idc, false, callback);
+            }
+            return callback(null, null)
+        },
+        function(callback) {
+            if(notUndefined(project)) {
+                documentFromName(project, db.Project, false, callback);
+            }
+            return callback(null, null)
         }
-    );
+    ], function(err, results) {
+        var regionDoc = results[0],
+            idcDoc = results[1],
+            projectDoc = results[2];
+
+        if(notUndefined(project) && req.user.role !== 'Root') {
+            var projectFilter = req.user.projects.filter(function(project){
+                return project._id === projectDoc._id
+            });
+            if(projectFilter.length === 0) {
+                res.status(403).send('User is not allowed to access this project');
+                return
+            }
+        }
+        var filter = {};
+        if(regionDoc) filter['region'] = regionDoc._id;
+        if(idcDoc) filter['idc'] = idcDoc._id;
+        if(projectDoc) filter['project'] = projectDoc._id;
+        async.map(
+            node.split(' '),
+            function(s, map_callback){
+                var sregx = new RegExp(s, 'i');
+                async.parallel([
+                        function (callback) {
+                            var q = {name: sregx};
+                            db.Tag.find(q, {_id: 1}, // only return id
+                                function (err, tags) {
+                                    if (err) {
+                                        callback(err, {})
+                                    }
+                                    var ids = tags.map(function (tag) {
+                                        return tag._id
+                                    });
+                                    var nodeFilter = {tags: {$in: ids}};
+                                    for(var k in filter) {
+                                        nodeFilter[k] = filter[k];
+                                    }
+                                    db.Node.find(nodeFilter,
+                                        function (err, nodes) {
+                                            if (err) {
+                                                callback(err, {})
+                                            }
+                                            callback(null, nodes)
+                                        }).populate('tags', 'name');  // return only name of tag
+                                }
+                            )
+                        },
+                        function (callback) {
+                            var q = {$or:[
+                                {name: sregx},
+                                {nickname: sregx},
+                                {ips: sregx}
+                            ]};
+                            for(var k in filter) {
+                                q[k] = filter[k];
+                            }
+                            db.Node.find(q,
+                                function (err, nodes) {
+                                    callback(err, nodes)
+                                }).populate('tags', 'name');  // return only name of tag
+                        }
+                    ],
+                    function(err, r){
+                        if(err){
+                            logger(err);
+                            res.status(500).send("Cannot complete your query");
+                            return
+                        }
+                        var uniq_nodes = {};
+                        r.map(function(nodes){
+                            nodes.map(function (node) {
+                                uniq_nodes[node._id] = node
+                            })
+                        });
+                        map_callback(null, uniq_nodes)
+                    })
+            },
+            function(err, results) {
+                var ans = results.reduce(
+                    function(pre, curr, index, array){
+                        if(pre == null){
+                            return curr
+                        } else {
+                            var ans = {};
+                            // intersection of pre and curr
+                            for (var p in pre) {
+                                if (curr[p] != undefined){
+                                    ans[p] = pre[p]
+                                }
+                            }
+                            return ans
+                        }
+                    },
+                    null
+                );
+                var resultNodes = [];
+                for (var k in ans) {
+                    resultNodes.push(ans[k])
+                }
+                var returnObject = {
+                    total: resultNodes.length,
+                    skip: skip,
+                    limit: limit,
+                    result: resultNodes.slice(skip, skip + limit)
+                };
+                res.setHeader('Content-Type', 'application/json');
+                res.status(200).send(returnObject);
+            }
+        );
+    });
 };
 
 var queryTag = function(req, res) {
@@ -921,6 +960,7 @@ app.get('/q', function(req, res){
         queryUser(req, res);
     } else if (req.query.oauthuser != undefined) {
         // /q?oauthuser=xxx
+        // for auto-complete of user names
         queryOauthUser(req, res);
     } else {
         res.status(400).send("Invalid query");
@@ -969,7 +1009,7 @@ app.post('/users', requireRoot,
             if(body.length > 0 && body[0].email == name+'@letv.com') {
                 async.map(projects,
                     function(project, map_callback) {
-                        map_callback(null, documentFromName(project, db.Project, false));
+                        documentFromName(project, db.Project, false, map_callback);
                     },
                     function(err, results) {
                         projects = results.filter(
@@ -1053,7 +1093,7 @@ var modifyUser = function(user_id, req, res, result){
     }
     async.map(projects,
         function(project, map_callback) {
-            map_callback(null, documentFromName(project, db.Project, false));
+            documentFromName(project, db.Project, false, map_callback);
         },
         function(err, results) {
             update.projects= results.filter(
