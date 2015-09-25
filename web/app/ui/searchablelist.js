@@ -34,8 +34,10 @@ var SearchableList = React.createClass({
             data: [],
             totalPages: 1,
             activePage: 1,
-            keyword: ''
-        }
+            keyword: {
+                keywords: ''
+            }
+        };
     },
     handleKeyword: function(keyword, pageNumber){
         var itemsPerPage = this.props.config.itemsPerPage;

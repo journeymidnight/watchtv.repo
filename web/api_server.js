@@ -392,33 +392,32 @@ app.post('/nodes', function(req, res) {
         description = valueWithDefault(req.body.description, ''),
         ips = req.body.ips,
         tags = valueWithDefault(req.body.tags, ['']),
-        region = valueWithDefault(req.body.region, ''),
-        idc = valueWithDefault(req.body.idc, ''),
-        project = valueWithDefault(req.body.project, '');
+        region = req.body.region,
+        idc = req.body.idc,
+        project = req.body.project;
 
-    if (isUndefined(name)) {
+    if (!name) {
         res.status(400).send("Must specify a name");
         return;
     }
 
-    if (isUndefined(ips)) {
+    if (isUndefined(ips) || ips.constructor !== Array) {
         res.status(400).send("IP address is required for adding new nodes");
-        return
+        return;
     }
     ips = ips.filter(isIPandPort);
     if (ips.length===0) {
         res.status(400).send("At least one valid IP address is required");
-        return
+        return;
     }
-    if (req.user.role !== 'Root' && tags[0] === '') {
-        res.status(400)
-           .send("You should specify a tag, otherwise you may not be able to see the added node");
-        return
+    if ((!region) || (!idc) || (!project)) {
+        res.status(400).send("Region/IDC/Project fields are all mandatory");
+        return;
     }
 
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
-        return
+        return;
     }
 
     async.parallel([  // expand region, idc, project to corresponding documents
@@ -541,20 +540,23 @@ var modifyNode = function(node_id,req,res,result){
             function (callback) {
                 if(region) {
                     documentFromName(region, db.Region, true, callback);
+                } else {
+                    callback(null, null);
                 }
-                callback(null, null);
             },
             function (callback) {
                 if(idc) {
                     documentFromName(idc, db.Idc, true, callback);
+                } else {
+                    callback(null, null);
                 }
-                callback(null, null);
             },
             function (callback) {
                 if(project) {
                     documentFromName(project, db.Project, true, callback);
+                } else {
+                    callback(null, null);
                 }
-                callback(null, null);
             }
         ], function(err, results) {
             if(err) {
@@ -767,20 +769,23 @@ var queryNode = function(req, res) {
         function(callback) {
             if(notUndefined(region)) {
                 documentFromName(region, db.Region, false, callback);
+            } else {
+                callback(null, null)
             }
-            return callback(null, null)
         },
         function(callback) {
             if(notUndefined(idc)) {
                 documentFromName(idc, db.Idc, false, callback);
+            } else {
+                return callback(null, null)
             }
-            return callback(null, null)
         },
         function(callback) {
             if(notUndefined(project)) {
                 documentFromName(project, db.Project, false, callback);
+            } else {
+                return callback(null, null)
             }
-            return callback(null, null)
         }
     ], function(err, results) {
         var regionDoc = results[0],
@@ -825,7 +830,7 @@ var queryNode = function(req, res) {
                                                 callback(err, {})
                                             }
                                             callback(null, nodes)
-                                        }).populate('tags', 'name');  // return only name of tag
+                                        }).populate('tags region idc project', 'name');
                                 }
                             )
                         },
@@ -841,7 +846,7 @@ var queryNode = function(req, res) {
                             db.Node.find(q,
                                 function (err, nodes) {
                                     callback(err, nodes)
-                                }).populate('tags', 'name');  // return only name of tag
+                                }).populate('tags region idc project', 'name');
                         }
                     ],
                     function(err, r){

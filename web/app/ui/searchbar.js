@@ -42,7 +42,7 @@ var SearchBar = React.createClass({
             filter[dropdownName] = that.state[dropdownName + 'Selected'];
         });
         filter['keywords'] = this.refs.keywords.getValue().trim();
-        this.props.onNewKeywords(keywords);
+        this.props.onNewKeywords(filter);
     },
     handlePageSelect: function(event, selectedEvent) {
         console.log('event ', event);
