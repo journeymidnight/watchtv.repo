@@ -34,15 +34,18 @@ var displayName = {
 
 var SearchBar = React.createClass({
     mixins: [mixins.materialMixin],
-    handleSearch: function(event){
-        event.preventDefault();
+    collectStates: function() {
         var filter = {},
             that = this;
         this.props.additionalFilter.split(' ').map(function(dropdownName){
             filter[dropdownName] = that.state[dropdownName + 'Selected'];
         });
-        filter['keywords'] = this.refs.keywords.getValue().trim();
-        this.props.onNewKeywords(filter);
+        filter.keywords = this.refs.keywords.getValue().trim();
+        return filter;
+    },
+    handleSearch: function(event){
+        event.preventDefault();
+        this.props.onNewKeywords(this.collectStates());
     },
     handlePageSelect: function(event, selectedEvent) {
         console.log('event ', event);
@@ -62,6 +65,11 @@ var SearchBar = React.createClass({
                 var newState = {};
                 newState[dropdownName + 'Selected'] = menuItem.payload;
                 that.setState(newState);
+                var states = that.collectStates();
+                // This is a workaround since the `collectStates` above cannot get the
+                // latest states
+                states[dropdownName] = menuItem.payload;
+                that.props.onNewKeywords(states);
             };
         });
         return state;
@@ -87,8 +95,9 @@ var SearchBar = React.createClass({
         var that = this,
             searchComponents = [];
 
-        searchComponents.push(<mui.TextField hintText={this.props.hintText} ref="keywords" />);
-        searchComponents.push(<mui.RaisedButton label="Find" />);
+        searchComponents.push(<mui.TextField hintText={this.props.hintText} ref="keywords"
+                               key="keywords" />);
+        searchComponents.push(<mui.RaisedButton label="Find" key="find" />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
 
@@ -97,7 +106,8 @@ var SearchBar = React.createClass({
                 menuItems.push({payload: entry.name, text: entry.name});
             });
             searchComponents.push(<mui.DropDownMenu menuItems={menuItems}
-                                    onChange={that[dropdownName + 'Handler']} />);
+                                    onChange={that[dropdownName + 'Handler']}
+                                    key={dropdownName + 'DropDown'} />);
         });
 
         return (
