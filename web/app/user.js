@@ -9,6 +9,7 @@ var SearchableList = require('./ui/searchablelist.js');
 
 var roleItems = [
     {payload: 'User', text: 'User'},
+    {payload: 'Leader', text: 'Leader'},
     {payload: 'Root', text: 'Root'}
 ];
 
@@ -23,27 +24,27 @@ var UserList = React.createClass({
     handleCreateNewUser: function() {
         var name = this.refs.newName.getValue().trim(),
             role = this.state.roleStateDropDown,
-            tags = this.refs.newTag.getValue().trim().split(/[\s,]+/);
+            projects = this.refs.newProject.getValue().trim().split(/[\s,]+/);
         $.ajax({
             type: "POST",
             url: "users",
             data: {
                 "name": name,
                 "role": role,
-                "tags": tags
+                "projects": projects
             },
             success: function(_) {
-                this.props.onRefresh()
+                this.props.onRefresh();
             }.bind(this),
             error: function(xhr, status, err) {
                 console.error(xhr, status, err.toString());
                 this.setState({snackMsg: xhr.responseText});
-                this.refs.snackbar.show()
+                this.refs.snackbar.show();
             }.bind(this)
         })
     },
-    handleDropDownChange: function(err, selectedIndex, menuItem) {
-        this.setState({roleStateDropDown: menuItem.text})
+    handleRoleDropDownChange: function(err, selectedIndex, menuItem) {
+        this.setState({roleStateDropDown: menuItem.text});
     },
     componentDidUpdate: function() {
         $('#newNameInput').autocomplete({
@@ -69,7 +70,7 @@ var UserList = React.createClass({
         var that = this;
         var userList = this.props.data.map(function(user){
             return (
-                <UserEntry name={user.name} role={user.role} tags={user.tags} key={user._id}
+                <UserEntry name={user.name} role={user.role} projects={user.projects} key={user._id}
                     id={user._id} onRefresh={that.props.onRefresh} />
             )
         });
@@ -77,8 +78,8 @@ var UserList = React.createClass({
             <tr>
                 <td><mui.TextField ref="newName" id="newNameInput" /></td>
                 <td><mui.DropDownMenu ref="newRole" menuItems={roleItems}
-                    onChange={this.handleDropDownChange} /></td>
-                <td><mui.TextField ref="newTag" /></td>
+                    onChange={this.handleRoleDropDownChange} /></td>
+                <td><mui.TextField ref="newProject" /></td>
                 <td>
                     <mui.IconButton tooltip="Add" onClick={this.handleCreateNewUser}>
                         <mui.SvgIcon>
@@ -97,7 +98,7 @@ var UserList = React.createClass({
                         <tr>
                             <th>Name</th>
                             <th>Role</th>
-                            <th>Tags</th>
+                            <th>Projects</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -117,21 +118,17 @@ var UserList = React.createClass({
 var UserEntry = React.createClass({
     render: function() {
         var that = this;
-        var tags = this.props.tags.map(function(tag){
-            return(
-                <bootstrap.Badge key={that.props.id+'tag'+tag['name']}>
-                    {tag['name']}
-                </bootstrap.Badge>
-            )
+        var projects = this.props.projects.map(function(project){
+                return project.name;
         });
         return (
             <tr>
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
                 <td key={this.props.id + 'role'}>{this.props.role}</td>
-                <td key={this.props.id + 'tags'}>{tags}</td>
+                <td key={this.props.id + 'projects'}>{projects.join(' ')}</td>
                 <td key={this.props.id + 'actions'}>
                     <UserEditButton id={this.props.id} name={this.props.name}
-                        userTags={this.props.tags} userRole={this.props.role}
+                        userProjects={this.props.projects} userRole={this.props.role}
                         onRefresh={this.props.onRefresh} />
                     <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="user" />
@@ -158,7 +155,7 @@ var UserEditButton = React.createClass({
             url: "user/" + this.props.id,
             data: {
                 "role": this.state.roleStateDropDown,
-                "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/)
+                "projects": this.refs.projectInput.getValue().trim().split(/[\s,]+/)
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
@@ -175,18 +172,18 @@ var UserEditButton = React.createClass({
             {text: 'Cancel'},
             {text: 'Update', onClick: this.updateUser}
         ];
-        var tags = this.props.userTags.map(function(t){
-            return t.name;
+        var projects = this.props.userProjects.map(function(p){
+            return p.name;
         });
         var selectedRoleIndex = 0;
         if (!this.state.roleStateDropDown) {
-            if(this.props.userRole == 'Root') selectedRoleIndex = 1;
+            if(this.props.userRole === 'User') selectedRoleIndex = 0;
+            if(this.props.userRole === 'Leader') selectedRoleIndex = 1;
+            if(this.props.userRole === 'Root') selectedRoleIndex = 2;
         } else {
-            if(this.state.roleStateDropDown == 'Root') {
-                selectedRoleIndex = 1;
-            } else {
-                selectedRoleIndex = 0;
-            }
+            if(this.state.roleStateDropDown === 'User') selectedRoleIndex = 0;
+            if(this.state.roleStateDropDown === 'Leader') selectedRoleIndex = 1;
+            if(this.state.roleStateDropDown === 'Root') selectedRoleIndex = 2;
         }
         var edits =
             <div>
@@ -194,8 +191,8 @@ var UserEditButton = React.createClass({
                     selectedIndex={selectedRoleIndex}
                     onChange={this.handleDropDownChange}
                 />
-                <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
-                    ref="tagInput" multiLine={true} />
+                <mui.TextField floatingLabelText="Projects" defaultValue={projects.join(" ")}
+                    ref="projectInput" multiLine={true} />
             </div>;
         return (
             <span>
@@ -231,6 +228,7 @@ var UserApp = React.createClass({
                     listClass={UserList}
                     hintText="Find known users"
                     config={this.state.config}
+                    additionalFilter="project"
                 />
             </mui.AppCanvas>
         )

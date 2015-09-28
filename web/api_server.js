@@ -911,15 +911,29 @@ var queryTag = function(req, res) {
 };
 
 var queryUser = function(req, res) {
-    var query = req.query.user;
-    var sregx = new RegExp(query.trim(), 'i');
+    var user = req.query.user,
+        project = req.query.project;
+    var sregx = new RegExp(user.trim(), 'i');
     var q = {name: sregx};
-    handlePluralGet(req, res,
-        'user', db.User, q,
-        [{
-            methodName: 'populate',
-            arguments: [userPopulateArgument.path,userPopulateArgument.select]
-        }]);
+    if(notUndefined(project)) {
+        documentFromName(project, db.Project, false, function(err, p){
+            if(!err && p) q.projects = {'$in': [p._id]};
+
+            handlePluralGet(req, res,
+                'user', db.User, q,
+                [{
+                    methodName: 'populate',
+                    arguments: [userPopulateArgument.path,userPopulateArgument.select]
+                }]);
+        })
+    } else {
+        handlePluralGet(req, res,
+            'user', db.User, q,
+            [{
+                methodName: 'populate',
+                arguments: [userPopulateArgument.path,userPopulateArgument.select]
+            }]);
+    }
 };
 
 var queryOauthUser = function(req, res) {
