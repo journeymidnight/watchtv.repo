@@ -345,7 +345,7 @@ var GraphInfo = React.createClass({
                         title="delete"
                         actions={[
                             { text: 'Cancel' },
-                            { text: 'Submit', onTouchTap: this.deleteConfig, ref: 'submit' }
+                            { text: 'Submit', onClick: this.deleteConfig, ref: 'submit' }
                         ]}
                         actionFocus="submit"
                         ref="delDialog">
