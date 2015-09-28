@@ -183,6 +183,7 @@ var TagApp = React.createClass({
                     listClass={TagList}
                     hintText="Find tags"
                     config={this.state.config}
+                    additionalFilter=""
                 />
             </mui.AppCanvas>
         )

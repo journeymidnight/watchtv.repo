@@ -188,13 +188,14 @@ var handleGetById = function(req, res, name, model, extraModelActions) {
     });
 };
 
-var handleCreate = function(res, toCreate, name, model) {
+var handleCreate = function(res, toCreate, name, model, callback) {
     model.create(toCreate, function(err, created) {
         if(err) {
             res.status(500).send(name + ' create failed');
             logger(name + ' create failed: ', err);
             return;
         }
+        if(callback) callback(err, created);
         res.status(201).send(name + ' created');
     });
 };
@@ -1400,7 +1401,13 @@ app.post('/projects', function(req, res){
                 handleCreate(res, {
                     name: name,
                     leader: user
-                }, 'Project', db.Project);
+                }, 'Project', db.Project, function (err, project) {
+                    db.User.findOneAndUpdate(
+                        { _id: user._id },
+                        { '$push': { projects: project._id }},
+                        function(err, original) {}  // best effort
+                    )
+                });
             }
         })
     } else {
@@ -1420,6 +1427,11 @@ app.put('/project/:project_id', function(req, res){
             if(!err) {
                 update.leader = user;
                 findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
+                db.User.findOneAndUpdate(
+                    { _id: user._id },
+                    { '$push': { projects: project_id }},
+                    function(err, original) {}  // best effort
+                )
             }
         })
     } else {
