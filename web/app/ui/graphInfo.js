@@ -56,10 +56,16 @@ var GraphInfo = React.createClass({
             nodeGraph:nodeGraph
         }
     },
-    addGraph:function(){
+    addGraph:function(type){
+        if(type=="dialogAdd"){
+            $('#dialogAdd').find(".configInfo").empty();
+            var ipList = this.props.ips;
+            for(var i = 0;i<ipList.length;i++){
+                ipList[i].default = false;
+            }
+            this.setState({ipList:ipList});
+        }
         this.refs.addGraphDialog.show();
-        var event = Utility.getEvent();
-        $(event.target).parent().find('#graphBtn').trigger('click');
     },
     showDelDialog:function(){
         this.refs.delDialog.show();
@@ -330,9 +336,9 @@ var GraphInfo = React.createClass({
                         );
         });
         return (
-            <div className="btnParent">
-                <div className="graphBtn" onClick={this.addGraph}></div>
-                <mui.Dialog title={this.props.title} actions={addGraphAction} 
+            <div className="btnParent" id={this.props.dialogId}>
+                <div className="graphBtn" onClick={this.addGraph.bind(this,this.props.dialogId)}></div>
+                <mui.Dialog title={this.props.title} actions={addGraphAction}
                             contentClassName="scrollDialog graph" ref="addGraphDialog">
                     <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog}/>
                     <mui.Dialog

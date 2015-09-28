@@ -72,7 +72,7 @@ var GraphList = React.createClass({
                 <div className="graphList">
                     {graphList}
                 </div>
-                <GraphInfo type="node" title="add new dashboard" ips= {this.state.ips}
+                <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd" ips= {this.state.ips}
                            onRefresh={this.refreshGraph} timeList = {this.state.timeList}/>
             </div>
         );
