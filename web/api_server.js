@@ -354,8 +354,9 @@ var nodeCommander = function(nodes, enables, disables) {
 
 // Find document by name from collection model `databaseModel`,
 // if `insertIfNotExist` is true, then insert if not exist
+// `additionalDefaults` are some additional parameters when inserting new documents,
 // return results via callback
-var documentFromName = function (name, databaseModel, insertIfNotExist, callback) {
+var documentFromName = function (name, databaseModel, insertIfNotExist, callback, additionalDefaults) {
     if(isUndefined(insertIfNotExist)) {
         insertIfNotExist = false;
     }
@@ -366,7 +367,14 @@ var documentFromName = function (name, databaseModel, insertIfNotExist, callback
             if (!err) {
                 if(doc === null && insertIfNotExist) {
                     needCreate = true;
-                    databaseModel.create({name: name},
+
+                    var toCreate = {name: name};
+                    if(additionalDefaults) {
+                        for (var k in additionalDefaults) {
+                            toCreate[k] = additionalDefaults[k];
+                        }
+                    }
+                    databaseModel.create(toCreate,
                         function(err, doc) {
                             if(!err) {
                                 result = doc;
@@ -428,7 +436,7 @@ app.post('/nodes', function(req, res) {
             documentFromName(idc, db.Idc, true, callback);
         },
         function (callback) {
-            documentFromName(project, db.Project, true, callback);
+            documentFromName(project, db.Project, true, callback, {leader: null});
         }
     ],  function(err, results) {
             if(err) {
@@ -553,7 +561,7 @@ var modifyNode = function(node_id,req,res,result){
             },
             function (callback) {
                 if(project) {
-                    documentFromName(project, db.Project, true, callback);
+                    documentFromName(project, db.Project, true, callback, {leader: null});
                 } else {
                     callback(null, null);
                 }
@@ -966,6 +974,18 @@ var queryOauthUser = function(req, res) {
     );
 };
 
+var queryProject = function(req, res) {
+    var project = req.query.project;
+    var sregx = new RegExp(project.trim(), 'i');
+    var q = {name: sregx};
+    handlePluralGet(req, res,
+        'project', db.Project, q,
+        [{
+            methodName: 'populate',
+            arguments: ['leader', 'name']
+        }]);
+};
+
 // For "Find anything"
 app.get('/q', function(req, res){
     if(req.query.node != undefined) {
@@ -981,6 +1001,9 @@ app.get('/q', function(req, res){
         // /q?oauthuser=xxx
         // for auto-complete of user names
         queryOauthUser(req, res);
+    } else if (req.query.project != undefined) {
+        // /q?project=xxx
+        queryProject(req, res);
     } else {
         res.status(400).send("Invalid query");
     }
@@ -1296,7 +1319,7 @@ app.get('/projects', function(req, res){
     }])
 });
 
-var ensureUserExistence = function(user, callback) {
+var ensureUserExistence = function(user, res, callback) {
     // used in POST and PUT /project to create project leader(a user) if the
     // user not already exists in DB
     //
@@ -1342,10 +1365,11 @@ var ensureUserExistence = function(user, callback) {
     }, function(err, results) {
         if (err) {
             res.status(500).send('Project create failed');
+            callback(err, null);
             return
         }
         if (results.existsInDB) {
-            user = results.existsInDB
+            callback(null, results.existsInDB);
         } else if (results.existsInOauth) {
             db.User.create({
                 name: user,
@@ -1353,34 +1377,34 @@ var ensureUserExistence = function(user, callback) {
             }, function (err, u) {
                 if (err) {
                     res.status(500).send('Project create failed');
-                    return
                 }
-                user = u;
+                callback(err, u);
             })
         } else {
             res.status(400).send('User [' + user + '] not found');
-            return
+            callback('not found', null);
         }
-        callback(user)
     })
 };
 
 app.post('/projects', function(req, res){
     var name = req.body.name,
         leader = req.body.leader;
-    if(isUndefined(name)) {
+    if(!name) {
         res.status(400).send('Must specify a name');
         return;
     }
-    if(notUndefined(leader)) {
-        ensureUserExistence(leader, function(user) {
-            handleCreate(res, {
-                name: name,
-                leader: user
-            }, 'Project', db.Project);
+    if(leader) {
+        ensureUserExistence(leader, res, function(err, user) {
+            if(!err) {
+                handleCreate(res, {
+                    name: name,
+                    leader: user
+                }, 'Project', db.Project);
+            }
         })
     } else {
-        handleCreate(res, {name: name}, 'Project', db.Project);
+        handleCreate(res, {name: name, leader: null}, 'Project', db.Project);
     }
 });
 
@@ -1389,12 +1413,14 @@ app.put('/project/:project_id', function(req, res){
     var name = req.body.name,
         leader = req.body.leader;
     var update = {};
-    if(notUndefined(name)) update.name = name;
+    if(name) update.name = name;
 
-    if(notUndefined(leader)) {
-        ensureUserExistence(leader, function(user) {
-            update.user = user;
-            findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
+    if(leader) {
+        ensureUserExistence(leader, res, function(err, user) {
+            if(!err) {
+                update.leader = user;
+                findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
+            }
         })
     } else {
         findByIdAndUpdate(res, project_id, update, 'Project', db.Project);

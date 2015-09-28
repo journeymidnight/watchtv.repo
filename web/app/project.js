@@ -7,23 +7,20 @@ var DeleteButton = require('./ui/deletebutton.js');
 var NavigationBar = require('./ui/navigationbar.js');
 var SearchableList = require('./ui/searchablelist.js');
 
-
-var TagList = React.createClass({
+var ProjectList = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function () {
         return {snackMsg: ''}
     },
-    handleCreateNewTag: function() {
+    handleCreateNewProject: function() {
         var name = this.refs.newName.getValue().trim(),
-            monItems = this.refs.newMonitorItems.getValue().trim().split(/[\s,]+/);
+            leader = this.refs.newLeader.getValue().trim();
         $.ajax({
             type: 'POST',
-            url: 'tags',
+            url: 'projects',
             data: {
                 'name': name,
-                'monitorItems': monItems,
-                'alarmRules': [], // not implemented yet
-                'alarmReceiverGroups': []  // not implemented yet
+                'leader': leader
             },
             success: function(){
                 this.props.onRefresh()
@@ -37,27 +34,24 @@ var TagList = React.createClass({
     },
     render: function() {
         var that = this;
-        var tagList = this.props.data.map(function(tag){
+        var projectList = this.props.data.map(function(project){
             return (
-                <TagEntry name={tag.name} id={tag._id} monitorItems={tag.monitorItems}
-                    alarmRules={tag.alarmRules} receiverGroups={tag.alarmReceiverGroups}
-                    onRefresh={that.props.onRefresh} />
+                <ProjectEntry name={project.name} id={project._id} leader={project.leader}
+                          onRefresh={that.props.onRefresh} />
             )
         });
-        var addNewTagRow =
+        var addNewProjectRow =
             <tr>
                 <td><mui.TextField ref="newName" /></td>
-                <td><mui.TextField ref="newMonitorItems" /></td>
-                <td><mui.TextField ref="newAlarmRules" disabled={true} /></td>
-                <td><mui.TextField ref="newReceiverGroups" disabled={true} /></td>
+                <td><mui.TextField ref="newLeader" /></td>
                 <td>
-                    <mui.IconButton tooltip="Add" onClick={this.handleCreateNewTag}>
-                    <mui.SvgIcon>
-                        <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                            <path d="M0 0h24v24H0z" fill="none"/>
-                        </svg>
-                    </mui.SvgIcon>
+                    <mui.IconButton tooltip="Add" onClick={this.handleCreateNewProject}>
+                        <mui.SvgIcon>
+                            <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                                <path d="M0 0h24v24H0z" fill="none"/>
+                            </svg>
+                        </mui.SvgIcon>
                     </mui.IconButton>
                 </td>
             </tr>;
@@ -65,19 +59,17 @@ var TagList = React.createClass({
             <div className="clear">
                 <bootstrap.Table striped bordered hover condensed>
                     <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Monitored Items</th>
-                            <th>Alarm Rules</th>
-                            <th>Alarm Receiver Groups</th>
-                            <th>Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Name</th>
+                        <th>Leader</th>
+                        <th>Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {tagList}
+                    {projectList}
                     </tbody>
                     <tfoot>
-                        {addNewTagRow}
+                    {addNewProjectRow}
                     </tfoot>
                 </bootstrap.Table>
                 <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
@@ -86,27 +78,31 @@ var TagList = React.createClass({
     }
 });
 
-var TagEntry = React.createClass({
+var ProjectEntry = React.createClass({
     render: function(){
+        var leader;
+        if(!this.props.leader) {
+            leader = ''
+        } else {
+            leader = this.props.leader.name
+        }
         return (
             <tr>
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
-                <td key={this.props.id + 'monItems'}>{this.props.monitorItems.join(', ')}</td>
-                <td key={this.props.id + 'alarmRules'}>{this.props.alarmRules}</td>
-                <td key={this.props.id + 'receiverGroups'}>{this.props.receiverGroups}</td>
+                <td key={this.props.id + 'leader'}>{leader}</td>
                 <td key={this.props.id + 'actions'}>
-                    <TagEditButton id={this.props.id} name={this.props.name}
-                        monitorItems={this.props.monitorItems}
-                        onRefresh={this.props.onRefresh} />
+                    <ProjectEditButton id={this.props.id} name={this.props.name}
+                                   leader={this.props.leader}
+                                   onRefresh={this.props.onRefresh} />
                     <DeleteButton id={this.props.id} name={this.props.name} url="tag"
-                        onRefresh={this.props.onRefresh}/>
+                                  onRefresh={this.props.onRefresh}/>
                 </td>
             </tr>
         )
     }
 });
 
-var TagEditButton = React.createClass({
+var ProjectEditButton = React.createClass({
     mixins: [mixins.materialMixin],
     handleClick: function(){
         this.refs.editDialog.show();
@@ -117,12 +113,12 @@ var TagEditButton = React.createClass({
     updateNode: function(){
         $.ajax({
             type: "PUT",
-            url: "tag/" + this.props.id,
+            url: "project/" + this.props.id,
             data: {
                 "name": this.refs.nameInput.getValue().trim(),
-                "monitorItems": this.refs.monitorItemsInput.getValue().trim().split(/[\s,]+/)
+                "leader": this.refs.leaderInput.getValue().trim().split(/[\s,]+/)
             },
-            success: function() {
+            success: function(_) {
                 this.refs.editDialog.dismiss();
                 this.props.onRefresh()
             }.bind(this),
@@ -137,16 +133,22 @@ var TagEditButton = React.createClass({
             {text: 'Cancel'},
             {text: 'Update', onClick: this.updateNode}
         ];
+        var leader;
+        if(!this.props.leader) {
+            leader = ''
+        } else {
+            leader = this.props.leader.name
+        }
         var edits =
             <div>
                 <div>
-                <mui.TextField floatingLabelText="Name" defaultValue={this.props.name}
-                    ref="nameInput" />
+                    <mui.TextField floatingLabelText="Name" defaultValue={this.props.name}
+                                   ref="nameInput" />
                 </div>
                 <div>
-                <mui.TextField floatingLabelText="Monitored Items"
-                    defaultValue={this.props.monitorItems.join(" ")}
-                    ref="monitorItemsInput" multiLine={true} />
+                    <mui.TextField floatingLabelText="Leader"
+                                   defaultValue={leader}
+                                   ref="leaderInput" multiLine={true} />
                 </div>
             </div>;
         return (
@@ -164,7 +166,7 @@ var TagEditButton = React.createClass({
                     actions={editActions}
                     modal={true}
                     ref="editDialog">
-            {edits}
+                    {edits}
                 </mui.Dialog>
                 <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>
@@ -172,24 +174,25 @@ var TagEditButton = React.createClass({
     }
 });
 
-var TagApp = React.createClass({
+var ProjectApp = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     render: function(){
         return (
             <mui.AppCanvas>
-                <NavigationBar title="Tags" />
+                <NavigationBar title="Projects" />
                 <SearchableList
-                    type="tag"
-                    listClass={TagList}
-                    hintText="Find tags"
+                    type="project"
+                    listClass={ProjectList}
+                    hintText="Find projects"
                     config={this.state.config}
-                />
+                    additionalFilter=""
+                    />
             </mui.AppCanvas>
         )
     }
 });
 
 React.render(
-    <TagApp />,
+    <ProjectApp />,
     document.getElementById('content')
 );

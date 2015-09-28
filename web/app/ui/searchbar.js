@@ -38,6 +38,8 @@ var SearchBar = React.createClass({
         var filter = {},
             that = this;
         this.props.additionalFilter.split(' ').map(function(dropdownName){
+            if (dropdownName === '') return;
+
             filter[dropdownName] = that.state[dropdownName + 'Selected'];
         });
         filter.keywords = this.refs.keywords.getValue().trim();
@@ -77,6 +79,8 @@ var SearchBar = React.createClass({
     componentDidMount: function() {
         var that = this;
         this.props.additionalFilter.split(' ').map(function(dropdownName){
+            if (dropdownName === '') return;
+
             $.ajax({
                 url: dropdownName + 's',
                 dataType: 'json',
