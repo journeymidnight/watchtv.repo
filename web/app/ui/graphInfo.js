@@ -230,9 +230,10 @@ var GraphInfo = React.createClass({
         }
         return result;
     },
-    shouldComponentUpdate:function(){
-        var _this = this;
-        $(".titleInput").off().on('blur',function(){
+    componentDidUpdate:function(){
+        var _this = this,
+            parentId = this.state.node_id;
+        $("#"+parentId+" .titleInput").off().on('blur',function(){
             var graph = {
                 ips: _this.state.ip,
                 metrics: _this.state.metricArr,

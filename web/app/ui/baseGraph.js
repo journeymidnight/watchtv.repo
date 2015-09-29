@@ -120,7 +120,7 @@ var BaseGraph = React.createClass({
             .unbind()
             .bind("plothover", function (event, pos, item) {
                 if (item) {
-                    var x = new Date(item.datapoint[0]).toLocaleString(),
+                    var x = Utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
                         y = Utility.numberFormatter(item.datapoint[1],
                                 null,unitSuffix[fitted_data[item.seriesIndex].type-1]),
                         metric = fitted_data[item.seriesIndex].metric,
@@ -140,6 +140,10 @@ var BaseGraph = React.createClass({
             })
             .bind("plotselected", function (event, ranges) {
                 if(that.props.type == 'single'){
+                    var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
+                    $(".zoomTime .zoomInfo").html(
+                        Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
+                        Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
                     that.props.onRefresh(null,ranges.xaxis.from,ranges.xaxis.to);
                 }else{
                     var fitted_data=that.getFittedData();
@@ -178,9 +182,9 @@ var BaseGraph = React.createClass({
     render: function(){
         var graphTitle = this.state.metricArr;
         var placeholderText = "Click Here to Edit Graph Name";
-        if(this.state.title!=null) placeholderText = this.state.title;
+        if(this.state.title!=null&&this.state.title!="") placeholderText = this.state.title;
         return (
-            <div>
+            <div id={this.state.node_id}>
                 <div className="graph">
                     <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
