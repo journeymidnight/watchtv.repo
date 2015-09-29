@@ -17,7 +17,7 @@ var logger = require('./logger.js').getLogger('API');
 
 var userPopulateArgument = {
     path: "projects graphs",
-    select: "name ips metrics time"
+    select: "name ips metrics time title"
 };
 
 var isArray = function (value) {

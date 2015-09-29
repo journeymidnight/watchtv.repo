@@ -27,6 +27,7 @@ var GraphList = React.createClass({
                         node_id:graphs[i]._id,
                         timePeriod:graphs[i].time,
                         metricArr:metricArr,
+                        title:graphs[i].title,
                         key: graphs[i]._id
                     }
                 }

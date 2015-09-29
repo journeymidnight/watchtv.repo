@@ -67,6 +67,7 @@ var GraphList = React.createClass({
                                 node_id:data._id,
                                 timePeriod:"43200",//last 12h
                                 metricArr:data.metrics,
+                                title:data.title,
                                 key: data._id
                             }
                         }
@@ -84,6 +85,7 @@ var GraphList = React.createClass({
                                 node_id:data[i]._id,
                                 timePeriod:"43200",//last 12h
                                 metricArr:data[i].metrics,
+                                title:data.title,
                                 key: data[i]._id
                             }
                         }

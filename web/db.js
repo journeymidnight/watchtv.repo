@@ -59,7 +59,8 @@ var User = mongoose.model('User', userSchema);
 var graphSchema = new Schema({
         ips: [String],
         metrics: [String],
-        time: Number  // in sec, how long period of graph to show
+        time: Number, // in sec, how long period of graph to show
+        title: String
     },
     {
         collection: "Graph"

@@ -14,6 +14,7 @@ var BaseGraph = React.createClass({
             metricArr: this.props.selected.metricArr,
             node_id: this.props.selected.node_id,
             uniq_id: this.props.selected.key,
+            title:this.props.selected.title,
             config: this.props.config
         }
     },
@@ -58,9 +59,6 @@ var BaseGraph = React.createClass({
             }
         }
     },
-    componentWillMount: function(){
-        this.handleGraph();
-    },
     refreshGraph: function(graphs,type){
         if(type != "delete"){
             var host = Utility.catHost(graphs.ips);
@@ -89,6 +87,9 @@ var BaseGraph = React.createClass({
             }
         }
         return fitted_data;
+    },
+    componentWillMount: function(){
+        this.handleGraph();
     },
     componentDidUpdate: function() {
         var fitted_data=this.getFittedData();
@@ -176,9 +177,12 @@ var BaseGraph = React.createClass({
     },
     render: function(){
         var graphTitle = this.state.metricArr;
+        var placeholderText = "Click Here to Edit Graph Name";
+        if(this.state.title!=null) placeholderText = this.state.title;
         return (
             <div>
                 <div className="graph">
+                    <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
                     <div className="graphTitle" 
                         title={graphTitle}>

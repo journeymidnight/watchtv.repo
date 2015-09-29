@@ -11,7 +11,7 @@ var GraphInfo = React.createClass({
         return this.init();
     },
     init:function(){
-        var ip=[],node_id,host="",time="300",metricArr=[],selectedIp=0,selectedTime=0,selected={};
+        var ip=[],node_id,host="",time="300",metricArr=[],title="",selectedIp=0,selectedTime=0,selected={};
         var ipList = this.props.ips,
             timeList = this.props.timeList,
             nodeGraph = this.props.nodeGraph;
@@ -24,6 +24,7 @@ var GraphInfo = React.createClass({
             node_id = this.props.selected.node_id;
             time = this.props.selected.timePeriod;
             metricArr = this.props.selected.metricArr;
+            title = this.props.selected.title;
             for(var i = 0;i<ipList.length;i++){
                 for(var j = 0;j<ipArr.length;j++){
                     if(ipList[i].text == ipArr[j]){
@@ -49,6 +50,7 @@ var GraphInfo = React.createClass({
             host:Utility.catHost(ip),
             selected:selected,
             metricArr:metricArr,
+            title:title,
             uniq_id: node_id +  host.split(',')[0],
             time:time,
             timeList: timeList,
@@ -147,7 +149,8 @@ var GraphInfo = React.createClass({
                 graph = {
                     ips: _this.state.ip,
                     metrics: metric,
-                    time: _this.state.time
+                    time: _this.state.time,
+                    title:_this.state.title
                 }
                 if(index != null){//modify
                     $.ajax({
@@ -178,7 +181,8 @@ var GraphInfo = React.createClass({
             graph = {
                 ips: _this.state.ip,
                 metrics: metric,
-                time: _this.state.time
+                time: _this.state.time,
+                title:_this.state.title
             };
         if(index != null){//modify
             $.ajax({
@@ -225,6 +229,26 @@ var GraphInfo = React.createClass({
             result[i] = obj.eq(i).prop("title");
         }
         return result;
+    },
+    shouldComponentUpdate:function(){
+        var _this = this;
+        $(".titleInput").off().on('blur',function(){
+            var graph = {
+                ips: _this.state.ip,
+                metrics: _this.state.metricArr,
+                time: _this.state.time,
+                title: $(this).val()
+            };
+            $.ajax({
+                type: 'PUT',
+                url: 'graph/'+_this.state.node_id,
+                data: {graph: graph},
+                success: function(){
+                },error:function(){
+                    alert("error");
+                }
+            });
+        });
     },
     componentDidMount:function(){
         $(".configInfo span").unbind().bind({
