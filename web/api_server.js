@@ -64,8 +64,17 @@ var requireLogin = function(req, res, next) {
     }
 };
 
+// for users >= Leader
+var requireLeader = function (req, res, next) {
+    if (req.user.role === 'Leader' || req.user.role === 'Root') {
+        next();
+    } else {
+        res.status(401).send('You must be Leader to perform this action');
+    }
+};
+
 var requireRoot = function(req, res, next) {
-    if(req.user.role == 'Root') {
+    if(req.user.role === 'Root') {
         next();
     } else {
         res.status(401).send('You must be Root to perform this action');
@@ -277,9 +286,13 @@ var findByIdAndUpdate = function(res, documentId, toUpdate, name, model) {
 };
 
 app.get('/nodes', function(req, res) {
-    var q = {};
-    if(req.user.role != 'Root') {
-        q = {project: {$in: req.user.projects}}
+    var q = {}, projects = [];
+    // req.user.projects are populated so extract only ids
+    req.user.projects.map(function(project){
+        projects.push(project._id);
+    });
+    if(req.user.role !== 'Root') {
+        q = {project: {$in: projects}};
     }
     handlePluralGet(req, res,
         'node', db.Node, q,
@@ -802,18 +815,28 @@ var queryNode = function(req, res) {
             projectDoc = results[2];
 
         if(notUndefined(project) && req.user.role !== 'Root') {
-            var projectFilter = req.user.projects.filter(function(project){
+            var projectFiltered = req.user.projects.filter(function(project){
                 return project._id === projectDoc._id
             });
-            if(projectFilter.length === 0) {
+            if(projectFiltered.length === 0) {
                 res.status(403).send('User is not allowed to access this project');
                 return
             }
         }
-        var filter = {};
+        var filter = {}, projects = [];
         if(regionDoc) filter['region'] = regionDoc._id;
         if(idcDoc) filter['idc'] = idcDoc._id;
-        if(projectDoc) filter['project'] = projectDoc._id;
+        // if project is assigned, filter as requested,
+        // otherwise filter with user's projects
+        if(projectDoc) {
+            filter['project'] = projectDoc._id;
+        } else if(req.user.role !== 'Root') {
+            // req.user.projects are populated so extract only ids
+            req.user.projects.map(function(project){
+                projects.push(project._id)
+            });
+            filter['project'] = { $in: projects }
+        }
         async.map(
             node.split(' '),
             function(s, map_callback){
@@ -1014,7 +1037,7 @@ app.get('/config', function(req, res) {
     res.status(200).send(config.webApp);
 });
 
-app.get('/users', requireRoot, function(req, res) {
+app.get('/users', requireLeader, function(req, res) {
     handlePluralGet(req, res,
         'user', db.User, {},
         [{
@@ -1024,7 +1047,7 @@ app.get('/users', requireRoot, function(req, res) {
     )
 });
 
-app.post('/users', requireRoot,
+app.post('/users', requireLeader,
     function(req, res){
     var name = req.body.name,
         graphs = valueWithDefault(req.body.graphs, []),
@@ -1032,6 +1055,10 @@ app.post('/users', requireRoot,
         projects = valueWithDefault(req.body.projects, ['']);
     if(isUndefined(name)) {
         res.status(400).send('Must specify a name');
+        return
+    }
+    if(req.user.role === 'Leader' && role === 'Root') {
+        res.status(403).send('You cannot create a Root user as Leader');
         return
     }
 
@@ -1057,7 +1084,11 @@ app.post('/users', requireRoot,
                     function(err, results) {
                         projects = results.filter(
                             function(p) {
-                                return p;
+                                if(!p) return false;
+                                if(!p.leader) return false;
+                                // p.leader is an ObjectId and user._id is a string
+                                return p.leader.equals(req.user._id);  // Users can only add projects
+                                                                       // under their control
                             }
                         );
                         db.User.create({
@@ -1085,7 +1116,7 @@ app.post('/users', requireRoot,
     );
 });
 
-app.put('/user/:user_id', function(req, res){
+app.put('/user/:user_id', requireLeader, function(req, res){
     var graph = req.body.graph,
         deleteId = req.body.deleteId;
     var user_id = req.params.user_id;
@@ -1124,6 +1155,10 @@ var modifyUser = function(user_id, req, res, result){
         update.graphs = graphs;
     }
     if(role) {
+        if(req.user.role === 'Leader' && role === 'Root') {
+            res.status(403).send('You cannot create a Root user as Leader');
+            return
+        }
         update.role = role
     }
     if(!projects) {
@@ -1141,7 +1176,11 @@ var modifyUser = function(user_id, req, res, result){
         function(err, results) {
             update.projects= results.filter(
                 function(p) {
-                    return p;
+                    if(!p) return false;
+                    if(!p.leader) return false;
+                    // p.leader is an ObjectId and user._id is a string
+                    return p.leader.equals(req.user._id);  // Users can only add projects
+                                                           // under their control
                 }
             );
             findByIdAndUpdate(res, user_id, update, 'User', db.User);
@@ -1149,11 +1188,12 @@ var modifyUser = function(user_id, req, res, result){
     );
 };
 
+// for users to get info about themselves
 app.get('/user', function(req, res) {
     res.send(req.user); // req.user is assigned in `requireLogin`
 });
 
-app.get('/user/:user_id', requireRoot, function(req, res) {
+app.get('/user/:user_id', requireLeader, function(req, res) {
     handleGetById(req, res, 'user', db.User,
     [
         {
@@ -1312,8 +1352,16 @@ app.get('/idc/:idc_id', function(req, res){
 });
 
 
-app.get('/projects', function(req, res){
-    handlePluralGet(req, res, 'project', db.Project, {},
+app.get('/projects', requireRoot, function(req, res){
+    var q = {}, projects = [];
+    // req.user.projects are populated so extract only ids
+    req.user.projects.map(function(project){
+        projects.push(project._id)
+    });
+    if(req.user.role !== 'Root') {
+        q = {_id: {$in: projects}}
+    }
+    handlePluralGet(req, res, 'project', db.Project, q,
     [{
         methodName: 'populate',
         arguments: ['leader', 'name']
@@ -1388,7 +1436,7 @@ var ensureUserExistence = function(user, res, callback) {
     })
 };
 
-app.post('/projects', function(req, res){
+app.post('/projects', requireRoot, function(req, res){
     var name = req.body.name,
         leader = req.body.leader;
     if(!name) {
@@ -1415,7 +1463,7 @@ app.post('/projects', function(req, res){
     }
 });
 
-app.put('/project/:project_id', function(req, res){
+app.put('/project/:project_id', requireRoot, function(req, res){
     var project_id = req.params.project_id;
     var name = req.body.name,
         leader = req.body.leader;
@@ -1439,11 +1487,11 @@ app.put('/project/:project_id', function(req, res){
     }
 });
 
-app.delete('/project/:project_id', function(req, res){
+app.delete('/project/:project_id', requireRoot, function(req, res){
     handleDeleteById(req, res, 'project', db.Project);
 });
 
-app.get('/project/:project_id', function(req, res){
+app.get('/project/:project_id', requireRoot, function(req, res){
     handleGetById(req, res, 'project', db.Project,
         [{
             methodName: 'populate',
