@@ -522,7 +522,7 @@ var modifyNode = function(node_id,req,res,result){
         nickname = req.body.nickname,
         description = req.body.description,
         ips = req.body.ips,
-        tags = valueWithDefault(req.body.tags, []),
+        tags = valueWithDefault(req.body.tags, null),
         region = req.body.region,
         idc = req.body.idc,
         project = req.body.project,
@@ -553,7 +553,7 @@ var modifyNode = function(node_id,req,res,result){
     if (nickname) update.nickname = nickname;
     if (description) update.description = description;
     if (ips) update.ips = ips;
-    if (tags.constructor !== Array) {
+    if (tags !== null && tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return;
     }
@@ -589,6 +589,10 @@ var modifyNode = function(node_id,req,res,result){
             if(results[0]) update.region = results[0];
             if(results[1]) update.idc = results[1];
             if(results[2]) update.project = results[2];
+            if(!tags) {
+                findByIdAndUpdate(res, node_id, update, 'Node', db.Node);
+                return;
+            }
             async.map(tags,
                 function(tag, map_callback){
                     documentFromName(tag, db.Tag, false, map_callback);
