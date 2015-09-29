@@ -90,13 +90,19 @@ var numberFormatter = function(val, axis, unit) {
         return str.join('.');
     }
 };
+//根据格式判断左右Y轴
+var yAxisType = function(yAxisFormatter,i){
+    if(yAxisFormatter[i]==yAxisFormatter[0])
+        return 1;
+    else
+        return 2;
+}
 
 var plotGraph = function(placeholder, data, yAxisFormatter) {
     var dataArr = [],yaxis,lineWidth = 1;
     if(data.length == 1) lineWidth = 2;
     for(var i = 0;i<data.length;i++){
-        var type = data[i].type;
-        if(type>=2) type = 2;
+        var type = yAxisType(yAxisFormatter, i);
         dataArr[i] = {
             data:data[i].data,
             label:data[i].ip + ": " + data[i].metric,

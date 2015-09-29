@@ -1019,6 +1019,22 @@ app.get('/graph/:graph_id', requireRoot, function(req, res) {
         res.send(found);
     });
 });
+
+app.get('/graphs/default', function(req, res) {
+    db.Graph.find({type: "default"}, function (err, found) {
+        if (err) {
+            res.status(500).send("Cannot fetch graph default");
+            logger(err);
+            return
+        }
+        if(!found) {
+            res.status(404).send("Cannot get info about graph default");
+            return
+        }
+        res.send(found);
+    });
+});
+
 app.post('/login', function(req, res) {
     var user = req.body.user,
         password = encodeURIComponent(req.body.password);

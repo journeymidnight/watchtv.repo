@@ -305,9 +305,10 @@ var GraphInfo = React.createClass({
         });
     },
     getCurrIndex:function(event){
-        var obj = $(event.target).parents('.graph').not('.scrollDialog');
+        var obj = $(event.target).parents('.graph').not('.scrollDialog'),
+            defalutNum = $('.singleDefault .graph').not(".scrollDialog").size();
         if(obj.length > 0)
-            return $('.graph').not(".scrollDialog").index(obj);
+            return $('.graph').not(".scrollDialog").index(obj)-defalutNum;
         else 
             return null;
     },

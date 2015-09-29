@@ -13,7 +13,7 @@ var GraphList = React.createClass({
         return this.init();
     },
     init: function () {
-        var graphs = [], arr = [], ips, _id, graphListIndex, graphInfo = [],
+        var graphs = [], arr = [], defaultArr = [], ips, _id, graphListIndex, graphInfo = [],
             url = window.location.href,
             node_id = url.split("?")[1].split("=")[1],
             zoomTimeList = Utility.getTimeList(),
@@ -72,6 +72,23 @@ var GraphList = React.createClass({
                         }
                     });
                 }
+                //获取默认的graph
+                $.ajax({
+                    url: "graphs/default",
+                    type: "get",
+                    async: false,
+                    success: function (data) {
+                        for(var i = 0;i<data.length;i++){
+                            defaultArr[i] = {
+                                ip:ips.toString().split(";"),//避免后面将ips修改掉了
+                                node_id:data[i]._id,
+                                timePeriod:"43200",//last 12h
+                                metricArr:data[i].metrics,
+                                key: data[i]._id
+                            }
+                        }
+                    }
+                });
             }
         });
         //ips  需要一个_id值
@@ -80,6 +97,7 @@ var GraphList = React.createClass({
         }
         return {
             arr:arr,
+            defaultArr:defaultArr,
             zoomTimeList:zoomTimeList,
             zoomTimeIndex:5,//last 12h
             timeList:[],
@@ -115,7 +133,8 @@ var GraphList = React.createClass({
     resetTime:function(obj){
         var text = obj.html(),
             value = obj.val(),
-            arr = this.state.arr;
+            arr = this.state.arr,
+            defaultArr = this.state.defaultArr;
         $(".zoomTime .zoomInfo").html(text);
         $(".zoomTime li,.zoomTime .zoomInfo").removeClass("selected");
         obj.addClass("selected");
@@ -123,7 +142,10 @@ var GraphList = React.createClass({
         for(var i=0;i<arr.length;i++){
             arr[i].timePeriod = value;
         }
-        this.setState({arr:arr,zoomTimeIndex:obj.index(),timePeriod:null});
+        for(var i=0;i<defaultArr.length;i++){
+            defaultArr[i].timePeriod = value;
+        }
+        this.setState({arr:arr,defaultArr:defaultArr,zoomTimeIndex:obj.index(),timePeriod:null});
     },
     componentWillMount:function(){
         $("body").bind("click",function(){
@@ -136,6 +158,13 @@ var GraphList = React.createClass({
     },
     render: function(){
         var _this = this;
+        var defaultList = _this.state.defaultArr.map(function(subArr) {
+            return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
+                              timeList={_this.state.timeList} ips={_this.state.ips}
+                              timePeriod={_this.state.timePeriod}
+                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
+                              type='single' />
+        });
         var graphList = _this.state.arr.map(function(subArr) {
             return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
                               timeList={_this.state.timeList} ips={_this.state.ips}
@@ -161,6 +190,7 @@ var GraphList = React.createClass({
                     </div>
                 </div>
                 <div className="graphList">
+                    <div className="singleDefault">{defaultList}</div>
                     {graphList}
                 </div>
                 <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd"
