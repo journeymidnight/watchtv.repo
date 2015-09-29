@@ -20,7 +20,9 @@ li{list-style: none;}
 .icon > div:first-child{background:#00BCD4!important;background-size: 40px!important;}
 .icon div span {color: #D7F4F6!important;line-height: 35px;}
 /*content*/
-.searchForm > div + div {position: relative;top: -4px;left: 10px;}
+.searchForm > div + div {top: 3px}
+.searchForm > div:first-child {bottom: 16px;}
+.searchForm > div:nth-of-type(2) {position: relative;top: -15px;left: 10px;margin-right: 10px}
 .table {padding: 0 15px;}
 .table th,.table td{vertical-align: middle!important;}
 .scrollDialog {width: 85%!important;max-width: 800px!important;max-height: 80%;overflow-y: auto;overflow-x:hidden; }

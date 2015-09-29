@@ -55,8 +55,11 @@ var NavigationBar = React.createClass({
             {type: mui.MenuItem.Types.LINK, payload:'/tag.html', text: 'Tag'},
             {type: mui.MenuItem.Types.LINK, payload:'/dashboard.html', text: 'Dashboard'}
         ];
-        if(this.state.user.role == 'Root') {
+        if(this.state.user.role === 'Root' || this.state.user.role === 'Leader') {
             menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/user.html', text: 'User'});
+        }
+        if(this.state.user.role === 'Root') {
+            menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/project.html', text: 'Project'})
         }
         menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/logout', text: 'Log Out'});
         return (

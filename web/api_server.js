@@ -1,3 +1,5 @@
+"use strict";
+
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
@@ -12,9 +14,29 @@ var session = require('client-sessions');
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-var argument = {
-    path: "tags graphs",
+
+var userPopulateArgument = {
+    path: "projects graphs",
     select: "name ips metrics time"
+};
+
+var isArray = function (value) {
+    return (value.constructor === Array);
+};
+
+var isUndefined = function (value) {
+    return (value === undefined);
+};
+
+var notUndefined = function (value) {
+    return (value !== undefined);
+};
+
+var valueWithDefault = function(value, defaultValue) {
+    if (isUndefined(value)) {
+        return defaultValue;
+    }
+    return value;
 };
 
 app.set('port', (config.webServer.port || 3000));
@@ -36,14 +58,23 @@ var requireLogin = function(req, res, next) {
                     res.redirect('/login.html')
                 }
             }
-        ).populate(argument.path,argument.select);
+        ).populate(userPopulateArgument.path,userPopulateArgument.select);
     } else {
         res.redirect('/login.html')
     }
 };
 
+// for users >= Leader
+var requireLeader = function (req, res, next) {
+    if (req.user.role === 'Leader' || req.user.role === 'Root') {
+        next();
+    } else {
+        res.status(401).send('You must be Leader to perform this action');
+    }
+};
+
 var requireRoot = function(req, res, next) {
-    if(req.user.role == 'Root') {
+    if(req.user.role === 'Root') {
         next();
     } else {
         res.status(401).send('You must be Root to perform this action');
@@ -77,12 +108,10 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
     //                      arguments: ['arg1', 'arg2', ...]
     //                  },
     //                  { ... }, ...]
-    if(!extraModelActions) extraModelActions = [];
+    if(isUndefined(extraModelActions)) extraModelActions = [];
 
-    var skip = req.query.skip,
-        limit = req.query.limit;
-    if (!skip) skip = 0;
-    if (!limit) limit = 15;
+    var skip = valueWithDefault(req.query.skip, 0),
+        limit = valueWithDefault(req.query.limit, 15);
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -90,11 +119,11 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
         if (err) {
             res.status(500).send("Cannot count " + name + " number");
             logger(err);
-            return
+            return;
         }
         var q = extraModelActions.reduce(
             function(preValue, currValue){
-                return preValue[currValue.methodName].apply(preValue, currValue.arguments)
+                return preValue[currValue.methodName].apply(preValue, currValue.arguments);
         },
         model.find(query)
              .skip(skip)
@@ -104,7 +133,7 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
             if(err) {
                 res.status(500).send("Cannot fetch " + name + " list");
                 logger(err);
-                return
+                return;
             }
             res.setHeader('Content-Type', 'application/json');
             res.send({
@@ -112,22 +141,167 @@ var handlePluralGet = function(req, res, name, model, query, extraModelActions) 
                 skip: skip,
                 limit: limit,
                 result: instances
-            })
-        })
-    })
+            });
+        });
+    });
+};
+
+var handleDeleteById = function(req, res, name, model) {
+    // Used to simplify DELETE /<name>/<name_id> methods
+    //
+    // name: string, used 1) to get corresponding id, 2) in error string
+    // model: mongoose model
+
+    var id = req.params[name + '_id'];
+    model.findByIdAndRemove(id, function(err) {
+        if(err) {
+            var errString = 'Failed to delete ' + name + ' ' + id;
+            res.status(500).send(errString);
+            logger(errString, err);
+            return;
+        }
+        res.status(200).send(name + ' ' + id + ' has been deleted');
+    });
+};
+
+var handleGetById = function(req, res, name, model, extraModelActions) {
+    // Used to simplify GET /<name>/<name_id> methods
+    //
+    // Meanings of name, model and extraModelActions are same as
+    // in `handlePluralGet`
+
+    if (isUndefined(extraModelActions)) extraModelActions = [];
+
+    var id = req.params[name + '_id'];
+
+    var q = extraModelActions.reduce(
+        function(preValue, currValue) {
+            return preValue[currValue.methodName].apply(preValue, currValue.arguments);
+        },
+        model.findById(id)
+    );
+    q.exec(function (err, found) {
+        var errString;
+        if(err) {
+            errString = 'Error fetching ' + name + ' info';
+            res.status(500).send(errString);
+            logger(errString);
+            return;
+        }
+        if(!found) {
+            errString = name + ' ' + id + ' does not exist';
+            res.status(404).send(errString);
+            return;
+        }
+        res.send(found);
+    });
+};
+
+var handleCreate = function(res, toCreate, name, model, callback) {
+    model.create(toCreate, function(err, created) {
+        if(err) {
+            res.status(500).send(name + ' create failed');
+            logger(name + ' create failed: ', err);
+            return;
+        }
+        if(callback) callback(err, created);
+        res.status(201).send(name + ' created');
+    });
+};
+
+var handlePost = function(req, res, name, model, requiredFields, optionalFields) {
+    // Used to simplify POST /<name>s methods
+    //
+    // name: string, used in logs and error strings
+    // model: mongoose model
+    // requiredFields: mandatory field names and functions to check them, in format:
+    //                  [{
+    //                      name: 'fieldName',
+    //                      checkFunction: function(fieldValue) {
+    //                                          return true or false to denote if
+    //                                          the field is acceptable
+    //                                     }
+    //                    }, {...}, ...]
+    // optionalFields: optional field names and their default values if not provided in
+    //                 POST body; checkFunction is optional. in format:
+    //                  [{
+    //                      name: 'fieldName',
+    //                      defaultValue: value,
+    //                      checkFunction: function(fieldValue) {
+    //                                          return true or false to denote if
+    //                                          the field is acceptable
+    //                                     }
+    //                   }, {...}, ...]
+
+    if(isUndefined(optionalFields)) optionalFields = [];
+
+    var toCreate = {}, failed = false, failedField = null;
+    requiredFields.map(function (field) {
+        var value = req.body[field.name];
+        if (field.checkFunction(value)) {
+            toCreate[field.name] = value;
+        } else {
+            failed = true;
+            failedField = field;
+        }
+    });
+    if(failed) {
+        res.status(400).send('Mandatory field [' + failedField.name + '] checking failed');
+        return;
+    }
+    optionalFields.map(function (field){
+        var value = valueWithDefault(req.body[field.name], field.defaultValue);
+        if (isUndefined(field.checkFunction) || field.checkFunction(value)) {
+            toCreate[field.name] = value;
+        } else {
+            failed = true;
+            failedField = field;
+        }
+    });
+    if(failed) {
+        res.status(400).send('Optional field [' + failedField.name + '] checking failed');
+        return;
+    }
+
+    handleCreate(res, toCreate, name, model);
+};
+
+var findByIdAndUpdate = function(res, documentId, toUpdate, name, model) {
+    model.findOneAndUpdate(
+        { _id: documentId },
+        { '$set': toUpdate },
+        function(err, original) {
+            if(err) {
+                res.status(500).send(name + ' update failed');
+                logger('DB error when updating ' + name, err);
+                return;
+            }
+            if(!original) {
+                res.status(404).send(name + ' '  + documentId + ' does not exist');
+                return;
+            }
+            res.status(200).send(name + ' updated');
+        }
+    );
 };
 
 app.get('/nodes', function(req, res) {
-    var q = {};
-    if(req.user.role != 'Root') {
-        q = {tags: {$in: req.user.tags}}
+    var q = {}, projects = [];
+    // req.user.projects are populated so extract only ids
+    req.user.projects.map(function(project){
+        projects.push(project._id);
+    });
+    if(req.user.role !== 'Root') {
+        q = {project: {$in: projects}};
     }
     handlePluralGet(req, res,
         'node', db.Node, q,
-        [{
-            methodName: 'populate',
-            arguments: ['tags', 'name']
-        }])
+        [
+            {
+                methodName: 'populate',
+                arguments: ['tags region idc project', 'name']
+            }
+        ]);
 });
 
 var isIPandPort = function(s) {
@@ -192,81 +366,133 @@ var nodeCommander = function(nodes, enables, disables) {
     )
 };
 
+// Find document by name from collection model `databaseModel`,
+// if `insertIfNotExist` is true, then insert if not exist
+// `additionalDefaults` are some additional parameters when inserting new documents,
+// return results via callback
+var documentFromName = function (name, databaseModel, insertIfNotExist, callback, additionalDefaults) {
+    if(isUndefined(insertIfNotExist)) {
+        insertIfNotExist = false;
+    }
+    var result;  // now undefined
+    databaseModel.findOne({name: name},
+        function(err, doc) {
+            var needCreate = false;
+            if (!err) {
+                if(doc === null && insertIfNotExist) {
+                    needCreate = true;
+
+                    var toCreate = {name: name};
+                    if(additionalDefaults) {
+                        for (var k in additionalDefaults) {
+                            toCreate[k] = additionalDefaults[k];
+                        }
+                    }
+                    databaseModel.create(toCreate,
+                        function(err, doc) {
+                            if(!err) {
+                                result = doc;
+                            }
+                            return callback(err, doc);
+                        }
+                    );
+                }
+                result = result || doc;
+            }
+            // if needCreate === true, callback is called in
+            // databaseModel.create, so don't call it again here
+            if(!needCreate) {
+                return callback(err, result);
+            }
+        }
+    );
+};
+
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
-        nickname = req.body.nickname,
-        description = req.body.description,
+        nickname = valueWithDefault(req.body.nickname, ''),
+        description = valueWithDefault(req.body.description, ''),
         ips = req.body.ips,
-        tags = req.body.tags;
+        tags = valueWithDefault(req.body.tags, ['']),
+        region = req.body.region,
+        idc = req.body.idc,
+        project = req.body.project;
 
-    if (!ips) {
+    if (!name) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+
+    if (isUndefined(ips) || ips.constructor !== Array) {
         res.status(400).send("IP address is required for adding new nodes");
-        return
+        return;
     }
     ips = ips.filter(isIPandPort);
-    if (ips.length==0) {
+    if (ips.length===0) {
         res.status(400).send("At least one valid IP address is required");
-        return
+        return;
     }
-    if (req.user.role != 'Root' && tags[0] == '') {
-        res.status(400)
-           .send("You should specify a tag, otherwise you may not be able to see the added node");
-        return
+    if ((!region) || (!idc) || (!project)) {
+        res.status(400).send("Region/IDC/Project fields are all mandatory");
+        return;
     }
 
-    if (!name) name = '';
-    if (!nickname) nickname = '';
-    if (!description) description = '';
-    if (!tags) tags = [''];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
-        return
+        return;
     }
-    async.map(tags,
-        function (tag, map_callback) {
-            db.Tag.findOne({name: tag},
-                function (err, t) {
-                    if (err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                })
+
+    async.parallel([  // expand region, idc, project to corresponding documents
+        function (callback) {
+            documentFromName(region, db.Region, true, callback);
         },
-        function (err, results) {
-            var monitorItems = new Set([]);
-            tags = results.filter(
-                function (t) {
-                    if (t) {
-                        monitorItems.merge(new Set(t.monitorItems));
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            );
-            db.Node.create(
-                {
-                    name: name,
-                    nickname: nickname,
-                    description: description,
-                    ips: ips,
-                    tags: tags
-                },
-                function (err, n) {
-                    if (err) {
-                        res.status(500).send('Node create failed');
-                        logger(err);
-                        return
-                    }
-                    logger('Node created', n);
-                    res.status(201).send('Node added');
-                }
-            );
-            if (monitorItems.entries().length != 0) {
-                nodeCommander(ips, monitorItems.entries(), []);
+        function (callback) {
+            documentFromName(idc, db.Idc, true, callback);
+        },
+        function (callback) {
+            documentFromName(project, db.Project, true, callback, {leader: null});
+        }
+    ],  function(err, results) {
+            if(err) {
+                res.status(500).send('Some database error');
+                logger(err);
+                return;
             }
-        })
+            var region_doc = results[0],
+                idc_doc = results[1],
+                project_doc = results[2];
+            async.map(tags,
+                function (tag, map_callback) {
+                    documentFromName(tag, db.Tag, false, map_callback);
+                },
+                function (err, results) {
+                    var monitorItems = new Set([]);
+                    tags = results.filter(
+                        function (t) {
+                            if (t) {
+                                monitorItems.merge(new Set(t.monitorItems));
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+                    );
+                    handleCreate(res, {
+                        name: name,
+                        nickname: nickname,
+                        description: description,
+                        ips: ips,
+                        tags: tags,
+                        region: region_doc,
+                        idc: idc_doc,
+                        project: project_doc
+                    }, 'Node', db.Node);
+                    if (monitorItems.entries().length !== 0) {
+                        nodeCommander(ips, monitorItems.entries(), []);
+                    }
+                });
+        }
+    );
 });
 
 app.put('/node/:node_id', function (req, res) {
@@ -274,8 +500,8 @@ app.put('/node/:node_id', function (req, res) {
     var graph = req.body.graph,
         deleteId = req.body.deleteId;
     if(deleteId!=null){//delete graph
-        deleteGraph(deleteId,req,res);
-        modifyNode(node_id,req, res);
+        deleteGraph(deleteId, req, res);
+        modifyNode(node_id, req, res);
     }else if(graph){//add new graph
         db.Graph.create(graph,function(err,found){
             if (err) {
@@ -283,28 +509,31 @@ app.put('/node/:node_id', function (req, res) {
                 logger(err);
                 return;
             }
-            modifyNode(node_id,req, res,found._id);
+            modifyNode(node_id, req, res, found._id);
         });
     }else {
-        modifyNode(node_id,req, res);
+        modifyNode(node_id, req, res);
     }
 });
 
+// FIXME too long a function
 var modifyNode = function(node_id,req,res,result){
-    var node_id = req.params.node_id;
     var name = req.body.name,
         nickname = req.body.nickname,
         description = req.body.description,
         ips = req.body.ips,
-        tags = req.body.tags,
+        tags = valueWithDefault(req.body.tags, []),
+        region = req.body.region,
+        idc = req.body.idc,
+        project = req.body.project,
         nodeGraph = req.body.nodeGraph,
         graphInfo = req.body.graphInfo;//delete
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
-        if (ips.length==0) {
+        if (ips.length===0) {
             res.status(400).send("At least one valid IP address is required");
-            return
+            return;
         }
     }
     if(result != null && graphInfo == null){ //add
@@ -324,84 +553,110 @@ var modifyNode = function(node_id,req,res,result){
     if (nickname) update.nickname = nickname;
     if (description) update.description = description;
     if (ips) update.ips = ips;
-    if (!tags) tags = [];
     if (tags.constructor !== Array) {
         res.status(400).send('Invalid tag format');
-        return
+        return;
     }
-    async.map(tags,
-        function(tag, map_callback){
-            db.Tag.findOne({name:tag},
-                function(err, t) {
-                    if(err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                })
-        },
-        function(err, results) {
-            var updatedMonitorItems = new Set([]);
-            update.tags = results.filter(
-                function (t) {
-                    if (t) {
-                        updatedMonitorItems.merge(new Set(t.monitorItems));
-                        return true;
-                    } else {
-                        return false;
-                    }
+
+    async.parallel([  // expand region, idc, project to corresponding documents
+            function (callback) {
+                if(region) {
+                    documentFromName(region, db.Region, true, callback);
+                } else {
+                    callback(null, null);
                 }
-            );
-            logger('update', update);
-            db.Node.findOneAndUpdate(
-                { _id: node_id },
-                { '$set': update },
-                function (err, n) {
-                    // n is the original node record before update
-                    if(err) {
-                        res.status(500).send('Existence checking failed');
-                        logger(err);
-                        return
-                    }
-                    if(!n) {
-                        res.status(404).send(node_id + ' does not exist');
-                        return
-                    }
-                    logger('origin', n);
-                    async.map(n.tags, // n.tags is an array of ids
-                        function (tag, map_callback) {
-                            db.Tag.findById(tag,
-                                function (err, t) {
-                                    if (err) {
-                                        logger(err);
-                                        return
-                                    }
-                                    map_callback(null, t)
-                                })
-                        },
-                        function (err, results) {
-                            var originalMonitorItems = new Set([]);
-                            tags = results.filter(
-                                function (t) {
-                                    if (t) {
-                                        originalMonitorItems.merge(new Set(t.monitorItems));
-                                        return true;
-                                    } else {
-                                        return false;
-                                    }
-                                }
-                            );
-                            var toDisable = originalMonitorItems.difference(updatedMonitorItems);
-                            var toEnable = updatedMonitorItems.difference(originalMonitorItems);
-                            if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
-                                nodeCommander(n.ips, toEnable, toDisable);
-                            }
-                            if(ips) {
-                                nodeCommander(ips, updatedMonitorItems, []);
+            },
+            function (callback) {
+                if(idc) {
+                    documentFromName(idc, db.Idc, true, callback);
+                } else {
+                    callback(null, null);
+                }
+            },
+            function (callback) {
+                if(project) {
+                    documentFromName(project, db.Project, true, callback, {leader: null});
+                } else {
+                    callback(null, null);
+                }
+            }
+        ], function(err, results) {
+            if(err) {
+                res.status(500).send('Some database error');
+                logger(err);
+                return;
+            }
+            if(results[0]) update.region = results[0];
+            if(results[1]) update.idc = results[1];
+            if(results[2]) update.project = results[2];
+            async.map(tags,
+                function(tag, map_callback){
+                    documentFromName(tag, db.Tag, false, map_callback);
+                },
+                function(err, results) {
+                    var updatedMonitorItems = new Set([]);
+                    update.tags = results.filter(
+                        function (t) {
+                            if (t) {
+                                updatedMonitorItems.merge(new Set(t.monitorItems));
+                                return true;
+                            } else {
+                                return false;
                             }
                         }
                     );
-                    res.status(200).send(result);
+                    logger('update', update);
+                    db.Node.findOneAndUpdate(
+                        { _id: node_id },
+                        { '$set': update },
+                        function (err, n) {
+                            // n is the original node record before update
+                            if(err) {
+                                res.status(500).send('Existence checking failed');
+                                logger(err);
+                                return
+                            }
+                            if(!n) {
+                                res.status(404).send(node_id + ' does not exist');
+                                return
+                            }
+                            logger('origin', n);
+                            async.map(n.tags, // n.tags is an array of ids
+                                function (tag, map_callback) {
+                                    db.Tag.findById(tag,
+                                        function (err, t) {
+                                            if (err) {
+                                                logger(err);
+                                                return
+                                            }
+                                            map_callback(null, t)
+                                        })
+                                },
+                                function (err, results) {
+                                    var originalMonitorItems = new Set([]);
+                                    tags = results.filter(
+                                        function (t) {
+                                            if (t) {
+                                                originalMonitorItems.merge(new Set(t.monitorItems));
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        }
+                                    );
+                                    var toDisable = originalMonitorItems.difference(updatedMonitorItems);
+                                    var toEnable = updatedMonitorItems.difference(originalMonitorItems);
+                                    if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
+                                        nodeCommander(n.ips, toEnable, toDisable);
+                                    }
+                                    if(ips) {
+                                        nodeCommander(ips, updatedMonitorItems, []);
+                                    }
+                                }
+                            );
+                            res.status(200).send(result);
+                        }
+                    );
                 }
             );
         }
@@ -409,31 +664,19 @@ var modifyNode = function(node_id,req,res,result){
 };
 
 app.get('/node/:node_id',function(req, res) {
-    var node_id = req.params.node_id;
-    db.Node.findById(node_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + node_id);
-            return
-        }
-        res.send(found);
-    }).populate('tags', 'name'); // return only name
+    handleGetById(req, res, 'node', db.Node,
+        [
+            {
+                methodName: 'populate',
+                // return only names for them
+                arguments: ['tags region idc project', 'name']
+            }
+        ]
+    );
 });
 
 app.delete('/node/:node_id', function(req, res) {
-    var node_id = req.params.node_id;
-    db.Node.findByIdAndRemove(node_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(node_id + " has been deleted.")
-    })
+    handleDeleteById(req, res, 'node', db.Node);
 });
 
 app.get('/tags', function(req, res) {
@@ -446,55 +689,33 @@ app.get('/tags', function(req, res) {
 });
 
 app.post('/tags', function (req, res) {
-    var name = req.body.name,
-        monitorItems = req.body.monitorItems,
-        alarmRules = req.body.alarmRules,
-        alarmReceiverGroups = req.body.alarmReceiverGroups;
-    if(!name) {
-        res.status(400).send("Tag name is required");
-        return
-    }
-    if(!monitorItems) monitorItems = [];
-    if(!alarmRules) alarmRules = [];
-    if(!alarmReceiverGroups) alarmReceiverGroups = [];
-    if(monitorItems.constructor !== Array ||
-    alarmRules.constructor !== Array ||
-    alarmReceiverGroups.constructor !== Array) {
-        res.status(400).send('Invalid request format');
-        return
-    }
-    db.Tag.create({
-        name: name,
-        monitorItems: monitorItems,
-        alarmRules: alarmRules,
-        alarmReceiverGroups: alarmReceiverGroups
-    },
-        function (err, t) {
-            if(err) {
-                res.status.send('Tag create failed');
-                logger(err);
-                return
+    handlePost(req, res, 'Tag', db.Tag,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }],
+        [
+            {
+                name: 'monitorItems',
+                defaultValue: [],
+                checkFunction: isArray
+            },
+            {
+                name: 'alarmRules',
+                defaultValue: [],
+                checkFunction: isArray
+            },
+            {
+                name: 'alarmReceiverGroups',
+                defaultValue: [],
+                checkFunction: isArray
             }
-            res.status(201).send('Tag added');
-        }
-    )
+        ]
+    );
 });
 
 app.get('/tag/:tag_id', function(req, res){
-    var tag_id = req.params.tag_id;
-    db.Tag.findById(tag_id, function (err, found) {
-        if(err) {
-            res.status(500).send("Cannot fetch tag info");
-            logger(err);
-            return
-        }
-        if(!found){
-            res.status(404).send("Cannot get info about tag " + tag_id);
-            return
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.send(found);
-    })
+    handleGetById(req, res, 'tag', db.Tag);
 });
 
 app.put('/tag/:tag_id', function(req, res){
@@ -553,132 +774,161 @@ app.put('/tag/:tag_id', function(req, res){
 });
 
 app.delete('/tag/:tag_id', function(req, res) {
-    var tag_id = req.params.tag_id;
-    db.Tag.findByIdAndRemove(tag_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(tag_id + " has been deleted.")
-    })
+    handleDeleteById(req, res, 'tag', db.Tag);
 });
 
 var queryNode = function(req, res) {
-    var skip = req.query.skip,
-        limit = req.query.limit,
-        query = req.query.node;
-    if (!skip) skip = 0;
-    if (!limit) limit = 15;
+    var skip = valueWithDefault(req.query.skip, 0),
+        limit = valueWithDefault(req.query.limit, 15),
+        node = req.query.node,
+        region = req.query.region,
+        idc = req.query.idc,
+        project = req.query.project;
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    async.map(
-        query.split(' '),
-        function(s, map_callback){
-            var sregx = new RegExp(s, 'i');
-            async.parallel([
-                    function (callback) {
-                        var q = {name: sregx};
-                        if(req.user.role != 'Root') {
-                            q = {name: sregx, _id: {$in: req.user.tags}}
-                        }
-                        db.Tag.find(q, {_id: 1}, // only return id
-                            function (err, tags) {
-                                if (err) {
-                                    callback(err, {})
-                                }
-                                var ids = tags.map(function (tag) {
-                                    return tag._id
-                                });
-                                if(req.user.role != 'Root') {
-                                    ids = ids.filter(function(x){
-                                        return req.user.tags.indexOf(x) != -1
-                                    }); // intersection of ids and user.tags
-                                }
-                                db.Node.find({tags: {$in: ids}},
-                                    function (err, nodes) {
-                                        if (err) {
-                                            callback(err, {})
-                                        }
-                                        callback(null, nodes)
-                                    }).populate('tags', 'name');  // return only name of tag
-                            }
-                        )
-                    },
-                    function (callback) {
-                        var q = {$or:[
-                            {name: sregx},
-                            {nickname: sregx},
-                            {ips: sregx}
-                        ]};
-                        if(req.user.role != 'Root') {
-                            q = {
-                                $and: [
-                                    {
-                                        $or: [
-                                            {name: sregx},
-                                            {nickname: sregx},
-                                            {ips: sregx}
-                                        ]
-                                    },
-                                    {tags: {$in: req.user.tags}}
-                                ]
-                            }
-                        }
-                        db.Node.find(q,
-                            function (err, nodes) {
-                            callback(err, nodes)
-                        }).populate('tags', 'name');  // return only name of tag
-                    }
-                ],
-                function(err, r){
-                    if(err){
-                        logger(err);
-                        res.status(500).send("Cannot complete your query");
-                        return
-                    }
-                    var uniq_nodes = {};
-                    r.map(function(nodes){
-                        nodes.map(function (node) {
-                            uniq_nodes[node._id] = node
-                        })
-                    });
-                    map_callback(null, uniq_nodes)
-                })
-        },
-        function(err, results) {
-            var ans = results.reduce(
-                function(pre, curr, index, array){
-                    if(pre == null){
-                        return curr
-                    } else {
-                        var ans = {};
-                        // intersection of pre and curr
-                        for (var p in pre) {
-                            if (curr[p] != undefined){
-                                ans[p] = pre[p]
-                            }
-                        }
-                        return ans
-                    }
-                },
-                null
-            );
-            var resultNodes = [];
-            for (var k in ans) {
-                resultNodes.push(ans[k])
+    async.parallel([  // expand region, idc, and project to db documents
+        function(callback) {
+            if(notUndefined(region)) {
+                documentFromName(region, db.Region, false, callback);
+            } else {
+                callback(null, null)
             }
-            var returnObject = {
-                total: resultNodes.length,
-                skip: skip,
-                limit: limit,
-                result: resultNodes.slice(skip, skip + limit)
-            };
-            res.setHeader('Content-Type', 'application/json');
-            res.status(200).send(returnObject);
+        },
+        function(callback) {
+            if(notUndefined(idc)) {
+                documentFromName(idc, db.Idc, false, callback);
+            } else {
+                return callback(null, null)
+            }
+        },
+        function(callback) {
+            if(notUndefined(project)) {
+                documentFromName(project, db.Project, false, callback);
+            } else {
+                return callback(null, null)
+            }
         }
-    );
+    ], function(err, results) {
+        var regionDoc = results[0],
+            idcDoc = results[1],
+            projectDoc = results[2];
+
+        if(notUndefined(project) && req.user.role !== 'Root') {
+            var projectFiltered = req.user.projects.filter(function(project){
+                return project._id === projectDoc._id
+            });
+            if(projectFiltered.length === 0) {
+                res.status(403).send('User is not allowed to access this project');
+                return
+            }
+        }
+        var filter = {}, projects = [];
+        if(regionDoc) filter['region'] = regionDoc._id;
+        if(idcDoc) filter['idc'] = idcDoc._id;
+        // if project is assigned, filter as requested,
+        // otherwise filter with user's projects
+        if(projectDoc) {
+            filter['project'] = projectDoc._id;
+        } else if(req.user.role !== 'Root') {
+            // req.user.projects are populated so extract only ids
+            req.user.projects.map(function(project){
+                projects.push(project._id)
+            });
+            filter['project'] = { $in: projects }
+        }
+        async.map(
+            node.split(' '),
+            function(s, map_callback){
+                var sregx = new RegExp(s, 'i');
+                async.parallel([
+                        function (callback) {
+                            var q = {name: sregx};
+                            db.Tag.find(q, {_id: 1}, // only return id
+                                function (err, tags) {
+                                    if (err) {
+                                        callback(err, {})
+                                    }
+                                    var ids = tags.map(function (tag) {
+                                        return tag._id
+                                    });
+                                    var nodeFilter = {tags: {$in: ids}};
+                                    for(var k in filter) {
+                                        nodeFilter[k] = filter[k];
+                                    }
+                                    db.Node.find(nodeFilter,
+                                        function (err, nodes) {
+                                            if (err) {
+                                                callback(err, {})
+                                            }
+                                            callback(null, nodes)
+                                        }).populate('tags region idc project', 'name');
+                                }
+                            )
+                        },
+                        function (callback) {
+                            var q = {$or:[
+                                {name: sregx},
+                                {nickname: sregx},
+                                {ips: sregx}
+                            ]};
+                            for(var k in filter) {
+                                q[k] = filter[k];
+                            }
+                            db.Node.find(q,
+                                function (err, nodes) {
+                                    callback(err, nodes)
+                                }).populate('tags region idc project', 'name');
+                        }
+                    ],
+                    function(err, r){
+                        if(err){
+                            logger(err);
+                            res.status(500).send("Cannot complete your query");
+                            return
+                        }
+                        var uniq_nodes = {};
+                        r.map(function(nodes){
+                            nodes.map(function (node) {
+                                uniq_nodes[node._id] = node
+                            })
+                        });
+                        map_callback(null, uniq_nodes)
+                    })
+            },
+            function(err, results) {
+                var ans = results.reduce(
+                    function(pre, curr, index, array){
+                        if(pre == null){
+                            return curr
+                        } else {
+                            var ans = {};
+                            // intersection of pre and curr
+                            for (var p in pre) {
+                                if (curr[p] != undefined){
+                                    ans[p] = pre[p]
+                                }
+                            }
+                            return ans
+                        }
+                    },
+                    null
+                );
+                var resultNodes = [];
+                for (var k in ans) {
+                    resultNodes.push(ans[k])
+                }
+                var returnObject = {
+                    total: resultNodes.length,
+                    skip: skip,
+                    limit: limit,
+                    result: resultNodes.slice(skip, skip + limit)
+                };
+                res.setHeader('Content-Type', 'application/json');
+                res.status(200).send(returnObject);
+            }
+        );
+    });
 };
 
 var queryTag = function(req, res) {
@@ -693,15 +943,29 @@ var queryTag = function(req, res) {
 };
 
 var queryUser = function(req, res) {
-    var query = req.query.user;
-    var sregx = new RegExp(query.trim(), 'i');
+    var user = req.query.user,
+        project = req.query.project;
+    var sregx = new RegExp(user.trim(), 'i');
     var q = {name: sregx};
-    handlePluralGet(req, res,
-        'user', db.User, q,
-        [{
-            methodName: 'populate',
-            arguments: [argument.path,argument.select]
-        }]);
+    if(notUndefined(project)) {
+        documentFromName(project, db.Project, false, function(err, p){
+            if(!err && p) q.projects = {'$in': [p._id]};
+
+            handlePluralGet(req, res,
+                'user', db.User, q,
+                [{
+                    methodName: 'populate',
+                    arguments: [userPopulateArgument.path,userPopulateArgument.select]
+                }]);
+        })
+    } else {
+        handlePluralGet(req, res,
+            'user', db.User, q,
+            [{
+                methodName: 'populate',
+                arguments: [userPopulateArgument.path,userPopulateArgument.select]
+            }]);
+    }
 };
 
 var queryOauthUser = function(req, res) {
@@ -715,7 +979,7 @@ var queryOauthUser = function(req, res) {
     request({
         rejectUnauthorized: false,  // same reason as app.post('/login')
         method: 'GET',
-        url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+        url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
         + query + '&appid=watchtv&appkey=watchtv&limit=5',
         json: true
     },
@@ -734,6 +998,18 @@ var queryOauthUser = function(req, res) {
     );
 };
 
+var queryProject = function(req, res) {
+    var project = req.query.project;
+    var sregx = new RegExp(project.trim(), 'i');
+    var q = {name: sregx};
+    handlePluralGet(req, res,
+        'project', db.Project, q,
+        [{
+            methodName: 'populate',
+            arguments: ['leader', 'name']
+        }]);
+};
+
 // For "Find anything"
 app.get('/q', function(req, res){
     if(req.query.node != undefined) {
@@ -747,7 +1023,11 @@ app.get('/q', function(req, res){
         queryUser(req, res);
     } else if (req.query.oauthuser != undefined) {
         // /q?oauthuser=xxx
+        // for auto-complete of user names
         queryOauthUser(req, res);
+    } else if (req.query.project != undefined) {
+        // /q?project=xxx
+        queryProject(req, res);
     } else {
         res.status(400).send("Invalid query");
     }
@@ -757,67 +1037,65 @@ app.get('/config', function(req, res) {
     res.status(200).send(config.webApp);
 });
 
-app.get('/users', requireRoot, function(req, res) {
+app.get('/users', requireLeader, function(req, res) {
     handlePluralGet(req, res,
         'user', db.User, {},
         [{
             methodName: 'populate',
-            arguments: [argument.path,argument.select]
+            arguments: [userPopulateArgument.path,userPopulateArgument.select]
         }]
     )
 });
 
-app.post('/users', requireRoot,
+app.post('/users', requireLeader,
     function(req, res){
     var name = req.body.name,
-        graphs = req.body.graphs,
-        tags = req.body.tags,
-        role = req.body.role;
-    if(!name) {
+        graphs = valueWithDefault(req.body.graphs, []),
+        role = valueWithDefault(req.body.role, 'User'),
+        projects = valueWithDefault(req.body.projects, ['']);
+    if(isUndefined(name)) {
         res.status(400).send('Must specify a name');
         return
     }
-    if(!graphs) graphs = [];
-    if(!tags) tags = [''];
-    if(!role) role = 'User';
+    if(req.user.role === 'Leader' && role === 'Root') {
+        res.status(403).send('You cannot create a Root user as Leader');
+        return
+    }
 
     request({
-            rejectUnauthorized: false,  // same reason as app.post('/login')
+            rejectUnauthorized: false,  // same reason as in app.post('/login')
             method: 'GET',
-            url: 'https://oauthtest.lecloud.com/watchtvgetldapuser?username='
+            url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
                  + name + '&appid=watchtv&appkey=watchtv&limit=3',
             json: true
         },
         function(err, resp, body) {
             if(err) {
-                logger('Error connecting to OAuth server');
+                logger('Error connecting to OAuth server', err);
                 res.status(500).send('Error connecting to OAuth server');
                 return
             }
 
             if(body.length > 0 && body[0].email == name+'@letv.com') {
-                async.map(tags,
-                    function(tag, map_callback) {
-                        db.Tag.findOne({name: tag},
-                            function (err, t) {
-                                if (err) {
-                                    logger(err);
-                                    return
-                                }
-                                map_callback(null, t)
-                            })
+                async.map(projects,
+                    function(project, map_callback) {
+                        documentFromName(project, db.Project, false, map_callback);
                     },
                     function(err, results) {
-                        tags = results.filter(
-                            function(t) {
-                                return t;
+                        projects = results.filter(
+                            function(p) {
+                                if(!p) return false;
+                                if(!p.leader) return false;
+                                // p.leader is an ObjectId and user._id is a string
+                                return p.leader.equals(req.user._id);  // Users can only add projects
+                                                                       // under their control
                             }
                         );
                         db.User.create({
                                 name: name,
                                 graphs: graphs,
-                                tags: tags,
-                                role: role
+                                role: role,
+                                projects: projects
                             },
                             function(err, u) {
                                 if(err) {
@@ -838,7 +1116,7 @@ app.post('/users', requireRoot,
     );
 });
 
-app.put('/user/:user_id', function(req, res){
+app.put('/user/:user_id', requireLeader, function(req, res){
     var graph = req.body.graph,
         deleteId = req.body.deleteId;
     var user_id = req.params.user_id;
@@ -852,16 +1130,16 @@ app.put('/user/:user_id', function(req, res){
                 logger(err);
                 return;
             }
-            modifyUser(user_id,req, res,found._id);
+            modifyUser(user_id, req, res, found._id);
         });
     }else {
-        modifyUser(user_id,req, res);
+        modifyUser(user_id, req, res);
     }
 });
 
-var modifyUser = function(user_id,req,res,result){
+var modifyUser = function(user_id, req, res, result){
     var name = req.body.name,
-        tags = req.body.tags,
+        projects = req.body.projects,
         role = req.body.role,
         graphs = req.body.graphs;
     if(result!=null){
@@ -873,151 +1151,83 @@ var modifyUser = function(user_id,req,res,result){
         res.status(403).send('Cannot modify user name');
         return
     }
-    if(graphs&& graphs.constructor === Array){
+    if(graphs && graphs.constructor === Array){
         update.graphs = graphs;
     }
     if(role) {
+        if(req.user.role === 'Leader' && role === 'Root') {
+            res.status(403).send('You cannot create a Root user as Leader');
+            return
+        }
         update.role = role
     }
-    if(!tags) {
-        db.User.findOneAndUpdate(
-            { _id: user_id },
-            { '$set': update },
-            function(err, u) {  // u is the original user record
-                if(err) {
-                    res.status(500).send('Existence checking failed');
-                    logger(err);
-                    return
-                }
-                if(!u) {
-                    res.status(404).send(user_id + ' does not exist');
-                    return
-                }
-                res.status(200).send('Updated');
-            }
-        );
+    if(!projects) {
+        findByIdAndUpdate(res, user_id, update, 'User', db.User);
         return
     }
-    if(tags.constructor !== Array) {
+    if(projects.constructor !== Array) {
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(tags,
-        function(tag, map_callback) {
-            db.Tag.findOne({name: tag},
-                function(err, t) {
-                    if(err) {
-                        logger(err);
-                        return
-                    }
-                    map_callback(null, t)
-                }
-            )
+    async.map(projects,
+        function(project, map_callback) {
+            documentFromName(project, db.Project, false, map_callback);
         },
         function(err, results) {
-            update.tags = results.filter(
-                function(t) {
-                    return t;
+            update.projects= results.filter(
+                function(p) {
+                    if(!p) return false;
+                    if(!p.leader) return false;
+                    // p.leader is an ObjectId and user._id is a string
+                    return p.leader.equals(req.user._id);  // Users can only add projects
+                                                           // under their control
                 }
             );
-            db.User.findOneAndUpdate(
-                { _id: user_id },
-                { '$set': update },
-                function(err, u) {  // u is the original user record
-                    if(err) {
-                        res.status(500).send('Existence checking failed');
-                        logger(err);
-                        return
-                    }
-                    if(!u) {
-                        res.status(404).send(user_id + ' does not exist');
-                        return
-                    }
-                    res.status(200).send('Updated');
-                }
-            )
+            findByIdAndUpdate(res, user_id, update, 'User', db.User);
         }
     );
 };
 
+// for users to get info about themselves
 app.get('/user', function(req, res) {
     res.send(req.user); // req.user is assigned in `requireLogin`
 });
 
-app.get('/user/:user_id', requireRoot, function(req, res) {
-    var user_id = req.params.user_id;
-    db.User.findById(user_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch node info");
-            logger(err);
-            return
+app.get('/user/:user_id', requireLeader, function(req, res) {
+    handleGetById(req, res, 'user', db.User,
+    [
+        {
+            methodName: 'populate',
+            arguments: [userPopulateArgument.path, userPopulateArgument.select]
         }
-        if(!found) {
-            res.status(404).send("Cannot get info about node " + user_id);
-            return
-        }
-        res.send(found);
-    }).populate(argument.path,argument.select);
+    ])
 });
 
 app.delete('/user/:user_id', requireRoot,
     function(req, res) {
-    var user_id = req.params.user_id;
-    db.User.findByIdAndRemove(user_id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-            return
-        }
-        res.send(user_id + " has been deleted.")
-    })
-});
+        handleDeleteById(req, res, 'user', db.User);
+    }
+);
 
-app.put('/graph/:graph_id', requireRoot, function(req, res) {
-    var id = req.params.graph_id,
+app.put('/graph/:graph_id', function(req, res) {
+    var graph_id = req.params.graph_id,
     graph = req.body.graph;
-    db.Graph.findOneAndUpdate(
-        { _id: id },
-        { '$set': graph },
-        function(err, u) {
-            if(err) {
-                res.status(500).send('Existence checking failed');
-                logger(err);
-                return
-            }
-            if(!u) {
-                res.status(404).send(id + ' does not exist');
-                return
-            }
-            res.status(200).send('Updated');
-        }
-    );
+
+    // currently graph is in format {graph: graph}, so no need to reformat
+    findByIdAndUpdate(res, graph_id, graph, 'Graph', db.Graph);
 });
 
-var deleteGraph = function(id,req, res){
+var deleteGraph = function(id, req, res){
     db.Graph.findByIdAndRemove(id, function (err) {
         if (err) {
             res.status(500).send("Failed to execute delete");
             logger(err);
-            return
         }
     })
 };
 
-app.get('/graph/:graph_id', requireRoot, function(req, res) {
-    var graph_id = req.params.graph_id;
-    db.Graph.findById(graph_id, function (err, found) {
-        if (err) {
-            res.status(500).send("Cannot fetch graph info");
-            logger(err);
-            return
-        }
-        if(!found) {
-            res.status(404).send("Cannot get info about graph " + graph_id);
-            return
-        }
-        res.send(found);
-    });
+app.get('/graph/:graph_id', function(req, res) {
+    handleGetById(req, res, 'graph', db.Graph)
 });
 
 app.get('/graphs/default', function(req, res) {
@@ -1083,4 +1293,224 @@ app.post('/login', function(req, res) {
 app.get('/logout', function(req, res) {
     req.session.reset();
     res.redirect('/login.html');
+});
+
+
+app.get('/regions', function(req, res) {
+    handlePluralGet(req, res,
+        'region', db.Region, {}, []
+    )
+});
+
+app.post('/regions', function(req, res) {
+    handlePost(req, res, 'Region', db.Region,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }]
+    )
+});
+
+app.put('/region/:region_id', function(req, res) {
+    var name = req.body.name,
+        region_id = req.params.region_id;
+    if(isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+    var update = {};
+    update.name = name;
+    findByIdAndUpdate(res, region_id, update, 'Region', db.Region);
+});
+
+app.delete('/region/:region_id', function(req, res) {
+    handleDeleteById(req, res, 'region', db.Region)
+});
+
+app.get('/region/:region_id', function(req, res) {
+    handleGetById(req, res, 'region', db.Region);
+});
+
+
+app.get('/idcs', function(req, res){
+    handlePluralGet(req, res,
+        'IDC', db.Idc, {}, [])
+});
+
+app.post('/idcs', function(req, res){
+    handlePost(req, res, 'IDC', db.Idc,
+        [{
+            name: 'name',
+            checkFunction: notUndefined
+        }]
+    )
+});
+
+app.put('/idc/:idc_id', function(req, res) {
+    var name = req.body.name,
+        idc_id = req.params.idc_id;
+    if(isUndefined(name)) {
+        res.status(400).send("Must specify a name");
+        return;
+    }
+    var update = {};
+    update.name = name;
+    findByIdAndUpdate(res, idc_id, update, 'IDC', db.Idc);
+});
+
+app.delete('/idc/:idc_id', function(req, res){
+    handleDeleteById(req, res, 'idc', db.Idc);
+});
+
+app.get('/idc/:idc_id', function(req, res){
+    handleGetById(req, res, 'idc', db.Idc);
+});
+
+
+app.get('/projects', requireRoot, function(req, res){
+    var q = {}, projects = [];
+    // req.user.projects are populated so extract only ids
+    req.user.projects.map(function(project){
+        projects.push(project._id)
+    });
+    if(req.user.role !== 'Root') {
+        q = {_id: {$in: projects}}
+    }
+    handlePluralGet(req, res, 'project', db.Project, q,
+    [{
+        methodName: 'populate',
+        arguments: ['leader', 'name']
+    }])
+});
+
+var ensureUserExistence = function(user, res, callback) {
+    // used in POST and PUT /project to create project leader(a user) if the
+    // user not already exists in DB
+    //
+    // user: string, user name
+    // callback: function(userDocument) {
+    //              do something with the user document from DB
+    //           }
+    async.parallel({
+        existsInDB: function (callback) {
+            db.User.findOne({name: user},
+                function(err, u) {
+                    if(err) {
+                        callback(err, false);
+                        return;
+                    }
+                    if(u) {
+                        callback(null, u);
+                    } else {
+                        callback(null, false);
+                    }
+                }
+            )
+        },
+        existsInOauth: function (callback) {
+            request({
+                rejectUnauthorized: false,  // same reason as in app.post('/login')
+                method: 'GET',
+                url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
+                + user + '&appid=watchtv&appkey=watchtv&limit=3',
+                json: true
+            }, function(err, resp, body) {
+                if(err) {
+                    callback(err, false);
+                    return;
+                }
+                if(body.length > 0 && body[0].email == user + '@letv.com') {
+                    callback(null, true);
+                } else {
+                    callback(null, false);
+                }
+            })
+        }
+    }, function(err, results) {
+        if (err) {
+            res.status(500).send('Project create failed');
+            callback(err, null);
+            return
+        }
+        if (results.existsInDB) {
+            callback(null, results.existsInDB);
+        } else if (results.existsInOauth) {
+            db.User.create({
+                name: user,
+                role: 'Leader'
+            }, function (err, u) {
+                if (err) {
+                    res.status(500).send('Project create failed');
+                }
+                callback(err, u);
+            })
+        } else {
+            res.status(400).send('User [' + user + '] not found');
+            callback('not found', null);
+        }
+    })
+};
+
+app.post('/projects', requireRoot, function(req, res){
+    var name = req.body.name,
+        leader = req.body.leader;
+    if(!name) {
+        res.status(400).send('Must specify a name');
+        return;
+    }
+    if(leader) {
+        ensureUserExistence(leader, res, function(err, user) {
+            if(!err) {
+                handleCreate(res, {
+                    name: name,
+                    leader: user
+                }, 'Project', db.Project, function (err, project) {
+                    db.User.findOneAndUpdate(
+                        { _id: user._id },
+                        { '$push': { projects: project._id }},
+                        function(err, original) {}  // best effort
+                    )
+                });
+            }
+        })
+    } else {
+        handleCreate(res, {name: name, leader: null}, 'Project', db.Project);
+    }
+});
+
+app.put('/project/:project_id', requireRoot, function(req, res){
+    var project_id = req.params.project_id;
+    var name = req.body.name,
+        leader = req.body.leader;
+    var update = {};
+    if(name) update.name = name;
+
+    if(leader) {
+        ensureUserExistence(leader, res, function(err, user) {
+            if(!err) {
+                update.leader = user;
+                findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
+                db.User.findOneAndUpdate(
+                    { _id: user._id },
+                    { '$push': { projects: project_id }},
+                    function(err, original) {}  // best effort
+                )
+            }
+        })
+    } else {
+        findByIdAndUpdate(res, project_id, update, 'Project', db.Project);
+    }
+});
+
+app.delete('/project/:project_id', requireRoot, function(req, res){
+    handleDeleteById(req, res, 'project', db.Project);
+});
+
+app.get('/project/:project_id', requireRoot, function(req, res){
+    handleGetById(req, res, 'project', db.Project,
+        [{
+            methodName: 'populate',
+            arguments: ['leader', 'name']
+        }]
+    );
 });
