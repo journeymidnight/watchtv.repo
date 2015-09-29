@@ -680,12 +680,8 @@ app.delete('/node/:node_id', function(req, res) {
 });
 
 app.get('/tags', function(req, res) {
-    var q = {};
-    if(req.user.role != 'Root') {
-        q = {_id: {$in: req.user.tags}}
-    }
     handlePluralGet(req, res,
-        'tag', db.Tag, q, [])
+        'tag', db.Tag, {}, []);
 });
 
 app.post('/tags', function (req, res) {
@@ -814,9 +810,11 @@ var queryNode = function(req, res) {
             idcDoc = results[1],
             projectDoc = results[2];
 
-        if(notUndefined(project) && req.user.role !== 'Root') {
-            var projectFiltered = req.user.projects.filter(function(project){
-                return project._id === projectDoc._id
+        if(project && req.user.role !== 'Root') {
+            var projectFiltered = req.user.projects.filter(function(userProject){
+                if(!projectDoc || !userProject) return false;
+                // projectDoc._id is an ObjectId and userProject._id is a string
+                return projectDoc._id.equals(userProject._id)
             });
             if(projectFiltered.length === 0) {
                 res.status(403).send('User is not allowed to access this project');
@@ -935,9 +933,6 @@ var queryTag = function(req, res) {
     var query = req.query.tag;
     var sregx = new RegExp(query.trim(), 'i');
     var q = {name: sregx};
-    if(req.user.role != 'Root') {
-        q = {_id: {$in: req.user.tags, name: sregx}}
-    }
     handlePluralGet(req, res,
         'tag', db.Tag, q, []);
 };
@@ -1367,7 +1362,7 @@ app.get('/idc/:idc_id', function(req, res){
 });
 
 
-app.get('/projects', requireRoot, function(req, res){
+app.get('/projects', function(req, res){
     var q = {}, projects = [];
     // req.user.projects are populated so extract only ids
     req.user.projects.map(function(project){
