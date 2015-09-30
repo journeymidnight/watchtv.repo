@@ -5,3 +5,6 @@ web/build/*
 web/app/static/js/main.js
 web/app/static/js/tag.js
 web/npm-debug.log
+web/app/static/js/project.js
+web/app/static/js/single.js
+web/app/static/js/user.js

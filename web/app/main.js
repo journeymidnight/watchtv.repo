@@ -43,7 +43,7 @@ var NodeList = React.createClass({
     },
     componentDidUpdate: function(){
         // clicking on table also triggers info button(show single page)
-        $(".table tr.nodeEntry td:not(.toolBtn)").unbind().bind('click',function(){
+        $(".table").off().on('click','.name,.nodeIp)',function(){
             $(this).parent().find('.toolBtn .infoBtn').trigger("click");
         });
     },
@@ -115,8 +115,8 @@ var NodeEntry = React.createClass({
         });
         return (
             <tr className="nodeEntry">
-                <td key={this.props.id + 'name'}>{this.props.name}</td>
-                <td key={this.props.id + 'ip'}>{this.props.ips.join('  ')}</td>
+                <td key={this.props.id + 'name'} className="name">{this.props.name}</td>
+                <td key={this.props.id + 'ip'} className="nodeIp">{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
                 <td key={this.props.id + 'region'}>{this.props.region.name}</td>
                 <td key={this.props.id + 'idc'}>{this.props.idc.name}</td>

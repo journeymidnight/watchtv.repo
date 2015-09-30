@@ -195,14 +195,14 @@ var splitMetric = function(metric){
     }else if(metricArr.length==2){
         measurement = metricArr[0];
         device = '';
-        measure = metricArr[1];
+        measure = ','+metricArr[1];
     }else if(metricArr.length==3){
         measurement = metricArr[0];
-        device = metricArr[1];
-        measure = metricArr[2];
+        device = ','+metricArr[1];
+        measure = ','+metricArr[2];
     }
     measure = measure.replace(semicolon,'');
-    return measurement + "," + device + "," + measure;
+    return measurement + device + measure;
 };
 
 var getElePosition = function(obj){ 
