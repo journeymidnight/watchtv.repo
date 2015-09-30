@@ -43,7 +43,7 @@ var NodeList = React.createClass({
     },
     componentDidUpdate: function(){
         // clicking on table also triggers info button(show single page)
-        $(".table").off().on('click','.name,.nodeIp)',function(){
+        $(".table").off().on('click','.name,.nodeIp',function(){
             $(this).parent().find('.toolBtn .infoBtn').trigger("click");
         });
     },
