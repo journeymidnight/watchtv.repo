@@ -96,7 +96,7 @@ var yAxisType = function(yAxisFormatter,i){
         return 1;
     else
         return 2;
-}
+};
 
 var plotGraph = function(placeholder, data, yAxisFormatter) {
     var dataArr = [],yaxis,lineWidth = 1;
@@ -195,14 +195,14 @@ var splitMetric = function(metric){
     }else if(metricArr.length==2){
         measurement = metricArr[0];
         device = '';
-        measure = ','+metricArr[1];
+        measure = metricArr[1];
     }else if(metricArr.length==3){
         measurement = metricArr[0];
-        device = ','+metricArr[1];
-        measure = ','+metricArr[2];
+        device = metricArr[1];
+        measure = metricArr[2];
     }
     measure = measure.replace(semicolon,'');
-    return measurement + device + measure;
+    return measurement + "," + device + "," + measure;
 };
 
 var getElePosition = function(obj){ 
@@ -244,7 +244,7 @@ var dateFormat = function(time,fmt){
     if(new RegExp("("+ k +")").test(fmt))   
   fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
   return fmt;   
-}
+};
 
 var Utility = {
     q_param: q_param,

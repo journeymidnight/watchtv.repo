@@ -94,7 +94,7 @@ var ProjectEntry = React.createClass({
                     <ProjectEditButton id={this.props.id} name={this.props.name}
                                    leader={this.props.leader}
                                    onRefresh={this.props.onRefresh} />
-                    <DeleteButton id={this.props.id} name={this.props.name} url="tag"
+                    <DeleteButton id={this.props.id} name={this.props.name} url="project"
                                   onRefresh={this.props.onRefresh}/>
                 </td>
             </tr>
