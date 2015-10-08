@@ -39,7 +39,7 @@ var GraphInfo = React.createClass({
                     selectedTime = i;
             }
         }
-        if(ip.length == 0){
+        if(ip.length === 0 && ipList.length !== 0){
             ip[0] = ipList[0].text;
             ipList[0].default = true;
         }
