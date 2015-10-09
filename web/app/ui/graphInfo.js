@@ -13,8 +13,7 @@ var GraphInfo = React.createClass({
     init:function(){
         var ip=[],node_id,host="",time="300",metricArr=[],title="",selectedIp=0,selectedTime=0,selected={};
         var ipList = this.props.ips,
-            timeList = this.props.timeList,
-            nodeGraph = this.props.nodeGraph;
+            timeList = this.props.timeList;
         for(var i = 0;i<ipList.length;i++){
             ipList[i].default = false;
         }
@@ -39,7 +38,7 @@ var GraphInfo = React.createClass({
                     selectedTime = i;
             }
         }
-        if(ip.length == 0){
+        if(ip.length === 0 && ipList.length !== 0){
             ip[0] = ipList[0].text;
             ipList[0].default = true;
         }
@@ -55,7 +54,6 @@ var GraphInfo = React.createClass({
             time:time,
             timeList: timeList,
             selectedTime: selectedTime,
-            nodeGraph:nodeGraph
         }
     },
     addGraph:function(type){
@@ -129,7 +127,7 @@ var GraphInfo = React.createClass({
         }
         obj.show();
         this.refs.addGraphDialog.dismiss();
-        var nodeGraph = this.state.nodeGraph;
+        var nodeGraph = this.props.nodeGraph;
         if(nodeGraph == null) {
             this.saveUserGraph(metric, index);
         } else {
@@ -175,8 +173,8 @@ var GraphInfo = React.createClass({
         });
     },
     saveNodeGraph:function(metric,index){
-        var user_id,_this = this,
-            nodeGraph = this.state.nodeGraph,
+        var _this = this,
+            nodeGraph = this.props.nodeGraph,
             graphs = nodeGraph.graphInfo[nodeGraph.graphListIndex].graphs,
             graph = {
                 ips: _this.state.ip,
@@ -201,7 +199,6 @@ var GraphInfo = React.createClass({
                 success: function(data){
                     graphs[graphs.length] = data;
                     nodeGraph.graphInfo[nodeGraph.graphListIndex].graphs = graphs;
-                    _this.setState({nodeGraph:nodeGraph});
                     _this.props.onRefresh(graph);
                 }
             });
@@ -262,7 +259,7 @@ var GraphInfo = React.createClass({
         this.setState({selected:state.selected,ipList:state.ipList});
     },
     deleteConfig: function(){
-        var nodeGraph = this.state.nodeGraph,
+        var nodeGraph = this.props.nodeGraph,
             event = Utility.getEvent(),
             obj = $(event.target).parents('.graph').not('.scrollDialog').find('.loading');
         obj.show();
@@ -304,7 +301,7 @@ var GraphInfo = React.createClass({
     },
     deleteNodeGraph:function(event){
         var _this = this,
-            nodeGraph = this.state.nodeGraph,
+            nodeGraph = this.props.nodeGraph,
             node_id = nodeGraph.node_id,
             graphInfo = nodeGraph.graphInfo,
             graphListIndex = nodeGraph.graphListIndex,
@@ -325,7 +322,6 @@ var GraphInfo = React.createClass({
             async:false,
             success:function(){
                 nodeGraph.graphInfo = graphInfo;
-                _this.setState({nodeGraph:nodeGraph});
             }
         });
     },

@@ -9,32 +9,54 @@ var GraphInfo = require('./ui/graphInfo.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
-    getInitialState: function () {
-        return this.init();
+    setStateCallback: function () {
+        console.log('setState', arguments);
     },
-    init: function () {
-        var graphs = [], arr = [], defaultArr = [], ips, _id, graphListIndex, graphInfo = [],
-            url = window.location.href,
-            node_id = url.split("?")[1].split("=")[1],
-            zoomTimeList = Utility.getTimeList(),
-            currUser;
-        $.ajax({
-            url: "/user",
-            type: "get",
-            async: false,
-            success: function (data) {
-                currUser = data._id;
+    getInitialState: function () {
+        var url = window.location.href,
+            node_id = url.split("?")[1].split("=")[1];
+        return {
+            arr: [],
+            defaultArr: [],
+            zoomTimeList: Utility.getTimeList(),
+            zoomTimeIndex: 5, // last 12h
+            timeList: [],
+            ips: [],
+            nodeGraph: {
+                node_id: node_id,
+                graphInfo: [],
+                graphListIndex: null
             }
-        });
-        $.ajax({
-            url: "node/" + node_id,
-            type: "get",
-            async: false,
-            success: function (data) {
-                ips = data.ips;
-                _id = data._id;
-                graphInfo = data.graphInfo;
-                if(graphInfo == null || graphInfo.length == 0){
+        };
+    },
+    refresh: function () {
+        var url = window.location.href,
+            node_id = url.split("?")[1].split("=")[1],
+            that = this;
+        $.when(
+            $.ajax({
+                url: "/user",
+                type: "get"
+            }),
+            $.ajax({
+                url: "node/" + node_id,
+                type: "get"
+            })
+                // the "result"s are in structure [ data, statusText, jqXHR ]
+        ).done(function(getUserResult, getNodeResult){
+                var currUser = getUserResult[0]._id,
+                    ips = getNodeResult[0].ips,
+                    _id = getNodeResult[0]._id,
+                    graphInfo = getNodeResult[0].graphInfo,
+                    graphListIndex;
+
+                //ips  需要一个_id值
+                var ipsWithId = [];
+                for(var i = 0;i<ips.length;i++){
+                    ipsWithId[i] = {text: ips[i],value:_id,default:false};
+                }
+
+                if(graphInfo == null || graphInfo.length === 0){
                     graphInfo = [{
                         user:currUser,
                         graphs:[]
@@ -56,66 +78,102 @@ var GraphList = React.createClass({
                         graphs: []
                     };
                 }
-                for(var i = 0;i<graphs.length;i++){
-                    $.ajax({
-                        url:"graph/"+graphs[i],
-                        type:"get",
-                        async:false,
-                        success:function(data){
-                            arr[i] = {
-                                ip:data.ips,
-                                node_id:data._id,
-                                timePeriod:"43200",//last 12h
-                                metricArr:data.metrics,
-                                title:data.title,
-                                key: data._id
+                var graphRequests = [];
+                graphs.map(function(graph) {
+                    graphRequests.push(
+                        $.ajax({
+                            url:"graph/" + graph,
+                            type:"get"
+                        })
+                    );
+                });
+                if (graphRequests.length === 0) {
+                    that.setState(function() {
+                        return {
+                            arr: [],
+                            ips: ipsWithId,
+                            nodeGraph: {
+                                node_id: node_id,
+                                graphInfo: graphInfo,
+                                graphListIndex: graphListIndex
                             }
-                        }
-                    });
+                        };
+                    }, that.setStateCallback);
+                } else {
+                    $.when.apply(undefined, graphRequests)
+                     .then(function() {
+                            // If there's only one graphRequest, arguments is in structure
+                            // [ data, statusText, jqXHR ];
+                            // if there're multiple graphRequests, arguments is an array of
+                            // [ data, statusText, jqXHR ], so some branches are needed here
+                            var arr = [];
+                            if(graphRequests.length === 1) {
+                                arr[0] = {
+                                    ip: arguments[0].ips,
+                                    node_id: arguments[0]._id,
+                                    timePeriod: "43200", // last 12h
+                                    metricArr: arguments[0].metrics,
+                                    title: arguments[0].title,
+                                    key: arguments[0]._id
+                                };
+                            } else {
+                                for(var i=0; i<graphRequests.length; i++) {
+                                    arr[i] = {
+                                        ip: arguments[i][0].ips,
+                                        node_id: arguments[i][0]._id,
+                                        timePeriod: "43200", // last 12h
+                                        metricArr: arguments[i][0].metrics,
+                                        title: arguments[i][0].title,
+                                        key: arguments[i][0]._id
+                                    };
+                                }
+                            }
+                            that.setState(function() {
+                                return {
+                                    arr: arr,
+                                    ips: ipsWithId,
+                                    nodeGraph: {
+                                        node_id: node_id,
+                                        graphInfo: graphInfo,
+                                        graphListIndex: graphListIndex
+                                    }
+                                };
+                            });
+                        });
                 }
                 //获取默认的graph
                 $.ajax({
                     url: "graphs/default",
                     type: "get",
-                    async: false,
                     success: function (data) {
+                        var defaultArr = [];
                         for(var i = 0;i<data.length;i++){
                             defaultArr[i] = {
-                                ip:ips.toString().split(";"),//避免后面将ips修改掉了
+                                ip:ips.toString().split(";"),
                                 node_id:data[i]._id,
                                 timePeriod:"43200",//last 12h
                                 metricArr:data[i].metrics,
                                 title:data.title,
                                 key: data[i]._id
-                            }
+                            };
                         }
+                        that.setState(function() {
+                            return {defaultArr: defaultArr};
+                        });
                     }
                 });
             }
-        });
-        //ips  需要一个_id值
-        for(var i = 0;i<ips.length;i++){
-            ips[i] = {text: ips[i],value:_id,default:false};
-        }
-        return {
-            arr:arr,
-            defaultArr:defaultArr,
-            zoomTimeList:zoomTimeList,
-            zoomTimeIndex:5,//last 12h
-            timeList:[],
-            ips:ips,
-            nodeGraph:{
-                node_id:node_id,
-                graphInfo:graphInfo,
-                graphListIndex:graphListIndex
-            }
-        };
+        );
+    },
+    componentDidMount: function() {
+        this.refresh();
     },
     refreshGraph: function(dashboards,fromTime,toTime){
-        var state = this.init(),timePeriod;
+        var timePeriod;
+        this.refresh();
         if(fromTime!=null && toTime!=null)
             timePeriod = [new Date(fromTime),new Date(toTime)]
-        this.setState({arr:state.arr,timePeriod:timePeriod});
+        this.setState({timePeriod:timePeriod});
     },
     showZoomTime:function(){
         $(".zoomTime ul").toggle();
