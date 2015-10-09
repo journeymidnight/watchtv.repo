@@ -9,9 +9,6 @@ var GraphInfo = require('./ui/graphInfo.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
-    setStateCallback: function () {
-        console.log('setState', arguments);
-    },
     getInitialState: function () {
         var url = window.location.href,
             node_id = url.split("?")[1].split("=")[1];
@@ -26,7 +23,8 @@ var GraphList = React.createClass({
                 node_id: node_id,
                 graphInfo: [],
                 graphListIndex: null
-            }
+            },
+            measurements: null
         };
     },
     refresh: function () {
@@ -49,6 +47,52 @@ var GraphList = React.createClass({
                     _id = getNodeResult[0]._id,
                     graphInfo = getNodeResult[0].graphInfo,
                     graphListIndex;
+
+                // Copied from graphSelector.js and modified accordingly
+                for(var i=0; i<ips.length; i++) {
+                    var measurements = {};
+                    hostIP = Utility.dotted2underscoredIP(ips[i]);
+                    $.ajax({
+                        url: that.state.config.influxdbURL + '/query?' + $.param(
+                            Utility.q_param(that.state.config,
+                                "SHOW MEASUREMENTS WHERE host='" + hostIP + "'")),
+                        dataType: 'json',
+                        success: function (data) {
+                            var measure_list = Utility.get_value(data);
+                            measure_list.map(function (m) {
+                                var tags = {};
+                                $.ajax({
+                                    url: that.state.config.influxdbURL + '/query?' + $.param(
+                                        Utility.q_param(that.state.config, 'SHOW TAG KEYS FROM ' + m)),
+                                    dataType: 'json',
+                                    success: function (data) {
+                                        var key_list = Utility.get_value(data);
+                                        key_list.map(function (k) {
+                                            if (k === 'host') return;
+                                            $.ajax({
+                                                url: that.state.config.influxdbURL + '/query?' + $.param(
+                                                    Utility.q_param(that.state.config,
+                                                        'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
+                                                ),
+                                                dataType: 'json',
+                                                success: function (data) {
+                                                    tags[k] = Utility.get_value(data)
+                                                }
+                                            })
+                                        });
+                                    }
+                                });
+                                measurements[m] = tags;
+                            });
+                            if(!$.isEmptyObject(measurements)) {
+                                that.setState({measurements: measurements});
+                            }
+                        },
+                        error: function (xhr, status, err) {
+                            console.error('Init measurements structure ', status, err.toString())
+                        }
+                    });
+                }
 
                 //ips  需要一个_id值
                 var ipsWithId = [];
@@ -98,7 +142,7 @@ var GraphList = React.createClass({
                                 graphListIndex: graphListIndex
                             }
                         };
-                    }, that.setStateCallback);
+                    });
                 } else {
                     $.when.apply(undefined, graphRequests)
                      .then(function() {
@@ -223,14 +267,16 @@ var GraphList = React.createClass({
                               timeList={_this.state.timeList} ips={_this.state.ips}
                               timePeriod={_this.state.timePeriod}
                               onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
-                              type='single' />
+                              type='single' needToQueryMeasurements={false} />
         });
         var graphList = _this.state.arr.map(function(subArr) {
             return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
                               timeList={_this.state.timeList} ips={_this.state.ips}
                               timePeriod={_this.state.timePeriod}
                               onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
-                              type='single' />
+                              type='single' needToQueryMeasurements={false}
+                              measurements={_this.state.measurements}
+                    />
         });
         var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){
             if(index == 5)//last 12h
@@ -255,7 +301,9 @@ var GraphList = React.createClass({
                 </div>
                 <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd"
                            timeList = {this.state.timeList} ips = {this.state.ips}
-                           onRefresh={this.refreshGraph} nodeGraph={this.state.nodeGraph}/>
+                           onRefresh={this.refreshGraph} nodeGraph={this.state.nodeGraph}
+                           needToQueryMeasurements={false} measurements={this.state.measurements}
+                    />
             </div>
         );
     }

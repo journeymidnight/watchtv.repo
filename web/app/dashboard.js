@@ -66,7 +66,9 @@ var GraphList = React.createClass({
         var graphList = _this.state.arr.map(function(subArr) {
             return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key} 
                               timeList = {_this.state.timeList} ips = {_this.state.ips}
-                              onRefresh={_this.refreshGraph}/>
+                              onRefresh={_this.refreshGraph}
+                              needToQueryMeasurements={true}
+                />
         });
         return (
             <div>
@@ -74,7 +76,9 @@ var GraphList = React.createClass({
                     {graphList}
                 </div>
                 <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd" ips= {this.state.ips}
-                           onRefresh={this.refreshGraph} timeList = {this.state.timeList}/>
+                           onRefresh={this.refreshGraph} timeList = {this.state.timeList}
+                           needToQueryMeasurements={true}
+                    />
             </div>
         );
     }

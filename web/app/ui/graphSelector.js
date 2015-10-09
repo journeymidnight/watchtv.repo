@@ -12,9 +12,9 @@ var GraphSelector = React.createClass({
         return {
             measurements: null,
             select:this.props.selected
-        }
+        };
     },
-    componentWillMount: function(){
+    getMeasurements: function() {
         // measurements: { cpu: { device : ['cpu0' ...],
         //                        measure: ['idle' ...]
         //                      },
@@ -24,10 +24,9 @@ var GraphSelector = React.createClass({
         var that = this;
         $.ajax({
             url: this.props.config.influxdbURL + '/query?' + $.param(
-                Utility.q_param(this.props.config, 
+                Utility.q_param(this.props.config,
                     "SHOW MEASUREMENTS WHERE host='" + this.props.host + "'")),
             dataType: 'json',
-            async:false,
             success: function(data){
                 var measure_list = Utility.get_value(data);
                 measure_list.map(function(m) {
@@ -36,7 +35,6 @@ var GraphSelector = React.createClass({
                         url: that.props.config.influxdbURL + '/query?' + $.param(
                             Utility.q_param(that.props.config, 'SHOW TAG KEYS FROM ' + m)),
                         dataType: 'json',
-                        async:false,
                         success: function (data) {
                             var key_list = Utility.get_value(data);
                             key_list.map(function(k){
@@ -47,7 +45,6 @@ var GraphSelector = React.createClass({
                                             'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
                                     ),
                                     dataType: 'json',
-                                    async:false,
                                     success: function (data) {
                                         tags[k] = Utility.get_value(data)
                                     }
@@ -63,6 +60,9 @@ var GraphSelector = React.createClass({
                 console.error('Init measurements structure ', status, err.toString())
             }.bind(this)
         });
+    },
+    componentDidMount: function(){
+        if(this.props.needToQueryMeasurements) { this.getMeasurements(); }
 
         if(!this.props.selected.selectedMeasurement &&
             !$.isEmptyObject(this.state.measurements))
@@ -71,6 +71,14 @@ var GraphSelector = React.createClass({
             this.props.onSelect('selectedMeasurement', defaultMeasurement);
             this.props.onSelect('selectedMeasure',
                 this.state.measurements[defaultMeasurement].measure[0]);
+        }
+    },
+    componentWillReceiveProps: function(nextProps) {
+        console.log('nextProps', nextProps);
+        if(nextProps.measurements) {
+            this.setState({
+                measurements: nextProps.measurements
+            });
         }
     },
     changeHandler: function() {

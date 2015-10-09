@@ -204,7 +204,10 @@ var BaseGraph = React.createClass({
                     </div>
                     <GraphInfo title="Edit" ips={this.props.ips} nodeGraph={this.props.nodeGraph}
                                selected={this.props.selected} timeList={this.props.timeList}
-                               onRefresh={this.refreshGraph}/>
+                               onRefresh={this.refreshGraph}
+                               needToQueryMeasurements={this.props.needToQueryMeasurements}
+                               measurements={this.props.measurements}
+                        />
                 </div>
             </div>
         )

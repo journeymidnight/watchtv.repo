@@ -379,7 +379,10 @@ var GraphInfo = React.createClass({
                         </div>
                         <div className="dropDownMenu configList">
                             <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
-                                host={this.state.host.split(",")[0]} id={this.state.uniq_id} key={this.state.uniq_id} config={this.state.config}
+                                host={this.state.host.split(",")[0]} id={this.state.uniq_id}
+                                key={this.state.uniq_id} config={this.state.config}
+                                needToQueryMeasurements={this.props.needToQueryMeasurements}
+                                measurements={this.props.measurements}
                             />
                             <div className="addMetricBtn" onClick={this.addMetric}></div>
                         </div>

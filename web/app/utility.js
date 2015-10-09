@@ -171,11 +171,15 @@ var getEvent = function(){ //ie and ff
     return window.event; 
 };
 
+var dotted2underscoredIP = function(ip) {
+    var dot = new RegExp('\\.','g');
+    return ip.split(':')[0].replace(dot, '_');
+};
+
 var catHost = function(ips){//ips is arr
     var host="";
-    var dot = new RegExp('\\.','g');
     for(var i = 0;i<ips.length;i++){
-        host += ips[i].split(':')[0].replace(dot, '_');
+        host += dotted2underscoredIP(ips[i]);
         if(ips.length!=1 && i<ips.length-1)
             host += ",";
     }
@@ -259,6 +263,7 @@ var Utility = {
     splitMetric:splitMetric,
     getElePosition:getElePosition,
     getTimeList:getTimeList,
-    dateFormat:dateFormat
+    dateFormat:dateFormat,
+    dotted2underscoredIP: dotted2underscoredIP
 };
 module.exports = Utility;
