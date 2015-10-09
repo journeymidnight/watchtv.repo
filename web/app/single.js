@@ -102,16 +102,31 @@ var GraphList = React.createClass({
                 } else {
                     $.when.apply(undefined, graphRequests)
                      .then(function() {
+                            // If there's only one graphRequest, arguments is in structure
+                            // [ data, statusText, jqXHR ];
+                            // if there're multiple graphRequests, arguments is an array of
+                            // [ data, statusText, jqXHR ], so some branches are needed here
                             var arr = [];
-                            for (var i=0; i<arguments.length; i++) {
-                                arr[i] = {
-                                    ip: arguments[i].ips,
-                                    node_id: arguments[i]._id,
+                            if(graphRequests.length === 1) {
+                                arr[0] = {
+                                    ip: arguments[0].ips,
+                                    node_id: arguments[0]._id,
                                     timePeriod: "43200", // last 12h
-                                    metricArr: arguments[i].metrics,
-                                    title: arguments[i].title,
-                                    key: arguments[i]._id
+                                    metricArr: arguments[0].metrics,
+                                    title: arguments[0].title,
+                                    key: arguments[0]._id
                                 };
+                            } else {
+                                for(var i=0; i<graphRequests.length; i++) {
+                                    arr[i] = {
+                                        ip: arguments[i][0].ips,
+                                        node_id: arguments[i][0]._id,
+                                        timePeriod: "43200", // last 12h
+                                        metricArr: arguments[i][0].metrics,
+                                        title: arguments[i][0].title,
+                                        key: arguments[i][0]._id
+                                    };
+                                }
                             }
                             that.setState(function() {
                                 return {
