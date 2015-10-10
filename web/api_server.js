@@ -1168,23 +1168,47 @@ var modifyUser = function(user_id, req, res, result){
         res.status(400).send('Invalid tag format');
         return
     }
-    async.map(projects,
-        function(project, map_callback) {
-            documentFromName(project, db.Project, false, map_callback);
-        },
-        function(err, results) {
-            update.projects= results.filter(
-                function(p) {
-                    if(!p) return false;
-                    if(!p.leader) return false;
-                    // p.leader is an ObjectId and user._id is a string
-                    return p.leader.equals(req.user._id);  // Users can only add projects
-                                                           // under their control
+
+    db.User.findOne({ _id: user_id })
+           .populate('projects', 'name')
+           .exec(function(err, originalUser){
+                if(err) {
+                    res.status(500).send("Database error");
+                    return;
                 }
-            );
-            findByIdAndUpdate(res, user_id, update, 'User', db.User);
-        }
-    );
+                var originalProjectIds = originalUser.projects.map(function(project){
+                    return project._id;
+                });
+                async.map(projects,
+                    function(project, map_callback) {
+                        documentFromName(project, db.Project, false, map_callback);
+                    },
+                    function(err, results) {
+                        update.projects= results.filter(
+                            function(p) {
+                                if(!p) return false;
+
+                                // If the project exists previously,
+                                // it should definitely still exist
+                                var existsPreviously = false;
+                                for(var i=0; i<originalProjectIds.length; i++) {
+                                    if(originalProjectIds[i].equals(p._id)) {
+                                        existsPreviously = true;
+                                        break;
+                                    }
+                                }
+                                if(existsPreviously) return true;
+
+                                if(!p.leader) return false;
+                                // p.leader is an ObjectId and user._id is a string
+                                return p.leader.equals(req.user._id);  // Users can only add projects
+                                                                       // under their control
+                            }
+                        );
+                        findByIdAndUpdate(res, user_id, update, 'User', db.User);
+                    }
+                );
+        });
 };
 
 // for users to get info about themselves
