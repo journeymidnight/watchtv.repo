@@ -46,7 +46,8 @@ var GraphList = React.createClass({
                     ips = getNodeResult[0].ips,
                     _id = getNodeResult[0]._id,
                     graphInfo = getNodeResult[0].graphInfo,
-                    graphListIndex;
+                    graphListIndex,
+                    graphs = [];
 
                 for(var i = 0; i<ips.length; i++) {
                     var hostIP = Utility.dotted2underscoredIP(ips[i]);
