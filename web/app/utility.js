@@ -7,11 +7,42 @@ var q_param = function(config, q) {
         q: q
     }
 };
+
 var get_value = function (ret) {
     if (ret.results[0].series == undefined){
         return []
     }
     return _.flatten(ret.results[0].series[0].values);
+};
+
+var get_measurements = function (data) {
+    var series = data.results[0].series,
+        measurements = {};
+    if (series === undefined) { return {}; }
+
+    series.map(function(s) {
+        var keyPosition = {};
+        s.columns.map(function(k, i){
+            if(k === '_key' || k === 'host' || k === 'type') return;
+            keyPosition[k] = i;
+        });
+        var tags = {};
+        s.values.map(function(value){
+            for(var k in keyPosition) {
+                var position = keyPosition[k];
+                if(!tags.hasOwnProperty(k)) tags[k] = {};
+
+                // 1 is dummy since we only care about keys of tags[k]
+                tags[k][value[position]] = 1;
+            }
+        });
+        for(var k in tags) {
+            tags[k] = Object.keys(tags[k]);
+        }
+        measurements[s.name] = tags;
+    });
+
+    return measurements;
 };
 
 var pointPerGraph = 300; // should be configurable
@@ -253,6 +284,7 @@ var dateFormat = function(time,fmt){
 var Utility = {
     q_param: q_param,
     get_value: get_value,
+    get_measurements: get_measurements,
     buildQuery: buildQuery,
     fitTimePeriod: fitTimePeriod,
     fitData: fitData,

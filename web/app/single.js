@@ -48,48 +48,22 @@ var GraphList = React.createClass({
                     graphInfo = getNodeResult[0].graphInfo,
                     graphListIndex;
 
-                // Copied from graphSelector.js and modified accordingly
-                for(var i=0; i<ips.length; i++) {
-                    var measurements = {};
-                    hostIP = Utility.dotted2underscoredIP(ips[i]);
+                for(var i = 0; i<ips.length; i++) {
+                    var hostIP = Utility.dotted2underscoredIP(ips[i]);
+                    // Similar to graphSelector.js
                     $.ajax({
                         url: that.state.config.influxdbURL + '/query?' + $.param(
                             Utility.q_param(that.state.config,
-                                "SHOW MEASUREMENTS WHERE host='" + hostIP + "'")),
+                                "SHOW SERIES WHERE host='" + hostIP + "'")),
                         dataType: 'json',
                         success: function (data) {
-                            var measure_list = Utility.get_value(data);
-                            measure_list.map(function (m) {
-                                var tags = {};
-                                $.ajax({
-                                    url: that.state.config.influxdbURL + '/query?' + $.param(
-                                        Utility.q_param(that.state.config, 'SHOW TAG KEYS FROM ' + m)),
-                                    dataType: 'json',
-                                    success: function (data) {
-                                        var key_list = Utility.get_value(data);
-                                        key_list.map(function (k) {
-                                            if (k === 'host') return;
-                                            $.ajax({
-                                                url: that.state.config.influxdbURL + '/query?' + $.param(
-                                                    Utility.q_param(that.state.config,
-                                                        'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
-                                                ),
-                                                dataType: 'json',
-                                                success: function (data) {
-                                                    tags[k] = Utility.get_value(data)
-                                                }
-                                            })
-                                        });
-                                    }
-                                });
-                                measurements[m] = tags;
-                            });
+                            var measurements = Utility.get_measurements(data);
                             if(!$.isEmptyObject(measurements)) {
                                 that.setState({measurements: measurements});
                             }
                         },
                         error: function (xhr, status, err) {
-                            console.error('Init measurements structure ', status, err.toString())
+                            console.error('Init measurements structure ', status, err.toString());
                         }
                     });
                 }

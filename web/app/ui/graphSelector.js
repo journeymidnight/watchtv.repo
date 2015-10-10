@@ -20,45 +20,21 @@ var GraphSelector = React.createClass({
         //                      },
         //                 memory: { ... },
         //               }
-        var measurements = {};
         var that = this;
         $.ajax({
-            url: this.props.config.influxdbURL + '/query?' + $.param(
-                Utility.q_param(this.props.config,
-                    "SHOW MEASUREMENTS WHERE host='" + this.props.host + "'")),
+            url: that.props.config.influxdbURL + '/query?' + $.param(
+                Utility.q_param(that.props.config,
+                    "SHOW SERIES WHERE host='" + that.props.host + "'")),
             dataType: 'json',
-            success: function(data){
-                var measure_list = Utility.get_value(data);
-                measure_list.map(function(m) {
-                    var tags = {};
-                    $.ajax({
-                        url: that.props.config.influxdbURL + '/query?' + $.param(
-                            Utility.q_param(that.props.config, 'SHOW TAG KEYS FROM ' + m)),
-                        dataType: 'json',
-                        success: function (data) {
-                            var key_list = Utility.get_value(data);
-                            key_list.map(function(k){
-                                if(k == 'host') return;
-                                $.ajax({
-                                    url: that.props.config.influxdbURL + '/query?' + $.param(
-                                        Utility.q_param(that.props.config,
-                                            'SHOW TAG VALUES FROM ' + m + ' WITH KEY="' + k + '"')
-                                    ),
-                                    dataType: 'json',
-                                    success: function (data) {
-                                        tags[k] = Utility.get_value(data)
-                                    }
-                                })
-                            });
-                        }
-                    });
-                    measurements[m] = tags;
-                });
-                this.setState({measurements: measurements});
-            }.bind(this),
-            error: function(xhr, status, err){
-                console.error('Init measurements structure ', status, err.toString())
-            }.bind(this)
+            success: function (data) {
+                var measurements = Utility.get_measurements(data);
+                if(!$.isEmptyObject(measurements)) {
+                    that.setState({measurements: measurements});
+                }
+            },
+            error: function (xhr, status, err) {
+                console.error('Init measurements structure ', status, err.toString());
+            }
         });
     },
     componentDidMount: function(){
@@ -74,7 +50,6 @@ var GraphSelector = React.createClass({
         }
     },
     componentWillReceiveProps: function(nextProps) {
-        console.log('nextProps', nextProps);
         if(nextProps.measurements) {
             this.setState({
                 measurements: nextProps.measurements
