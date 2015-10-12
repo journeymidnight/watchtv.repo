@@ -16,6 +16,9 @@ mkdir -p /var/run/watchtv
 
 fpm -d nodejs -v $version -n watchtv -s dir -t rpm \
     -p ~/ \
+    --description "WatchTV watches letv" \
+    --url "http://git.letv.cn/zhangcan/watchtv" \
+    --license "MIT" \
     /usr/lib/watchtv /var/log/watchtv/watchtv.log \
     /etc/init.d/watchtv /etc/logrotate.d/watchtv \
     /var/run/watchtv
