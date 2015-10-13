@@ -18,6 +18,10 @@ var tagSchema = new Schema({
 var Tag = mongoose.model('Tag', tagSchema);
 
 var states = ['Good', 'Warning', 'Error'];
+var graphInfo = new Schema({
+    user: {type: Schema.Types.ObjectId, ref: 'User'},
+    graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}]
+});
 var nodeSchema = new Schema({
         nickname: String,
         name: String,
@@ -27,10 +31,7 @@ var nodeSchema = new Schema({
         region: {type: Schema.Types.ObjectId, ref: 'Region'},
         idc: {type: Schema.Types.ObjectId, ref: 'Idc'},
         project: {type: Schema.Types.ObjectId, ref: 'Project'},
-        graphInfo: [{
-            user: {type: Schema.Types.ObjectId, ref: 'User'},
-            graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}]
-        }],
+        graphInfo: [graphInfo],
         // For judge module
         state: {type: String, enum: states},
         failedRules: [String]

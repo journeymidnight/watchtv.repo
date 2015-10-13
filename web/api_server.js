@@ -679,6 +679,38 @@ app.get('/node/:node_id',function(req, res) {
     );
 });
 
+// Get graphs for specific node, for current user
+app.get('/node/:node_id/graphs', function (req, res) {
+    var node_id = req.params.node_id,
+        user_id = req.user._id;
+    db.Node.findById(node_id, function (err, node) {
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        var graphInfo = node.graphInfo.filter(function(graphInfo){
+            return graphInfo.user.equals(user_id);
+        }).pop();
+        if(!graphInfo) {
+            res.send([]);
+            return;
+        }
+
+        async.map(graphInfo.graphs,
+            function(graphId, map_callback) {
+                db.Graph.findById(graphId, map_callback);
+            },
+            function (err, results) {
+                if(err) {
+                    res.status(500).send('Error fetching graph');
+                    return;
+                }
+                res.send(results);
+            }
+        );
+    });
+});
+
 app.delete('/node/:node_id', function(req, res) {
     handleDeleteById(req, res, 'node', db.Node);
 });
