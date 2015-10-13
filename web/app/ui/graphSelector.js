@@ -10,7 +10,7 @@ var GraphSelector = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function() {
         return {
-            measurements: null,
+            measurements: this.props.measurements,
             select:this.props.selected
         };
     },
