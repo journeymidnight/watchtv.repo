@@ -683,20 +683,19 @@ app.get('/node/:node_id',function(req, res) {
 app.get('/node/:node_id/graphs', function (req, res) {
     var node_id = req.params.node_id,
         user_id = req.user._id;
-    db.Node.findById(node_id, function (err, node) {
+    db.Node.findOne({
+        _id: node_id,
+        'graphInfo.user': user_id
+    }, {'graphInfo.$': 1}, function (err, found) {
         if(err) {
             res.status(500).send('Error fetching node');
             return;
         }
-        var graphInfo = node.graphInfo.filter(function(graphInfo){
-            return graphInfo.user.equals(user_id);
-        }).pop();
-        if(!graphInfo) {
-            res.send([]);
+        if(!found) {
+            res.send([]); // found would be null if not found
             return;
         }
-
-        async.map(graphInfo.graphs,
+        async.map(found.graphInfo[0].graphs,
             function(graphId, map_callback) {
                 db.Graph.findById(graphId, map_callback);
             },
@@ -708,6 +707,130 @@ app.get('/node/:node_id/graphs', function (req, res) {
                 res.send(results);
             }
         );
+    });
+});
+
+// Add a new graph for specific node, for current user
+app.post('/node/:node_id/graphs', function (req, res){
+    var node_id = req.params.node_id,
+        user_id = req.user._id;
+    var ips = req.body.ips,
+        metrics = req.body.metrics,
+        time = req.body.time,
+        title = valueWithDefault(req.body.title, '');
+    if(!ips || ips.constructor !== Array || ips.length === 0) {
+        res.status(400).send('Missing IPs or bad format');
+        return;
+    }
+    if(!metrics || metrics.constructor !== Array || metrics.length === 0) {
+        res.status(400).send('Missing metrics or bad format');
+        return;
+    }
+    if(!time) {
+        res.status(400).send('Missing time for graph');
+        return;
+    }
+    db.Graph.create({
+        ips: ips,
+        metrics: metrics,
+        time: time,
+        title: title
+    }, function(err, created){
+        if(err) {
+            res.status(500).send('Graph create failed');
+            return;
+        }
+        db.Node.findOne({
+            _id: node_id,
+            'graphInfo.user': user_id
+        }, {'graphInfo.$': 1}, function(err, found){
+            if(err) {
+                res.status(500).send('Error fetching node');
+                return;
+            }
+            if(!found) { // user's graphInfo for this node does not exist yet
+                db.Node.findById(node_id, function(err, node){
+                    if(err) {
+                        res.status(500).send('Error fetching node');
+                        return;
+                    }
+                    if(!node) {
+                        res.status(400).send('Node ' + node_id + ' does not exist');
+                        return;
+                    }
+                    node.graphInfo.push({
+                        user: user_id,
+                        graphs: [created]
+                    });
+                    node.save(function(err, node){
+                        if(err) {
+                            res.status(500).send('Error saving node graphInfo: ' + err);
+                            return;
+                        }
+                        res.status(201).send('Graph added for node ' + node_id + ' user ' + user_id);
+                    });
+                });
+            } else { // user's graphInfo exists, needs update
+                var graphs = found.graphInfo[0].graphs;
+                graphs.push(created);
+
+                db.Node.findOneAndUpdate({
+                    _id: node_id,
+                    "graphInfo.user": user_id
+                }, {
+                    $set: {
+                        "graphInfo.$.graphs": graphs
+                    }
+                }, function(err, n){
+                    if(err) {
+                        res.status(500).send('Error saving node graphInfo: ' + err);
+                        return;
+                    }
+                    res.status(201).send('Graph added for node ' + node_id + ' user ' + user_id);
+                });
+            }
+        });
+    });
+});
+
+app.delete('/node/:node_id/graph/:graph_id', function(req, res) {
+    var node_id = req.params.node_id,
+        graph_id = req.params.graph_id,
+        user_id = req.user._id;
+    db.Node.findOne({
+        _id: node_id,
+        'graphInfo.user': user_id
+    }, {'graphInfo.$': 1}, function(err, found){
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        if(!found) {
+            res.status(400).send('Node graph not found');
+            return;
+        }
+        var graphs = found.graphInfo[0].graphs.filter(function(graph) {
+            return !graph.equals(graph_id);
+        });
+        if(graphs.length !== found.graphInfo[0].graphs.length-1) {
+            res.status(400).send('Graph not found for node');
+            return;
+        }
+        db.Node.findOneAndUpdate({
+            _id: node_id,
+            'graphInfo.user': user_id
+        }, {
+            $set: {
+                'graphInfo.$.graphs': graphs
+            }
+        }, function(err, n) {
+            if(err) {
+                res.status(500).send('Error saving node graphInfo: ' + err);
+                return;
+            }
+            handleDeleteById(req, res, 'graph', db.Graph);
+        });
+
     });
 });
 
@@ -1248,6 +1371,71 @@ app.get('/user', function(req, res) {
     res.send(req.user); // req.user is assigned in `requireLogin`
 });
 
+// for users to get their graphs on dashboard
+app.get('/user/graphs', function(req, res) {
+    db.User.findById(req.user._id, function(err, user) {
+        res.send(user.graphs);
+    }).populate('graphs', 'ips metrics time title')
+});
+
+// add new graph to current user
+app.post('/user/graphs', function(req, res) {
+    var user_id = req.user._id;
+    var ips = req.body.ips,
+        metrics = req.body.metrics,
+        time = req.body.time,
+        title = valueWithDefault(req.body.title, '');
+    if(!ips || ips.constructor !== Array || ips.length === 0) {
+        res.status(400).send('Missing IPs or bad format');
+        return;
+    }
+    if(!metrics || metrics.constructor !== Array || metrics.length === 0) {
+        res.status(400).send('Missing metrics or bad format');
+        return;
+    }
+    if(!time) {
+        res.status(400).send('Missing time for graph');
+        return;
+    }
+    db.Graph.create({
+        ips: ips,
+        metrics: metrics,
+        time: time,
+        title: title
+    }, function(err, created) {
+        if(err) {
+            res.status(500).send('Graph create failed');
+            return;
+        }
+        db.User.findByIdAndUpdate(user_id,
+            { $push: { graphs: created }},
+            function(err, u) {
+                if(err) {
+                    res.status(500).send('Adding graph to user failed');
+                    return;
+                }
+                res.status(201).send('Graph added to user');
+            }
+        )
+    });
+});
+
+// delete graph with graph_id in current user
+app.delete('/user/graph/:graph_id', function(req, res) {
+    var user_id = req.user._id,
+        graph_id = req.params.graph_id;
+    db.User.findByIdAndUpdate(user_id,
+        { $pull: {graphs: graph_id}},
+        function(err, u) {
+            if(err) {
+                res.status(500).send('Removing graph for user failed');
+                return;
+            }
+            handleDeleteById(req, res, 'graph', db.Graph);
+        }
+    )
+});
+
 app.get('/user/:user_id', requireLeader, function(req, res) {
     handleGetById(req, res, 'user', db.User,
     [
@@ -1268,7 +1456,7 @@ app.put('/graph/:graph_id', function(req, res) {
     var graph_id = req.params.graph_id,
     graph = req.body.graph;
 
-    // currently graph is in format {graph: graph}, so no need to reformat
+    // currently `graph` from client is in format {graph: graph}, so no need to reformat
     findByIdAndUpdate(res, graph_id, graph, 'Graph', db.Graph);
 });
 
