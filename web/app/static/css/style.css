@@ -16,9 +16,6 @@ li{list-style: none;}
 .afterNav{height: 75px;}
 .navBar a{background-color: #fff!important;}
 .navBar a:hover{background-color: rgba(0, 0, 0, .035)!important;}
-.icon {position: absolute;right: 0;top: 0;}
-.icon > div:first-child{background:#00BCD4!important;background-size: 40px!important;}
-.icon div span {color: #D7F4F6!important;line-height: 35px;}
 /*content*/
 .searchForm > div + div {top: 3px}
 .searchForm > div:first-child {bottom: 16px;}
