@@ -1,5 +1,5 @@
 /*global & base*/
-html, body {width: 100%;height: 100%;font: 12px 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;-webkit-font-smoothing: antialiased;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;}
+html, body {width: 100%;height: 100%;font: 12px "Helvetica Neue", Helvetica, Microsoft Yahei, Hiragino Sans GB, WenQuanYi Micro Hei, sans-serif, monospace;-webkit-font-smoothing: antialiased;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;}
 input:-webkit-autofill {-webkit-box-shadow: 0px 100px #fff inset;-webkit-text-fill-color: #000;border-bottom: 3px solid #0089cc;}
 input:not(.titleInput)::-webkit-input-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 input:not(.titleInput)::-moz-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
@@ -20,7 +20,7 @@ li{list-style: none;}
 .searchForm > div + div {top: 3px}
 .searchForm > div:first-child {bottom: 16px;}
 .searchForm > div:nth-of-type(2) {position: relative;top: -15px;left: 10px;margin-right: 10px}
-.table {padding: 0 15px;}
+.table {padding: 0 15px;table-layout: fixed;}
 .table th,.table td{vertical-align: middle!important;}
 .scrollDialog {width: 85%!important;max-width: 800px!important;max-height: 80%;overflow-y: auto;overflow-x:hidden; }
 .scrollDialog select {margin: 10px 0;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
@@ -52,7 +52,7 @@ li{list-style: none;}
 .single .configInfo {margin-top: 10px;min-height: 150px;}
 .configInfo .metricInfo {display: block;position: relative;height: 40px;line-height: 40px;border-bottom: 1px solid #e0e0e0;max-width: 90%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;}
 .configInfo .metricInfo button{display: none;width:21px;height:21px;background: #DADADC url('../images/delete.png') no-repeat 2px 3px;background-size: 14px;border: none;position: absolute;right: 0;top: 10px;border-radius: 50%;}
-.delBtn{display:none;}
+.dashboard .delBtn{display:none!important;}
 .delBtn + div{position: absolute!important;z-index: 120!important}
 .delBtn + div div:last-child{left:-200%!important;}
 .titleInput{background-color: #1F1F1F;border: none;display: block;width: 100%;text-align: center;padding: 10px 0;}
@@ -86,7 +86,7 @@ li{list-style: none;}
 .login_btn {margin-top: 55px;}
 .login_div{width:100%;height: 300px;background-color: rgba(255,255,255,.2);padding: 20px;}
 .login_input {outline: none;padding: 7px 5px 0px;margin: 0 auto;display: block;width: 100%;max-width:400px;border: none;border-bottom: 3px solid #0089cc;background-color: transparent;color: #000;height: 30px;font-size: 18px;font-weight: 700;border-radius: 3px;}
-.login_btn .buttoncss {color: ＃000;border: 1px solid rgba(0,0,0, 1);padding: .4rem 1.5rem;cursor: pointer;background: none;background-color: rgba(255, 255, 255, 0.35);height: 40px;width: 110px;font-size: 16px;font-weight: 700;display: block;text-align: center;line-height: 40px;margin:0 auto;}
+.login_btn .buttoncss {color: #000;border: 1px solid rgba(0,0,0, 1);padding: .4rem 1.5rem;cursor: pointer;background: none;background-color: rgba(255, 255, 255, 0.35);height: 40px;width: 110px;font-size: 16px;font-weight: 700;display: block;text-align: center;line-height: 40px;margin:0 auto;}
 .login_btn .buttoncss:hover {background-color: rgba(255, 255, 255, 0.15);}
 /*animation*/
 .star0,.star1,.star2,.star3,.star4{width: 30px;height: 30px;position: absolute;left: 50%;top: 50%;}
