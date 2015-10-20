@@ -2,83 +2,63 @@ var React = require('react');
 
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationbar.js');
-var Utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
-var GraphInfo = require('./ui/graphInfo.js');
+var GraphEditor = require('./ui/dashboardGraphEditor.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
-    getInitialState:function(){
-        return this.init();
-    },
-    init: function(){
-        var graphs,arr=[],ips = [];
-        var timeList = Utility.getTimeList();
-        $.ajax({
-            url:"/user",
-            type:"get",
-            async:false,
-            success:function(data){
-                graphs = data.graphs;
-                for(var i = 0;i<graphs.length;i++){
-                    var metricArr = graphs[i].metrics;
-                    arr[i] = {
-                        ip:graphs[i].ips,
-                        node_id:graphs[i]._id,
-                        timePeriod:graphs[i].time,
-                        metricArr:metricArr,
-                        title:graphs[i].title,
-                        key: graphs[i]._id
-                    }
-                }
-            }
-        });
-        $.ajax({
-            url: 'nodes',
-            dataType: 'json',
-            async:false,
-            success: function(data) {
-                if(data.total > 0){
-                    node_id = data.result[0]._id;
-                    for(var i = 0;i<data.result.length;i++){
-                        ips[i] = {text: data.result[i].ips.toString(),
-                                  value:data.result[i]._id,
-                                  default:false};
-                    }
-                }
-            },
-            error: function(xhr, status, err){
-                console.error(this.props.url, status, err.toString())
-            }.bind(this)
-        });
+    getInitialState: function () {
         return {
-            arr:arr,
-            timeList:timeList,
-            ips:ips
+            graphs: []
         };
     },
-    refreshGraph: function(dashboards){
-        var state = this.init();
-        this.setState({arr:state.arr});
+    getUserGraphs: function () {
+        var that = this;
+        $.ajax({
+            url: '/user/graphs',
+            type: 'GET',
+            success: function (data) {
+                var graphs = data.map(function (graph) {
+                    return {
+                        ips: graph.ips,
+                        metrics: graph.metrics,
+                        time: graph.time,
+                        title: graph.title,
+                        _id: graph._id
+                    };
+                });
+                that.setState({graphs: graphs});
+            },
+            error: function (xhr, status, error) {
+                console.log('Error fetching user graphs', xhr, status, error);
+            }
+        });
+    },
+    refreshGraph: function () {
+        this.getUserGraphs();
+    },
+    componentDidMount: function () {
+        this.getUserGraphs();
     },
     render: function(){
         var _this = this;
-        var graphList = _this.state.arr.map(function(subArr) {
-            return <BaseGraph selected={subArr} config={_this.state.config} key = {subArr.key} 
-                              timeList = {_this.state.timeList} ips = {_this.state.ips}
+        var graphList = this.state.graphs.map(function(graph) {
+
+            return <BaseGraph config={_this.state.config} key={graph._id}
+                              graph={graph}
                               onRefresh={_this.refreshGraph}
-                              needToQueryMeasurements={true}
-                />
+                              graphEditor={GraphEditor}
+                   />
         });
         return (
             <div>
                 <div className="graphList">
                     {graphList}
                 </div>
-                <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd" ips= {this.state.ips}
-                           onRefresh={this.refreshGraph} timeList = {this.state.timeList}
-                           needToQueryMeasurements={true}
-                    />
+                <GraphEditor title="Add new dashboard"
+                             onRefresh={this.refreshGraph}
+                             config={this.state.config}
+                />
             </div>
         );
     }

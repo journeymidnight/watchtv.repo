@@ -23,9 +23,9 @@ var Utility = require('../utility.js');
 //                          reply on props `initialMeasurements`
 // initialMeasurements: `measurements` object. Could be null.
 // initialMetrics: `metrics` object. Could be null.
-// ips: array of string. If `needToQueryMeasurements` === true, then this property could not
-//      be null. If there're multiple IPs, fetch the first one's measurements for ease of
+// ips: array of string. If there're multiple IPs, fetch the first one's measurements for ease of
 //      implementation.
+// config: Watchtv config object, could be fetched by GET /config
 // onChange: callback function(metrics). Return current selected measurements.
 
 // Use `getSelected()` to get current selected measurements,
@@ -74,7 +74,12 @@ var GraphSelector = React.createClass({
         });
     },
     componentDidMount: function(){
-        if(this.props.needToQueryMeasurements) {
+        if(this.props.needToQueryMeasurements && this.props.ips.length > 0) {
+            this.getMeasurements();
+        }
+    },
+    componentDidUpdate: function() {
+        if(this.props.needToQueryMeasurements && this.props.ips.length > 0) {
             this.getMeasurements();
         }
     },
@@ -164,6 +169,7 @@ var GraphSelector = React.createClass({
         selectors.push(<mui.DropDownMenu menuItems={measurementsItems}
                             selectedIndex={getIndex(measurementsItems, selected.measurement)}
                             onChange={this.onMeasurementChange}
+                            key='measurements'
                        />);
         if(selected.measurement) {
             // Second(measure) dropdown
@@ -173,6 +179,7 @@ var GraphSelector = React.createClass({
             selectors.push(<mui.DropDownMenu menuItems={measureItems}
                                 selectedIndex={getIndex(measureItems, selected.measure)}
                                 onChange={this.onMeasureChange}
+                                key='measure'
                            />);
             // Third(device) dropdown
             var device = this.state.measurements[selected.measurement].device;
@@ -183,6 +190,7 @@ var GraphSelector = React.createClass({
                 selectors.push(<mui.DropDownMenu menuItems={deviceItems}
                                     selectedIndex={getIndex(deviceItems, selected.device)}
                                     onChange={this.onDeviceChange}
+                                    key='device'
                                />);
             }
         }

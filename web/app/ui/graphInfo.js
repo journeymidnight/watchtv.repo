@@ -3,6 +3,7 @@ var mui = require('material-ui');
 
 var mixins = require('../mixins.js');
 var GraphSelector = require('./graphSelector.js');
+var NodeSelector = require('./nodeSelector.js');
 var Utility = require('../utility.js');
 
 var GraphInfo = React.createClass({
@@ -22,7 +23,7 @@ var GraphInfo = React.createClass({
             ipArr = this.props.selected.ip;
             node_id = this.props.selected.node_id;
             time = this.props.selected.timePeriod;
-            metricArr = this.props.selected.metricArr;
+            metricArr = this.props.selected.metrics;
             title = this.props.selected.title;
             for(var i = 0;i<ipList.length;i++){
                 for(var j = 0;j<ipArr.length;j++){
@@ -97,6 +98,7 @@ var GraphInfo = React.createClass({
         this.setState({selected: selected});
     },
     addMetric: function(){
+        console.log(this.refs.nodeIPs.getIPs());
         var event = Utility.getEvent(),
             metric = this.getMetric(event),
             obj = $(event.target).parents('.scrollDialog').find(".configInfo");
@@ -233,7 +235,7 @@ var GraphInfo = React.createClass({
         $("#"+parentId+" .titleInput").off().on('blur',function(){
             var graph = {
                 ips: _this.state.ip,
-                metrics: _this.state.metricArr,
+                metrics: _this.state.metrics,
                 time: _this.state.time,
                 title: $(this).val()
             };
@@ -348,7 +350,7 @@ var GraphInfo = React.createClass({
                         onCheck={_this.changeIp}
                         key={index}/>
         });
-        var metricArr = _this.state.metricArr.map(function(subArr,index) {
+        var metricArr = _this.state.metrics.map(function(subArr,index) {
             if(subArr.length>0)
                 return (
                         <span title={subArr} key={index} className="metricInfo">
@@ -375,7 +377,7 @@ var GraphInfo = React.createClass({
                     </mui.Dialog>
                     <div style={{minHeight:'170px'}}>
                         <div className="dropDownMenu ipList">
-                            {ipList}
+                            <NodeSelector ref='nodeIPs' />
                         </div>
                         <div className="dropDownMenu configList">
                             <GraphSelector onSelect={this.handleSelect} selected={this.state.selected}
