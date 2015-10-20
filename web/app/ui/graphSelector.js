@@ -74,12 +74,12 @@ var GraphSelector = React.createClass({
         });
     },
     componentDidMount: function(){
-        if(this.props.needToQueryMeasurements && this.props.ips.length > 0) {
+        if(this.props.needToQueryMeasurements && this.props.ips && this.props.ips.length > 0) {
             this.getMeasurements();
         }
     },
     componentDidUpdate: function() {
-        if(this.props.needToQueryMeasurements && this.props.ips.length > 0) {
+        if(this.props.needToQueryMeasurements && this.props.ips && this.props.ips.length > 0) {
             this.getMeasurements();
         }
     },

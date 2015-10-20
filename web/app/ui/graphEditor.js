@@ -5,31 +5,64 @@ var GraphSelector = require('./graphSelector.js');
 var NodeSelector = require('./nodeSelector.js');
 var Utility = require('../utility.js');
 
-// The graph editor for Dashboard page, includes a NodeSelector to pick IPs,
-// a GraphSelector to pick metrics and a time dropdown menu to pick time period to draw.
+// The graph editor for Single page, includes a dropdown menu to pick IPs,
+// and a GraphSelector to pick metrics
 
 // Props:
-// title: string. Title of the edit dialog, NOT title of graph.
-// initialIPs: array of string. Could be null.
+// title: string. Title of the edit dialog, NOT title of graph
+// ips: array of string.
+// initialIPs: string. Could be null.
 // initialMetrics: array of string. Could be null.
-// initialTime: number. Could be null.
 // config: Watchtv config object, could be fetched by GET /config
 // graph_id: mongodb object id. Used for DELETE action
+// node_id: mongodb object id. Used to build URLs
 // onRefresh: callback function(this.state). Called when all graphs on the dashboard should be
 //              fetched again, for creating and deleting graphs.
 // onUpdate: callback function(this.state). Called when the this graph should be updated.
 
-var dashboardGraphEditor = React.createClass({
+// measurements: pass through to GraphSelector
+
+var graphEditor = React.createClass({
     getInitialState: function () {
-        var ips = [], metrics = [], time = 43200; // 12h by default
-        if(this.props.initialIPs) ips = this.props.initialIPs;
+        var selectedIP = null, metrics = [];
+        if(this.props.initialIPs) selectedIP = this.props.initialIPs[0];
         if(this.props.initialMetrics) metrics = this.props.initialMetrics;
-        if(this.props.initialTime) time = this.props.initialTime;
         return {
-            ips: ips,
-            metrics: metrics,
-            time: time
+            selectedIP: selectedIP,
+            metrics: metrics
         };
+    },
+    handleIpChange: function(err, selectedIndex, menuItem) {
+        this.setState({selectedIP: menuItem.payload});
+    },
+    handleMetricChange: function(metrics) {
+        this.setState({metrics: metrics});
+    },
+    componentWillReceiveProps: function (nextProps) {
+        if(nextProps.ips.length > 0) {
+            this.setState({selectedIP: nextProps.ips[0]});
+        }
+    },
+    showGraphEditDialog: function () {
+        this.refs.graphEditDialog.show();
+    },
+    showDelDialog:function(){
+        this.refs.delDialog.show();
+    },
+    deleteGraph: function () {
+        var that = this;
+        $.ajax({
+            url: '/node/' + this.props.node_id + '/graph/' + this.props.graph_id,
+            type: 'DELETE',
+            success: function() {
+                that.props.onRefresh();
+            },
+            error: function(xhr, status, error) {
+                console.log('Error deleting user graph', xhr, status, error);
+            }
+        });
+        this.refs.delDialog.dismiss();
+        this.refs.graphEditDialog.dismiss();
     },
     saveConfig: function () {
         var that = this;
@@ -37,18 +70,23 @@ var dashboardGraphEditor = React.createClass({
         if(this.props.graph_id) {
             // graph_id exists, so the edit is inside a graph
             // PUT action should be handled inside a graph
-            this.props.onUpdate(this.state);
+            var state = {
+                ips: [this.state.selectedIP],
+                metrics: this.state.metrics,
+                time: 43200 // 12h by default
+            };
+            this.props.onUpdate(state);
             this.refs.graphEditDialog.dismiss();
             return;
         }
 
         $.ajax({
-            url: '/user/graphs',
+            url: '/node/' + this.props.node_id + '/graphs',
             type: 'POST',
             data: {
-                ips: that.state.ips,
+                ips: [that.state.selectedIP],
                 metrics: that.state.metrics,
-                time: that.state.time
+                time: 43200 // 12h by default
             },
             success: function() {
                 // graph_id does not exist, edit is outside a graph,
@@ -61,50 +99,13 @@ var dashboardGraphEditor = React.createClass({
         });
         this.refs.graphEditDialog.dismiss();
     },
-    handleTimeChange: function (err, selectedIndex, menuItem) {
-        this.setState({time: menuItem.value});
-    },
-    handleIpChange: function (ips) {
-        this.setState({ips: ips});
-    },
-    handleMetricChange: function (metrics) {
-        this.setState({metrics: metrics});
-    },
-    showGraphEditDialog: function () {
-        this.refs.graphEditDialog.show();
-    },
-    showDelDialog:function(){
-        this.refs.delDialog.show();
-    },
-    deleteGraph: function() {
+    render: function () {
+        console.log('graph editor states', this.state);
         var that = this;
-        $.ajax({
-            url: '/user/graph/' + this.props.graph_id,
-            type: 'DELETE',
-            success: function() {
-                that.props.onRefresh();
-            },
-            error: function(xhr, status, error) {
-                console.log('Error deleting user graph', xhr, status, error);
-            }
-        });
-        this.refs.delDialog.dismiss();
-        this.refs.graphEditDialog.dismiss();
-    },
-    render: function() {
         var graphEditAction = [
             {text: 'Cancel'},
             {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
         ];
-
-        var timeList = Utility.getTimeList();
-        var selectedTimeIndex = 0;
-        for(var i=0; i<timeList.length; i++) {
-            if(timeList[i].value === this.state.time) {
-                selectedTimeIndex = i;
-                break;
-            }
-        }
 
         var deleteButton;
         if(this.props.graph_id) { // inside a graph
@@ -114,6 +115,23 @@ var dashboardGraphEditor = React.createClass({
                 </div>
         } else { // outside a graph
             deleteButton = <div></div>;
+        }
+
+        var ipPicker;
+        if(this.props.ips.length > 1) {
+            var ipItems, selectedIpIndex = 0;
+            ipItems = this.props.ips.map(function(ip, index){
+                if(that.state.selectedIP === ip) selectedIpIndex = index;
+                return { payload: ip, text: ip };
+            });
+            ipPicker =
+                <div>
+                    <mui.DropDownMenu selectedIndex={selectedIpIndex}
+                                      menuItems={ipItems}
+                                      onChange={this.handleIpChange} />
+                </div>
+        } else { // only one IP available for this node, so no need to render the dropdown
+            ipPicker = <div></div>;
         }
 
         return (
@@ -131,22 +149,17 @@ var dashboardGraphEditor = React.createClass({
                         Please confirm to delete this graph.
                     </mui.Dialog>
                     <div>
-                        <div>
-                            <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
-                                          initialIPs={this.state.ips}
-                            />
-                        </div>
+                        {ipPicker}
                         <div className='configList'>
-                            <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
+                            <GraphSelector onChange={this.handleMetricChange}
+                                           ips={[this.state.selectedIP]}
                                            config={this.props.config}
                                            initialMetrics={this.state.metrics}
-                                           needToQueryMeasurements={true}
+                                           needToQueryMeasurements={false}
+                                           initialMeasurements={this.props.measurements}
                                            ref='graphMetrics'
                             />
                         </div>
-                        <mui.DropDownMenu selectedIndex={selectedTimeIndex}
-                                          menuItems={timeList}
-                                          onChange={this.handleTimeChange} />
                     </div>
                 </mui.Dialog>
             </div>
@@ -154,5 +167,4 @@ var dashboardGraphEditor = React.createClass({
     }
 });
 
-
-module.exports = dashboardGraphEditor;
+module.exports = graphEditor;

@@ -16,10 +16,13 @@ var GraphInfo = require('./graphInfo.js');
 // graph: graph object described above. The graphs to draw are (graph.ips x graph.metrics)
 // node_id: mongodb id. Used to build URLs, could be null for Dashboard page, but not
 //                      for Single page.
+// nodeIPs: array of string. Used for single page to select from.
 // config: Watchtv config object, could be fetched by GET /config
 // graphEditor: react component, could be dashboardGraphEditor or singleGraphEditor.
 //              Used to render the edit dialog.
 // onRefresh: callback function(dashboards, fromTime, toTime).
+
+// measurements: pass through to graphEditor, then GraphSelector
 
 var BaseGraph = React.createClass({
     getInitialState: function(){
@@ -39,10 +42,6 @@ var BaseGraph = React.createClass({
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
-                // currdata is full, needs to refresh
-                if(currdata.length === this.state.ips.length * this.state.metrics.length) {
-                    currdata = [];
-                }
                 currdata[currdata.length] = {
                     data:Utility.get_value(data),
                     ip:ip,
@@ -60,6 +59,7 @@ var BaseGraph = React.createClass({
         this.queryInfluxDB(query, ip, metric, metricIndex, timePeriod);
     },
     handleGraph: function(newTimePeriod){
+        console.log('handle graph states', this.state);
         var that = this, timePeriod = Utility.fitTimePeriod(this.state.time);
         if(newTimePeriod != null) timePeriod = newTimePeriod;
 
@@ -216,7 +216,10 @@ var BaseGraph = React.createClass({
         });
     },
     componentWillReceiveProps:function(nextProps){
-
+        if(nextProps.timePeriod != null) {
+            this.setState({data:[]});
+            this.handleGraph(nextProps.timePeriod);
+        }
     },
     render: function(){
         var placeholderText = "Click Here to Edit Graph Name";
@@ -244,12 +247,15 @@ var BaseGraph = React.createClass({
                         }}>
                     </div>
                     <this.props.graphEditor title="Edit" initialIPs={this.state.ips}
+                                            ips={this.props.nodeIPs}
                                             initialMetrics={this.state.metrics}
                                             initialTime={this.state.time}
                                             config={this.props.config}
                                             onUpdate={this.handleEditorUpdate}
                                             onRefresh={this.handleDeleteSelf}
                                             graph_id={this.props.graph._id}
+                                            node_id={this.props.node_id}
+                                            measurements={this.props.measurements}
                     />
                 </div>
             </div>

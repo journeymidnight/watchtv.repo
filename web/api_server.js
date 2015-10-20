@@ -679,6 +679,23 @@ app.get('/node/:node_id',function(req, res) {
     );
 });
 
+app.get('/node/:node_id/ips', function(req, res) {
+    var node_id = req.params.node_id;
+    db.Node.findOne({
+        _id: node_id
+    }, {ips: 1}, function (err, found){
+        if(err) {
+            res.status(500).send('Error fetching node IPs');
+            return;
+        }
+        if(!found) {
+            res.send({});
+            return;
+        }
+        res.send(found);
+    });
+});
+
 // Get graphs for specific node, for current user
 app.get('/node/:node_id/graphs', function (req, res) {
     var node_id = req.params.node_id,

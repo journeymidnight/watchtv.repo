@@ -18,16 +18,7 @@ var GraphList = React.createClass({
             url: '/user/graphs',
             type: 'GET',
             success: function (data) {
-                var graphs = data.map(function (graph) {
-                    return {
-                        ips: graph.ips,
-                        metrics: graph.metrics,
-                        time: graph.time,
-                        title: graph.title,
-                        _id: graph._id
-                    };
-                });
-                that.setState({graphs: graphs});
+                that.setState({graphs: data});
             },
             error: function (xhr, status, error) {
                 console.log('Error fetching user graphs', xhr, status, error);
