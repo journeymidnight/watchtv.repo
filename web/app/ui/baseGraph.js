@@ -20,7 +20,7 @@ var GraphInfo = require('./graphInfo.js');
 // config: Watchtv config object, could be fetched by GET /config
 // graphEditor: react component, could be dashboardGraphEditor or singleGraphEditor.
 //              Used to render the edit dialog.
-// onRefresh: callback function(dashboards, fromTime, toTime).
+// onRefresh: callback function(fromTime, toTime).
 
 // measurements: pass through to graphEditor, then GraphSelector
 
@@ -48,7 +48,12 @@ var BaseGraph = React.createClass({
                     metric:metric,
                     metricIndex: metricIndex
                 };
-                this.setState({data: currdata, timePeriod: newTimePeriod});
+                // A workaround. Should reconsider the relationship between time and timePeriod
+                if(this.props.node_id) {
+                    this.setState({data: currdata});
+                } else {
+                    this.setState({data: currdata, timePeriod: newTimePeriod});
+                }
             }.bind(this)
         });
     },
@@ -80,8 +85,7 @@ var BaseGraph = React.createClass({
             ips: editorStates.ips,
             metrics: editorStates.metrics,
             time: editorStates.time
-        });
-        this.handleGraph();
+        }, this.handleGraph);
         var graph = {
             ips: editorStates.ips,
             metrics: editorStates.metrics,
@@ -167,12 +171,12 @@ var BaseGraph = React.createClass({
                 }
             })
             .bind("plotselected", function (event, ranges) {
-                if(that.props.type == 'single'){
+                if(that.props.node_id){
                     var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
                     $(".zoomTime .zoomInfo").html(
                         Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
                         Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
-                    that.props.onRefresh(null,ranges.xaxis.from,ranges.xaxis.to);
+                    that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to);
                 }else{
                     var fitted_data=that.getFittedData();
                     var start = that.state.timePeriod[0].getTime(),
@@ -216,9 +220,13 @@ var BaseGraph = React.createClass({
         });
     },
     componentWillReceiveProps:function(nextProps){
-        if(nextProps.timePeriod != null) {
-            this.setState({data:[]});
+        console.log('nextProps', nextProps);
+        if(nextProps.timePeriod != null && nextProps.timePeriod !== this.state.timePeriod) {
+            this.setState({data:[], timePeriod: nextProps.timePeriod});
             this.handleGraph(nextProps.timePeriod);
+        }
+        if(nextProps.graph.time !== this.state.time) {
+            this.setState({data: [], time: nextProps.graph.time}, this.handleGraph);
         }
     },
     render: function(){

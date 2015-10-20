@@ -18,7 +18,8 @@ var GraphList = React.createClass({
             defaultGraphs: [],
             zoomTimeIndex: 5, // last 12h
             ips: [],
-            measurements: null
+            measurements: null,
+            timePeriod: null
         };
     },
     getBasics: function () {
@@ -92,12 +93,15 @@ var GraphList = React.createClass({
         this.getBasics();
         this.getNodeGraphs();
     },
-    refreshGraph: function(dashboards,fromTime,toTime){
-        var timePeriod;
+    refreshGraph: function(fromTime, toTime){
+        if(fromTime != null && toTime != null) {
+            // scale graphs
+            var timePeriod;
+            timePeriod = [new Date(fromTime), new Date(toTime)];
+            this.setState({timePeriod:timePeriod});
+            return;
+        }
         this.getNodeGraphs();
-        if(fromTime!=null && toTime!=null)
-            timePeriod = [new Date(fromTime),new Date(toTime)]
-        this.setState({timePeriod:timePeriod});
     },
     showZoomTime:function(){
         $(".zoomTime ul").toggle();
@@ -117,19 +121,19 @@ var GraphList = React.createClass({
     resetTime:function(obj){
         var text = obj.html(),
             value = obj.val(),
-            arr = this.state.arr,
-            defaultArr = this.state.defaultArr;
+            graphs = this.state.graphs,
+            defaultGraphs = this.state.defaultGraphs;
         $(".zoomTime .zoomInfo").html(text);
         $(".zoomTime li,.zoomTime .zoomInfo").removeClass("selected");
         obj.addClass("selected");
         $(".zoomTime ul").hide();
-        for(var i=0;i<arr.length;i++){
-            arr[i].timePeriod = value;
+        for(var i=0;i<graphs.length;i++){
+            graphs[i].time = value;
         }
-        for(var i=0;i<defaultArr.length;i++){
-            defaultArr[i].timePeriod = value;
+        for(var i=0;i<defaultGraphs.length;i++){
+            defaultGraphs[i].time = value;
         }
-        this.setState({arr:arr,defaultArr:defaultArr,zoomTimeIndex:obj.index(),timePeriod:null});
+        this.setState({ graphs: graphs, defaultGraphs: defaultGraphs, zoomTimeIndex:obj.index() });
     },
     componentWillMount:function(){
         $("body").bind("click",function(){
@@ -147,7 +151,9 @@ var GraphList = React.createClass({
             var dummyEditor = React.createClass({render: function () {return <div></div>}});
             return <BaseGraph config={that.state.config} key={graph._id}
                               graph={graph} onRefresh={that.refreshGraph}
+                              node_id={that.state.node_id}
                               graphEditor={dummyEditor}
+                              timePeriod={that.state.timePeriod}
                    />;
         });
         var graphList = that.state.graphs.map(function(graph) {
@@ -157,6 +163,7 @@ var GraphList = React.createClass({
                               nodeIPs={that.state.ips}
                               measurements={that.state.measurements}
                               graphEditor={GraphEditor}
+                              timePeriod={that.state.timePeriod}
                    />;
         });
         var timeList = Utility.getTimeList();

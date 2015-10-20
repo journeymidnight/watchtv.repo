@@ -100,7 +100,6 @@ var graphEditor = React.createClass({
         this.refs.graphEditDialog.dismiss();
     },
     render: function () {
-        console.log('graph editor states', this.state);
         var that = this;
         var graphEditAction = [
             {text: 'Cancel'},
