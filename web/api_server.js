@@ -205,14 +205,16 @@ var handleCreate = function(res, toCreate, name, model, callback) {
             return;
         }
         if(callback) callback(err, created);
-        res.status(201).send(name + ' created');
+        res.status(201)
+            .location('/' + name.toLowerCase() + '/' + created._id)
+            .send(name + ' created');
     });
 };
 
 var handlePost = function(req, res, name, model, requiredFields, optionalFields) {
     // Used to simplify POST /<name>s methods
     //
-    // name: string, used in logs and error strings
+    // name: string, used in logs and error strings, and building location header URLs
     // model: mongoose model
     // requiredFields: mandatory field names and functions to check them, in format:
     //                  [{
@@ -753,7 +755,9 @@ app.post('/node/:node_id/graphs', function (req, res){
                             res.status(500).send('Error saving node graphInfo: ' + err);
                             return;
                         }
-                        res.status(201).send('Graph added for node ' + node_id + ' user ' + user_id);
+                        res.status(201)
+                            .location('/graph/' + created._id)
+                            .send('Graph added for node ' + node_id + ' user ' + user_id);
                     });
                 });
             } else { // user's graphInfo exists, needs update
@@ -772,7 +776,9 @@ app.post('/node/:node_id/graphs', function (req, res){
                         res.status(500).send('Error saving node graphInfo: ' + err);
                         return;
                     }
-                    res.status(201).send('Graph added for node ' + node_id + ' user ' + user_id);
+                    res.status(201)
+                        .location('/graph/' + created._id)
+                        .send('Graph added for node ' + node_id + ' user ' + user_id);
                 });
             }
         });
@@ -1244,7 +1250,9 @@ app.post('/users', requireLeader,
                                     return
                                 }
                                 logger('User added', u);
-                                res.status(201).send('User added');
+                                res.status(201)
+                                    .location('/user/' + u._id)
+                                    .send('User added');
                             }
                         )
                     }
@@ -1376,7 +1384,9 @@ app.post('/user/graphs', function(req, res) {
                     res.status(500).send('Adding graph to user failed');
                     return;
                 }
-                res.status(201).send('Graph added to user');
+                res.status(201)
+                    .location('/graph/' + created._id)
+                    .send('Graph added to user');
             }
         )
     });
