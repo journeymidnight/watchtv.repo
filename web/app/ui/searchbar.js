@@ -45,13 +45,10 @@ var SearchBar = React.createClass({
         filter.keywords = this.refs.keywords.getValue().trim();
         return filter;
     },
-    handleSearch: function(event){
-        event.preventDefault();
+    handleSearch: function(){
         this.props.onNewKeywords(this.collectStates());
     },
     handlePageSelect: function(event, selectedEvent) {
-        console.log('event ', event);
-        console.log('selectedEvent ', selectedEvent);
         this.props.onNewKeywords(undefined, selectedEvent.eventKey);
     },
     getInitialState: function() {
@@ -101,7 +98,8 @@ var SearchBar = React.createClass({
 
         searchComponents.push(<mui.TextField hintText={this.props.hintText} ref="keywords"
                                key="keywords" />);
-        searchComponents.push(<mui.RaisedButton label="Find" key="find" />);
+        searchComponents.push(<mui.RaisedButton label="Find" key="find"
+                               onClick={this.handleSearch} />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
 
@@ -118,7 +116,6 @@ var SearchBar = React.createClass({
             <div>
                 <form
                     className="searchForm"
-                    onSubmit={this.handleSearch}
                     style={
                         {
                             float: 'left',
