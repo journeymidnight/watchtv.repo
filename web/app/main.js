@@ -58,7 +58,7 @@ var NodeList = React.createClass({
             )
         });
         var addNewNodeRow =
-            <tr>
+            <tr className="add_node">
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newIP" /></td>
                 <td><mui.TextField ref="newTag" /></td>

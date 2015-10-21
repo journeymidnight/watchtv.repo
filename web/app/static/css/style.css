@@ -65,6 +65,7 @@ li{list-style: none;}
 .legendColorBox > div{border:none!important;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
 .legendLabel{color: #AFB2B5;transform: scale(.9);}
+.add_node td > div{width:100%!important;}
 /*content - single*/
 .zoomTime{position: fixed;z-index: 111;top: 0;right: 170px;color: #D7F4F6!important;font-size: 15px;line-height: 64px;min-width: 250px;cursor: pointer;}
 .zoomTime .zoom{display: block;float: left;margin: 0 10px;width: 80px;text-align: center;}
