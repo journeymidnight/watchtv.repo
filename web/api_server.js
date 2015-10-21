@@ -497,27 +497,11 @@ app.post('/nodes', function(req, res) {
 
 app.put('/node/:node_id', function (req, res) {
     var node_id = req.params.node_id;
-    var graph = req.body.graph,
-        deleteId = req.body.deleteId;
-    if(deleteId!=null){//delete graph
-        deleteGraph(deleteId, req, res);
-        modifyNode(node_id, req, res);
-    }else if(graph){//add new graph
-        db.Graph.create(graph,function(err,found){
-            if (err) {
-                res.status(500).send('Graph create failed');
-                logger(err);
-                return;
-            }
-            modifyNode(node_id, req, res, found._id);
-        });
-    }else {
-        modifyNode(node_id, req, res);
-    }
+    modifyNode(node_id, req, res);
 });
 
 // FIXME too long a function
-var modifyNode = function(node_id,req,res,result){
+var modifyNode = function(node_id, req, res) {
     var name = req.body.name,
         nickname = req.body.nickname,
         description = req.body.description,
@@ -525,30 +509,15 @@ var modifyNode = function(node_id,req,res,result){
         tags = valueWithDefault(req.body.tags, null),
         region = req.body.region,
         idc = req.body.idc,
-        project = req.body.project,
-        nodeGraph = req.body.nodeGraph,
-        graphInfo = req.body.graphInfo;//delete
+        project = req.body.project;
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
-        if (ips.length===0) {
+        if (ips.length === 0) {
             res.status(400).send("At least one valid IP address is required");
             return;
         }
     }
-    if(result != null && graphInfo == null){ //add
-        graphInfo = nodeGraph.graphInfo;
-        var graphListIndex = nodeGraph.graphListIndex,
-            graphs = graphInfo[graphListIndex].graphs;
-        if(graphs == null) graphs = [];
-        graphs.push(result);
-        graphInfo[graphListIndex] ={
-            user:graphInfo[graphListIndex].user,
-            graphs:graphs
-        };
-    }
-    if(graphInfo&&graphInfo.constructor === Array)
-        update.graphInfo = graphInfo;
     if (name) update.name = name;
     if (nickname) update.nickname = nickname;
     if (description) update.description = description;
@@ -658,7 +627,7 @@ var modifyNode = function(node_id,req,res,result){
                                     }
                                 }
                             );
-                            res.status(200).send(result);
+                            res.status(200).send('Node updated');
                         }
                     );
                 }
@@ -1288,42 +1257,18 @@ app.post('/users', requireLeader,
 });
 
 app.put('/user/:user_id', requireLeader, function(req, res){
-    var graph = req.body.graph,
-        deleteId = req.body.deleteId;
     var user_id = req.params.user_id;
-    if(deleteId!=null){//delete graph
-        deleteGraph(deleteId,req,res);
-        modifyUser(user_id,req, res);
-    }else if(graph){//add new graph
-        db.Graph.create(graph,function(err,found){
-            if (err) {
-                res.status(500).send('Graph create failed');
-                logger(err);
-                return;
-            }
-            modifyUser(user_id, req, res, found._id);
-        });
-    }else {
-        modifyUser(user_id, req, res);
-    }
+    modifyUser(user_id, req, res);
 });
 
-var modifyUser = function(user_id, req, res, result){
+var modifyUser = function(user_id, req, res) {
     var name = req.body.name,
         projects = req.body.projects,
-        role = req.body.role,
-        graphs = req.body.graphs;
-    if(result!=null){
-        if(graphs == null) graphs = [];
-        graphs.push(result);
-    }
+        role = req.body.role;
     var update = {};
     if(name) {
         res.status(403).send('Cannot modify user name');
         return
-    }
-    if(graphs && graphs.constructor === Array){
-        update.graphs = graphs;
     }
     if(role) {
         if(req.user.role === 'Leader' && role === 'Root') {
