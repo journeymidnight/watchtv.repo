@@ -2,7 +2,6 @@ var React = require('react');
 
 var unit = require('../unit.js');
 var Utility = require('../utility.js');
-var GraphInfo = require('./graphInfo.js');
 
 // The component to actually draw a graph
 
