@@ -130,6 +130,7 @@ var GraphSelector = React.createClass({
     handleAddingMetric: function () {
         var selected = this.state.selected,
             metrics = this.state.metrics;
+        if($(".configList > div").size()==1) return;//nothing selected
         if(selected.device == null) selected.device = '';
         var metric = selected.measurement + ',' + selected.device + ',' + selected.measure;
         if(metrics.indexOf(metric) === -1) {
@@ -202,9 +203,9 @@ var GraphSelector = React.createClass({
         });
         return (
             <div>
-                <div>
+                <div className='configList'>
                     {selectors}
-                    <mui.IconButton tooltip="Add" onClick={this.handleAddingMetric}>
+                    <mui.IconButton tooltip="Add" onClick={this.handleAddingMetric} className="addMetricBtn">
                         <mui.SvgIcon>
                             <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
@@ -213,7 +214,7 @@ var GraphSelector = React.createClass({
                         </mui.SvgIcon>
                     </mui.IconButton>
                 </div>
-                <div>
+                <div className='metricList'>
                     <mui.List>
                         {metricItems}
                     </mui.List>

@@ -131,19 +131,15 @@ var dashboardGraphEditor = React.createClass({
                         Please confirm to delete this graph.
                     </mui.Dialog>
                     <div>
-                        <div>
-                            <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
-                                          initialIPs={this.state.ips}
-                            />
-                        </div>
-                        <div className='configList'>
-                            <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
-                                           config={this.props.config}
-                                           initialMetrics={this.state.metrics}
-                                           needToQueryMeasurements={true}
-                                           ref='graphMetrics'
-                            />
-                        </div>
+                        <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
+                                      initialIPs={this.state.ips}
+                        />
+                        <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
+                                       config={this.props.config}
+                                       initialMetrics={this.state.metrics}
+                                       needToQueryMeasurements={true}
+                                       ref='graphMetrics'
+                        />
                         <mui.DropDownMenu selectedIndex={selectedTimeIndex}
                                           menuItems={timeList}
                                           onChange={this.handleTimeChange} />

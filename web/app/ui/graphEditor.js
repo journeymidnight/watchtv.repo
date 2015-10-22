@@ -124,7 +124,7 @@ var graphEditor = React.createClass({
                 return { payload: ip, text: ip };
             });
             ipPicker =
-                <div>
+                <div className="ipList">
                     <mui.DropDownMenu selectedIndex={selectedIpIndex}
                                       menuItems={ipItems}
                                       onChange={this.handleIpChange} />
@@ -139,26 +139,23 @@ var graphEditor = React.createClass({
                 <mui.Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}
-                    <mui.Dialog title="Delete confirmation"
+                    <mui.Dialog title="Delete confirmation" contentClassName="delDialog"
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
-                                        ]}
-                                actionFocus="submit" ref="delDialog">
+                                        ]} ref="delDialog">
                         Please confirm to delete this graph.
                     </mui.Dialog>
                     <div>
                         {ipPicker}
-                        <div className='configList'>
-                            <GraphSelector onChange={this.handleMetricChange}
-                                           ips={[this.state.selectedIP]}
-                                           config={this.props.config}
-                                           initialMetrics={this.state.metrics}
-                                           needToQueryMeasurements={false}
-                                           initialMeasurements={this.props.measurements}
-                                           ref='graphMetrics'
-                            />
-                        </div>
+                        <GraphSelector onChange={this.handleMetricChange}
+                                       ips={[this.state.selectedIP]}
+                                       config={this.props.config}
+                                       initialMetrics={this.state.metrics}
+                                       needToQueryMeasurements={false}
+                                       initialMeasurements={this.props.measurements}
+                                       ref='graphMetrics'
+                        />
                     </div>
                 </mui.Dialog>
             </div>

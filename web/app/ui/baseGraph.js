@@ -63,7 +63,6 @@ var BaseGraph = React.createClass({
         this.queryInfluxDB(query, ip, metric, metricIndex, timePeriod);
     },
     handleGraph: function(newTimePeriod){
-        console.log('handle graph states', this.state);
         var that = this, timePeriod = Utility.fitTimePeriod(this.state.time);
         if(newTimePeriod != null) timePeriod = newTimePeriod;
 
@@ -124,9 +123,8 @@ var BaseGraph = React.createClass({
         // unit is the last part of measure name, e.g.
         // tx_Bps, Committed_AS_byte, etc.
         var formatter=[], unitSuffix=[];
-        var metrics = this.state.metrics;
-        for(var i = 0;i<metrics.length;i++){
-            var split = Utility.splitMetric(metrics[i]).split(","),
+        for(var i = 0;i<fitted_data.length;i++){
+            var split = fitted_data[i].metric,
                 measure = split[split.length-1];
             if(measure) {
                 var u = measure.split('_').slice(-1)[0];
@@ -219,7 +217,6 @@ var BaseGraph = React.createClass({
         });
     },
     componentWillReceiveProps:function(nextProps){
-        console.log('nextProps', nextProps);
         if(nextProps.timePeriod != null && nextProps.timePeriod !== this.state.timePeriod) {
             this.setState({data:[], timePeriod: nextProps.timePeriod});
             this.handleGraph(nextProps.timePeriod);

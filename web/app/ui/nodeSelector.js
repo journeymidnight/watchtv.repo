@@ -112,7 +112,7 @@ var NodeSelector = React.createClass({
                         </mui.SvgIcon>
                     </mui.IconButton>
                 </div>
-                <div>
+                <div className="ipList">
                     <mui.List>
                         {ipItems}
                     </mui.List>

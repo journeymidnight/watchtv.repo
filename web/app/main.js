@@ -260,7 +260,7 @@ var NodeApp = React.createClass({
                 <SearchableList
                     type="node"
                     listClass={NodeList}
-                    hintText="Find anything"
+                    hintText="Find by name ip or tag"
                     config={this.state.config}
                     additionalFilter="region idc project"
                 />
