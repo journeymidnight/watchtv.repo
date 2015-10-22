@@ -143,7 +143,8 @@ var graphEditor = React.createClass({
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
-                                        ]} ref="delDialog">
+                                        ]}
+                                ref="delDialog">
                         Please confirm to delete this graph.
                     </mui.Dialog>
                     <div>

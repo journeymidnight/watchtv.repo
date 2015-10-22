@@ -122,15 +122,18 @@ var dashboardGraphEditor = React.createClass({
                 <mui.Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}
-                    <mui.Dialog title="Delete confirmation"
+                    <mui.Dialog title="Delete confirmation" contentClassName="delDialog"
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
                                         ]}
-                                actionFocus="submit" ref="delDialog">
+                                ref="delDialog">
                         Please confirm to delete this graph.
                     </mui.Dialog>
                     <div>
+                        <mui.DropDownMenu selectedIndex={selectedTimeIndex}
+                                          menuItems={timeList} className="timeLists"
+                                          onChange={this.handleTimeChange} />
                         <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
                                       initialIPs={this.state.ips}
                         />
@@ -140,9 +143,6 @@ var dashboardGraphEditor = React.createClass({
                                        needToQueryMeasurements={true}
                                        ref='graphMetrics'
                         />
-                        <mui.DropDownMenu selectedIndex={selectedTimeIndex}
-                                          menuItems={timeList}
-                                          onChange={this.handleTimeChange} />
                     </div>
                 </mui.Dialog>
             </div>
