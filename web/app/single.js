@@ -5,7 +5,7 @@ var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationbar.js');
 var Utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
-var GraphInfo = require('./ui/graphInfo.js');
+var GraphEditor = require('./ui/graphEditor.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
@@ -13,41 +13,23 @@ var GraphList = React.createClass({
         var url = window.location.href,
             node_id = url.split("?")[1].split("=")[1];
         return {
-            arr: [],
-            defaultArr: [],
-            zoomTimeList: Utility.getTimeList(),
+            node_id: node_id,
+            graphs: [],
+            defaultGraphs: [],
             zoomTimeIndex: 5, // last 12h
-            timeList: [],
             ips: [],
-            nodeGraph: {
-                node_id: node_id,
-                graphInfo: [],
-                graphListIndex: null
-            },
-            measurements: null
+            measurements: null,
+            timePeriod: null
         };
     },
-    refresh: function () {
-        var url = window.location.href,
-            node_id = url.split("?")[1].split("=")[1],
-            that = this;
-        $.when(
-            $.ajax({
-                url: "/user",
-                type: "get"
-            }),
-            $.ajax({
-                url: "node/" + node_id,
-                type: "get"
-            })
-                // the "result"s are in structure [ data, statusText, jqXHR ]
-        ).done(function(getUserResult, getNodeResult){
-                var currUser = getUserResult[0]._id,
-                    ips = getNodeResult[0].ips,
-                    _id = getNodeResult[0]._id,
-                    graphInfo = getNodeResult[0].graphInfo,
-                    graphListIndex,
-                    graphs = [];
+    getBasics: function () {
+        var that = this;
+        $.ajax({
+            url: "/node/" + this.state.node_id + '/ips',
+            type: "GET",
+            success: function(data) {
+                var ips = data.ips;
+                that.setState({ips: ips});
 
                 for(var i = 0; i<ips.length; i++) {
                     var hostIP = Utility.dotted2underscoredIP(ips[i]);
@@ -64,135 +46,62 @@ var GraphList = React.createClass({
                             }
                         },
                         error: function (xhr, status, err) {
-                            console.error('Init measurements structure ', status, err.toString());
+                            console.error('Error init measurements structure', status, err.toString());
                         }
                     });
                 }
 
-                //ips  需要一个_id值
-                var ipsWithId = [];
-                for(var i = 0;i<ips.length;i++){
-                    ipsWithId[i] = {text: ips[i],value:_id,default:false};
-                }
-
-                if(graphInfo == null || graphInfo.length === 0){
-                    graphInfo = [{
-                        user:currUser,
-                        graphs:[]
-                    }];
-                    graphListIndex = 0;
-                }
-                for(var i = 0;i<graphInfo.length;i++){
-                    var userId = graphInfo[i].user;
-                    if(currUser == userId){
-                        graphs = graphInfo[i].graphs;
-                        graphListIndex = i;
-                        break;
-                    }
-                }
-                if(graphListIndex == null) {
-                    graphListIndex = graphInfo.length;
-                    graphInfo[graphListIndex] = {
-                        user: currUser,
-                        graphs: []
-                    };
-                }
-                var graphRequests = [];
-                graphs.map(function(graph) {
-                    graphRequests.push(
-                        $.ajax({
-                            url:"graph/" + graph,
-                            type:"get"
-                        })
-                    );
-                });
-                if (graphRequests.length === 0) {
-                    that.setState(function() {
-                        return {
-                            arr: [],
-                            ips: ipsWithId,
-                            nodeGraph: {
-                                node_id: node_id,
-                                graphInfo: graphInfo,
-                                graphListIndex: graphListIndex
-                            }
-                        };
-                    });
-                } else {
-                    $.when.apply(undefined, graphRequests)
-                     .then(function() {
-                            // If there's only one graphRequest, arguments is in structure
-                            // [ data, statusText, jqXHR ];
-                            // if there're multiple graphRequests, arguments is an array of
-                            // [ data, statusText, jqXHR ], so some branches are needed here
-                            var arr = [];
-                            if(graphRequests.length === 1) {
-                                arr[0] = {
-                                    ip: arguments[0].ips,
-                                    node_id: arguments[0]._id,
-                                    timePeriod: "43200", // last 12h
-                                    metricArr: arguments[0].metrics,
-                                    title: arguments[0].title,
-                                    key: arguments[0]._id
-                                };
-                            } else {
-                                for(var i=0; i<graphRequests.length; i++) {
-                                    arr[i] = {
-                                        ip: arguments[i][0].ips,
-                                        node_id: arguments[i][0]._id,
-                                        timePeriod: "43200", // last 12h
-                                        metricArr: arguments[i][0].metrics,
-                                        title: arguments[i][0].title,
-                                        key: arguments[i][0]._id
-                                    };
-                                }
-                            }
-                            that.setState(function() {
-                                return {
-                                    arr: arr,
-                                    ips: ipsWithId,
-                                    nodeGraph: {
-                                        node_id: node_id,
-                                        graphInfo: graphInfo,
-                                        graphListIndex: graphListIndex
-                                    }
-                                };
-                            });
-                        });
-                }
-                //获取默认的graph
                 $.ajax({
-                    url: "graphs/default",
-                    type: "get",
-                    success: function (data) {
-                        var defaultArr = [];
-                        for(var i = 0;i<data.length;i++){
-                            defaultArr[i] = {
-                                ip:ips.toString().split(";"),
-                                node_id:data[i]._id,
-                                timePeriod:"43200",//last 12h
-                                metricArr:data[i].metrics,
-                                title:data.title,
-                                key: data[i]._id
+                    url: '/graphs/default',
+                    type: 'GET',
+                    success: function(data) {
+                        var graphs = data.map(function(graph) {
+                            return {
+                                _id: graph._id,
+                                metrics: graph.metrics,
+                                ips: ips,
+                                time: 43200  // 12h by default
                             };
-                        }
-                        that.setState(function() {
-                            return {defaultArr: defaultArr};
                         });
+                        that.setState({defaultGraphs: graphs});
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Error fetching default graphs', xhr, status, error);
                     }
                 });
+
+            },
+            error: function(xhr, status, error) {
+                console.log('Error fetching node IPs', xhr, status, error);
             }
-        );
+        });
+    },
+    getNodeGraphs: function () {
+        var that = this;
+        $.ajax({
+            url: "/node/" + this.state.node_id + '/graphs',
+            type: "GET",
+            success: function(data) {
+                that.setState({graphs: data});
+            },
+            error: function(xhr, status, error) {
+                console.log('Error fetching node graphs', xhr, status, error);
+            }
+        });
     },
     componentDidMount: function() {
-        this.refresh();
+        this.getBasics();
+        this.getNodeGraphs();
     },
-    refreshGraph: function(dashboards,fromTime,toTime){
-        var timePeriod;
-        this.refresh();
-        if(fromTime!=null && toTime!=null)
-            timePeriod = [new Date(fromTime),new Date(toTime)]
-        this.setState({timePeriod:timePeriod});
+    refreshGraph: function(fromTime, toTime){
+        if(fromTime != null && toTime != null) {
+            // scale graphs
+            var timePeriod;
+            timePeriod = [new Date(fromTime), new Date(toTime)];
+            this.setState({timePeriod:timePeriod});
+            return;
+        }
+        this.getNodeGraphs();
     },
     showZoomTime:function(){
         $(".zoomTime ul").toggle();
@@ -212,19 +121,19 @@ var GraphList = React.createClass({
     resetTime:function(obj){
         var text = obj.html(),
             value = obj.val(),
-            arr = this.state.arr,
-            defaultArr = this.state.defaultArr;
+            graphs = this.state.graphs,
+            defaultGraphs = this.state.defaultGraphs;
         $(".zoomTime .zoomInfo").html(text);
         $(".zoomTime li,.zoomTime .zoomInfo").removeClass("selected");
         obj.addClass("selected");
         $(".zoomTime ul").hide();
-        for(var i=0;i<arr.length;i++){
-            arr[i].timePeriod = value;
+        for(var i=0;i<graphs.length;i++){
+            graphs[i].time = value;
         }
-        for(var i=0;i<defaultArr.length;i++){
-            defaultArr[i].timePeriod = value;
+        for(var i=0;i<defaultGraphs.length;i++){
+            defaultGraphs[i].time = value;
         }
-        this.setState({arr:arr,defaultArr:defaultArr,zoomTimeIndex:obj.index(),timePeriod:null});
+        this.setState({ graphs: graphs, defaultGraphs: defaultGraphs, zoomTimeIndex:obj.index() });
     },
     componentWillMount:function(){
         $("body").bind("click",function(){
@@ -236,28 +145,33 @@ var GraphList = React.createClass({
         });
     },
     render: function(){
-        var _this = this;
-        var defaultList = _this.state.defaultArr.map(function(subArr) {
-            return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
-                              timeList={_this.state.timeList} ips={_this.state.ips}
-                              timePeriod={_this.state.timePeriod}
-                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
-                              type='single' needToQueryMeasurements={false} />
+        var that = this;
+        var defaultGraphList = that.state.defaultGraphs.map(function(graph) {
+            // default graphs are not editable by users
+            var dummyEditor = React.createClass({render: function () {return <div></div>}});
+            return <BaseGraph config={that.state.config} key={graph._id}
+                              graph={graph} onRefresh={that.refreshGraph}
+                              node_id={that.state.node_id}
+                              graphEditor={dummyEditor}
+                              timePeriod={that.state.timePeriod}
+                   />;
         });
-        var graphList = _this.state.arr.map(function(subArr) {
-            return <BaseGraph selected={subArr} config={_this.state.config} key={subArr.key}
-                              timeList={_this.state.timeList} ips={_this.state.ips}
-                              timePeriod={_this.state.timePeriod}
-                              onRefresh={_this.refreshGraph} nodeGraph={_this.state.nodeGraph}
-                              type='single' needToQueryMeasurements={false}
-                              measurements={_this.state.measurements}
-                    />
+        var graphList = that.state.graphs.map(function(graph) {
+            return <BaseGraph config={that.state.config} key={graph._id}
+                              graph={graph} onRefresh={that.refreshGraph}
+                              node_id={that.state.node_id}
+                              nodeIPs={that.state.ips}
+                              measurements={that.state.measurements}
+                              graphEditor={GraphEditor}
+                              timePeriod={that.state.timePeriod}
+                   />;
         });
-        var zoomTimeList = _this.state.zoomTimeList.map(function(subArr,index){
+        var timeList = Utility.getTimeList();
+        var zoomTimeList = timeList.map(function(subArr,index){
             if(index == 5)//last 12h
-                return <li className="selected" value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
+                return <li className="selected" value={subArr.value} key={index} onClick={that.changeTimeList}>{subArr.text}</li>;
             else
-                return <li value={subArr.value} key={index} onClick={_this.changeTimeList}>{subArr.text}</li>;
+                return <li value={subArr.value} key={index} onClick={that.changeTimeList}>{subArr.text}</li>;
         });
         return (
             <div>
@@ -271,14 +185,17 @@ var GraphList = React.createClass({
                     </div>
                 </div>
                 <div className="graphList">
-                    <div className="singleDefault">{defaultList}</div>
+                    <div className="singleDefault">{defaultGraphList}</div>
                     {graphList}
                 </div>
-                <GraphInfo type="node" title="add new dashboard" dialogId="dialogAdd"
-                           timeList = {this.state.timeList} ips = {this.state.ips}
-                           onRefresh={this.refreshGraph} nodeGraph={this.state.nodeGraph}
-                           needToQueryMeasurements={false} measurements={this.state.measurements}
-                    />
+                <GraphEditor title="Add new graph"
+                             ips = {this.state.ips}
+                             needToQueryMeasurements={false}
+                             measurements={this.state.measurements}
+                             config={this.state.config}
+                             onRefresh={this.refreshGraph}
+                             node_id={this.state.node_id}
+                />
             </div>
         );
     }

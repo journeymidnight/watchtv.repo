@@ -45,7 +45,7 @@ var TagList = React.createClass({
             )
         });
         var addNewTagRow =
-            <tr>
+            <tr className="add_node">
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newMonitorItems" /></td>
                 <td><mui.TextField ref="newAlarmRules" disabled={true} /></td>

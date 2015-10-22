@@ -14,18 +14,23 @@ injectTapEventPlugin();
 var NavigationBar = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState:function(){
-        var user;
-        $.ajax({
-            url:"/user",
-            type:"get",
-            async:false,
-            success:function(data){
-                user = data;
-            }
-        });
+        var user = {
+            name: '',
+            role: 'User'
+        };
         return {
             user: user
-        }
+        };
+    },
+    componentDidMount: function () {
+        var that = this;
+        $.ajax({
+            url: "/user",
+            type: "GET",
+            success: function (data) {
+                that.setState({user: data});
+            }
+        });
     },
     getStyles: function() {
         return {

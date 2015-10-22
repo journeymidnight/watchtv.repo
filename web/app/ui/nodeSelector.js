@@ -14,6 +14,10 @@ var mui = require('material-ui');
 //   | +-----------------+ |
 //   +---------------------+
 
+// props:
+// onChange: callback function(ips). Return current selected IPs.
+// initialIPs: array of string. Could be null.
+
 // Use `getIPs()` to get current IPs inside the list
 
 // This component uses jQuery.autocomplete, so remember to include both the jquery-ui
@@ -21,8 +25,10 @@ var mui = require('material-ui');
 
 var NodeSelector = React.createClass({
     getInitialState: function() {
+        var ips = [];
+        if(this.props.initialIPs) ips = this.props.initialIPs;
         return {
-            ips: []
+            ips: ips
         };
     },
     componentDidMount: function() {
@@ -63,12 +69,14 @@ var NodeSelector = React.createClass({
             listItems.push(ip);
         }
         this.setState({ips: listItems});
+        if(this.props.onChange) this.props.onChange(listItems);
     },
     handleDelete: function(ip) {
         var listItems = this.state.ips.filter(function(i){
             return i !== ip;
         });
         this.setState({ips: listItems});
+        if(this.props.onChange) this.props.onChange(listItems);
     },
     deleteButtonMaker: function(ip) {
             return <mui.IconButton tooltip="Delete" onClick={this.handleDelete.bind(null, ip)}>
@@ -104,7 +112,7 @@ var NodeSelector = React.createClass({
                         </mui.SvgIcon>
                     </mui.IconButton>
                 </div>
-                <div>
+                <div className="ipList">
                     <mui.List>
                         {ipItems}
                     </mui.List>

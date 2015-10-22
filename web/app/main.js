@@ -58,7 +58,7 @@ var NodeList = React.createClass({
             )
         });
         var addNewNodeRow =
-            <tr>
+            <tr className="add_node">
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newIP" /></td>
                 <td><mui.TextField ref="newTag" /></td>
@@ -260,7 +260,7 @@ var NodeApp = React.createClass({
                 <SearchableList
                     type="node"
                     listClass={NodeList}
-                    hintText="Find anything"
+                    hintText="Find by name ip or tag"
                     config={this.state.config}
                     additionalFilter="region idc project"
                 />

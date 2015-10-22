@@ -2,23 +2,39 @@ var React = require('react');
 
 var unit = require('../unit.js');
 var Utility = require('../utility.js');
-var GraphInfo = require('./graphInfo.js');
+
+// The component to actually draw a graph
+
+// data structures:
+// data: [{data: [metric data from DB], ip: '1.2.3.4', metric: 'cpu,cpu0,idle', metricIndex: 2}, ...]
+// formatters: [formatter for metricIndex[0], formatter for metricIndex[1], ...]
+// suffixes: [suffix for metricIndex[0], suffix for metricIndex[1], ...]
+// graph: same as in DB schema
+
+// props:
+// graph: graph object described above. The graphs to draw are (graph.ips x graph.metrics)
+// node_id: mongodb id. Used to build URLs, could be null for Dashboard page, but not
+//                      for Single page.
+// nodeIPs: array of string. Used for single page to select from.
+// config: Watchtv config object, could be fetched by GET /config
+// graphEditor: react component, could be dashboardGraphEditor or singleGraphEditor.
+//              Used to render the edit dialog.
+// onRefresh: callback function(fromTime, toTime).
+
+// measurements: pass through to graphEditor, then GraphSelector
 
 var BaseGraph = React.createClass({
     getInitialState: function(){
-        var host = Utility.catHost(this.props.selected.ip);
         return {
             data: [],
-            host: host,
-            timePeriod:Utility.fitTimePeriod(null,this.props.selected.timePeriod),
-            metricArr: this.props.selected.metricArr,
-            node_id: this.props.selected.node_id,
-            uniq_id: this.props.selected.key,
-            title:this.props.selected.title,
+            ips: this.props.graph.ips,
+            metrics: this.props.graph.metrics,
+            time: this.props.graph.time,
+            title: this.props.graph.title,
             config: this.props.config
-        }
+        };
     },
-    queryInfluxDB: function(queryString,ip,metric,type,newTimePeriod) {
+    queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
         $.ajax({
             url: this.state.config.influxdbURL + '/query?' +
                 $.param(Utility.q_param(this.state.config, queryString)),
@@ -29,52 +45,60 @@ var BaseGraph = React.createClass({
                     data:Utility.get_value(data),
                     ip:ip,
                     metric:metric,
-                    type:type
+                    metricIndex: metricIndex
+                };
+                // A workaround. Should reconsider the relationship between time and timePeriod
+                if(this.props.node_id) {
+                    this.setState({data: currdata});
+                } else {
+                    this.setState({data: currdata, timePeriod: newTimePeriod});
                 }
-                this.setState({data: currdata,timePeriod:newTimePeriod});
             }.bind(this)
-        })
+        });
     },
-    executeQuery: function(fromTime, toTime, timePeriod, host,type,metric){
-        var query = Utility.buildQuery(fromTime, toTime, timePeriod, host, metric[0], metric[1],metric[2]);
-        if(query == null) return;
-        this.queryInfluxDB(query,host,metric,type,timePeriod);
+    executeQuery: function(timePeriod, ip, metricIndex, metric) {
+        var query = Utility.buildQuery(timePeriod, ip,
+                                       metric[0], metric[1], metric[2]);
+        if(query == null) { return; }
+        this.queryInfluxDB(query, ip, metric, metricIndex, timePeriod);
     },
-    handleGraph: function(fromTime, toTime,newTimePeriod){
-        var timePeriod = this.state.timePeriod;
-        if(fromTime!=null&&toTime!=null) timePeriod = null;
-        if(newTimePeriod!=null) timePeriod = newTimePeriod;
-        var host = this.state.host.split(',');
-        var metricArr = this.state.metricArr;
-        for(var i = 0;i<host.length;i++){
-            for(var j = 0;j<metricArr.length;j++){
-                this.executeQuery(
-                    fromTime,
-                    toTime,
+    handleGraph: function(newTimePeriod){
+        var that = this, timePeriod = Utility.fitTimePeriod(this.state.time);
+        if(newTimePeriod != null) timePeriod = newTimePeriod;
+
+        this.state.ips.map(function(ip){
+            that.state.metrics.map(function(metric, metricIndex) {
+                that.executeQuery(
                     timePeriod,
-                    host[i],
-                    j+1,
-                    Utility.splitMetric(metricArr[j]).split(",")
+                    Utility.dotted2underscoredIP(ip),
+                    metricIndex,
+                    Utility.splitMetric(metric).split(',')
                 );
-            }
-        }
-    },
-    refreshGraph: function(graphs,type){
-        if(type != "delete"){
-            var host = Utility.catHost(graphs.ips);
-            var metricArr =  graphs.metrics;
-            this.setState({
-                data:[],
-                host:host,
-                time:graphs.time,
-                timePeriod:Utility.fitTimePeriod(null,graphs.time),
-                metricArr:metricArr,
-                uniq_id:this.state.node_id+host.split(',')[0]
             });
-            this.handleGraph();
-        }else{
-            this.props.onRefresh();
-        }
+        });
+    },
+    handleEditorUpdate: function(editorStates) {
+        this.setState({
+            data: [],
+            ips: editorStates.ips,
+            metrics: editorStates.metrics,
+            time: editorStates.time
+        }, this.handleGraph);
+        var graph = {
+            ips: editorStates.ips,
+            metrics: editorStates.metrics,
+            time: editorStates.time
+        };
+        $.ajax({
+            url: '/graph/' + this.props.graph._id,
+            type: 'PUT',
+            data: {graph: graph},
+            success: function () {
+            },
+            error: function (xhr, status, error) {
+                console.log('Error updating user graph', xhr, status, error);
+            }
+        });
     },
     getFittedData: function(){
         var fitted_data=[];
@@ -83,10 +107,13 @@ var BaseGraph = React.createClass({
                 data:Utility.fitData(this.state.data[i].data),
                 ip:this.state.data[i].ip,
                 metric:this.state.data[i].metric,
-                type:this.state.data[i].type
-            }
+                metricIndex:this.state.data[i].metricIndex
+            };
         }
         return fitted_data;
+    },
+    handleDeleteSelf: function () {
+        this.props.onRefresh();
     },
     componentWillMount: function(){
         this.handleGraph();
@@ -96,9 +123,8 @@ var BaseGraph = React.createClass({
         // unit is the last part of measure name, e.g.
         // tx_Bps, Committed_AS_byte, etc.
         var formatter=[], unitSuffix=[];
-        var metricArr = this.state.metricArr;
-        for(var i = 0;i<metricArr.length;i++){
-            var split = Utility.splitMetric(metricArr[i]).split(","),
+        for(var i = 0;i<fitted_data.length;i++){
+            var split = fitted_data[i].metric,
                 measure = split[split.length-1];
             if(measure) {
                 var u = measure.split('_').slice(-1)[0];
@@ -111,40 +137,43 @@ var BaseGraph = React.createClass({
                 unitSuffix[unitSuffix.length] = "";
             }
         }
-        Utility.plotGraph('#graph' + this.state.uniq_id,
+
+        var uniq_id = Utility.generateKeyForGraph(this.props.graph);
+
+        Utility.plotGraph('#graph' + uniq_id,
                 fitted_data,
                 formatter
         );
         var that = this;
-        $('#graph' + that.state.uniq_id)
+        $('#graph' + uniq_id)
             .unbind()
             .bind("plothover", function (event, pos, item) {
                 if (item) {
                     var x = Utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
                         y = Utility.numberFormatter(item.datapoint[1],
-                                null,unitSuffix[fitted_data[item.seriesIndex].type-1]),
+                                null,unitSuffix[fitted_data[item.seriesIndex].metricIndex]),
                         metric = fitted_data[item.seriesIndex].metric,
                         ip = fitted_data[item.seriesIndex].ip,
                         position = Utility.getElePosition(this);
                     var left = item.pageX - position.left + 20,
                         top = item.pageY - position.top + 20,
-                        obj = $('#tooltip'+that.state.uniq_id);
+                        obj = $('#tooltip' + uniq_id);
                     obj.html(ip + '<br>' + metric + '<br>' + y + '<br>' + x );
                     if((item.pageX + obj.width()) > ($("body").width()-30)){
                         left -= (obj.width()+30);
                     }
                     obj.css({left:left,top:top}).show();
                 } else {
-                    $('#tooltip'+that.state.uniq_id).hide();
+                    $('#tooltip' + uniq_id).hide();
                 }
             })
             .bind("plotselected", function (event, ranges) {
-                if(that.props.type == 'single'){
+                if(that.props.node_id){
                     var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
                     $(".zoomTime .zoomInfo").html(
                         Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
                         Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
-                    that.props.onRefresh(null,ranges.xaxis.from,ranges.xaxis.to);
+                    that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to);
                 }else{
                     var fitted_data=that.getFittedData();
                     var start = that.state.timePeriod[0].getTime(),
@@ -163,35 +192,54 @@ var BaseGraph = React.createClass({
                         data[i].data = oriData.slice(dataStart,dataEnd);
                     }
                     that.setState({data:data,timePeriod:[new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)]});
-                    Utility.plotGraph('#graph' + that.state.uniq_id,
+                    Utility.plotGraph('#graph' + uniq_id,
                               fitted_data,
                               formatter
                     )
                 }
             });
+
+        // For updating graph title
+        $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
+            var graph = {
+                title: $(this).val()
+            };
+            $.ajax({
+                type: 'PUT',
+                url: 'graph/' + that.props.graph._id,
+                data: {graph: graph},
+                success: function(){
+                },
+                error:function(){
+                    console.log("error");
+                }
+            });
+        });
     },
     componentWillReceiveProps:function(nextProps){
-        if(nextProps.type == 'single'){
-            this.setState({data:[]});
-            if(nextProps.timePeriod!=null)
-                this.handleGraph(null,null,nextProps.timePeriod);
-            else
-                this.handleGraph(null,null,Utility.fitTimePeriod(null,nextProps.selected.timePeriod));
+        if(nextProps.timePeriod != null && nextProps.timePeriod !== this.state.timePeriod) {
+            this.setState({data:[], timePeriod: nextProps.timePeriod});
+            this.handleGraph(nextProps.timePeriod);
+        }
+        if(nextProps.graph.time !== this.state.time) {
+            this.setState({data: [], time: nextProps.graph.time}, this.handleGraph);
         }
     },
     render: function(){
         var placeholderText = "Click Here to Edit Graph Name";
         if(this.state.title!=null&&this.state.title!="") placeholderText = this.state.title;
+
+        var uniq_id = Utility.generateKeyForGraph(this.props.graph);
         return (
-            <div id={this.state.node_id}>
+            <div id={this.props.graph._id}>
                 <div className="graph">
                     <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
                     <div className="graphTitle"></div>
-                    <div id={'graph'+this.state.uniq_id}
+                    <div id={'graph' + uniq_id}
                          style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f",marginTop:'10px'}}>
                     </div>
-                    <div id={'tooltip'+this.state.uniq_id} 
+                    <div id={'tooltip' + uniq_id}
                         className = "tool"
                         style={{
                             position: 'absolute',
@@ -202,12 +250,17 @@ var BaseGraph = React.createClass({
                             zIndex:"1"
                         }}>
                     </div>
-                    <GraphInfo title="Edit" ips={this.props.ips} nodeGraph={this.props.nodeGraph}
-                               selected={this.props.selected} timeList={this.props.timeList}
-                               onRefresh={this.refreshGraph}
-                               needToQueryMeasurements={this.props.needToQueryMeasurements}
-                               measurements={this.props.measurements}
-                        />
+                    <this.props.graphEditor title="Edit" initialIPs={this.state.ips}
+                                            ips={this.props.nodeIPs}
+                                            initialMetrics={this.state.metrics}
+                                            initialTime={this.state.time}
+                                            config={this.props.config}
+                                            onUpdate={this.handleEditorUpdate}
+                                            onRefresh={this.handleDeleteSelf}
+                                            graph_id={this.props.graph._id}
+                                            node_id={this.props.node_id}
+                                            measurements={this.props.measurements}
+                    />
                 </div>
             </div>
         )

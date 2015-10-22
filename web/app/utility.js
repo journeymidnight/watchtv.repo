@@ -47,16 +47,17 @@ var get_measurements = function (data) {
 
 var pointPerGraph = 300; // should be configurable
 
-var buildQuery = function(fromTime, toTime, timePeriod, host, measurement, device, measure) {
+var buildQuery = function(timePeriod, host, measurement, device, measure) {
     // fromTime and toTime are all Date objects
+    var fromTime, toTime;
     if(timePeriod != null){
         fromTime = timePeriod[0];
         toTime = timePeriod[1];
-    }else if(timePeriod == null && fromTime == null && toTime == null){
+    } else {
         return null;
     }
     var groupByTime = Math.floor( (toTime - fromTime)/pointPerGraph/1000 );
-    if (groupByTime < 1) { groupByTime = 1}
+    if (groupByTime < 10) { groupByTime = 10; }
 
     var query = 'SELECT MEAN(value) FROM ' + measurement +
         " WHERE host='" + host +  "' AND measure='" + measure + "'" +
@@ -69,14 +70,10 @@ var buildQuery = function(fromTime, toTime, timePeriod, host, measurement, devic
     return query;
 };
 
-var millisecondsPerDay = 24*60*60*1000;
-var fitTimePeriod = function(timePeriod,time) {
-    if(time == null){
-        var state = timePeriod.state.selectedIndex;
-        time = parseInt(timePeriod.props.menuItems[state].value);
-    }
+// Generate a time period([fromTime, Now]) from length of time. time is in sec
+var fitTimePeriod = function(time) {
     var now = new Date();
-    if(time == 0) return null;
+    if(time === 0) return null;
     else return [new Date(now.getTime()-time*1000),now];
 };
 
@@ -113,7 +110,7 @@ var numberFormatter = function(val, axis, unit) {
         str[0] = str[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
     }
     if (str.length>1 && str[1].length >= 3) {
-        str[1] =str[1].slice(0,3);
+        str[1] = str[1].slice(0,3);
     }
     if (unit) {
         return str.join('.') + ' ' + unit;
@@ -129,16 +126,15 @@ var yAxisType = function(yAxisFormatter,i){
         return 2;
 };
 
-var plotGraph = function(placeholder, data, yAxisFormatter) {
+var plotGraph = function(placeholder, data, yAxisFormatters) {
     var dataArr = [],yaxis,lineWidth = 1;
-    if(data.length == 1) lineWidth = 2;
     for(var i = 0;i<data.length;i++){
-        var type = yAxisType(yAxisFormatter, i);
+        var type = yAxisType(yAxisFormatters, i);
         dataArr[i] = {
             data:data[i].data,
             label:data[i].ip + ": " + data[i].metric,
             yaxis:type
-        }
+        };
     }
     return $.plot(placeholder,
         dataArr,
@@ -154,13 +150,13 @@ var plotGraph = function(placeholder, data, yAxisFormatter) {
                 {
                     color: "#444",
                     font: {color: "#AFB2B5"},
-                    tickFormatter: yAxisFormatter[0]
+                    tickFormatter: yAxisFormatters[0]
                 },
                 {
                     color: "#444",
                     font: {color: "#AFB2B5"},
                     position:"right",
-                    tickFormatter: yAxisFormatter[yAxisFormatter.length-1]
+                    tickFormatter: yAxisFormatters[yAxisFormatters.length-1]
                 }
             ],
             series: {
@@ -259,7 +255,7 @@ var getTimeList = function(){
                 172800,259200,345600,432000,518400,604800,2592000];
     var timeList = [];
     for(var i = 0;i<arr1.length;i++){
-        timeList[i] = {payload: i+1, text: arr1[i] ,value: arr2[i]}
+        timeList[i] = {payload: i+1, text: arr1[i], value: arr2[i]}
     }
     return timeList;
 };
@@ -281,6 +277,18 @@ var dateFormat = function(time,fmt){
   return fmt;   
 };
 
+var generateKeyForGraph = function(graph) { // graph is same as in DB schema
+    var key = graph._id;
+    graph.ips.map(function(ip) {
+        key += dotted2underscoredIP(ip);
+    });
+    graph.metrics.map(function(metric){
+        var splittedMetric = metric.split(',');
+        key += splittedMetric[0] + splittedMetric[1] + splittedMetric[2];
+    });
+    return key;
+};
+
 var Utility = {
     q_param: q_param,
     get_value: get_value,
@@ -296,6 +304,7 @@ var Utility = {
     getElePosition:getElePosition,
     getTimeList:getTimeList,
     dateFormat:dateFormat,
-    dotted2underscoredIP: dotted2underscoredIP
+    dotted2underscoredIP: dotted2underscoredIP,
+    generateKeyForGraph: generateKeyForGraph
 };
 module.exports = Utility;
