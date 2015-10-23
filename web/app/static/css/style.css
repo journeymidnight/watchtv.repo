@@ -41,7 +41,7 @@ li{list-style: none;}
 .graphList .singleDefault{width: 100%;}
 .graphList .graph{margin:5px;background-color: #1f1f1f;color: #AFB2B5;padding: 010px;position: relative;min-height: 250px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
-.delDialog{    margin-top: -192px!important;}
+.delDialog + div{padding-top: 0px!important;}
 .btnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 50%;height: 38px;margin-top: -18px;}
 .btnParent:hover{width:37px;}
 .graphBtn{width:37px;height:38px;background: #77B300 url('../images/add.png') no-repeat center;background-size: 25px;position: fixed;top:50%;left: -31px;cursor: pointer;}

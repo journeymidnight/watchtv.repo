@@ -109,7 +109,7 @@ var dashboardGraphEditor = React.createClass({
         var deleteButton;
         if(this.props.graph_id) { // inside a graph
             deleteButton =
-                <div>
+                <div className="delDialog">
                     <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog} />
                 </div>
         } else { // outside a graph

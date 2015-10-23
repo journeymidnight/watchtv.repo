@@ -109,7 +109,7 @@ var graphEditor = React.createClass({
         var deleteButton;
         if(this.props.graph_id) { // inside a graph
             deleteButton =
-                <div>
+                <div className="delDialog">
                     <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog} />
                 </div>
         } else { // outside a graph
@@ -139,7 +139,7 @@ var graphEditor = React.createClass({
                 <mui.Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}
-                    <mui.Dialog title="Delete confirmation" contentClassName="delDialog"
+                    <mui.Dialog title="Delete confirmation"
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
