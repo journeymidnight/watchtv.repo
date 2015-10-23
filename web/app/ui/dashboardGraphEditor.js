@@ -122,7 +122,7 @@ var dashboardGraphEditor = React.createClass({
                 <mui.Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}
-                    <mui.Dialog title="Delete confirmation" contentClassName="delDialog"
+                    <mui.Dialog title="Delete confirmation"
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }

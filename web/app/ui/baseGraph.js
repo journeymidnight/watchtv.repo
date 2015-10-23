@@ -139,11 +139,15 @@ var BaseGraph = React.createClass({
         }
 
         var uniq_id = Utility.generateKeyForGraph(this.props.graph);
-
-        Utility.plotGraph('#graph' + uniq_id,
-                fitted_data,
-                formatter
-        );
+        var plot = function(){
+            $(window).unbind('resize',plot);
+            Utility.plotGraph('#graph' + uniq_id,
+                    fitted_data,
+                    formatter
+            );
+            setTimeout(function(){$(window).bind('resize',plot);},1000);
+        }
+        plot();
         var that = this;
         $('#graph' + uniq_id)
             .unbind()
@@ -168,7 +172,7 @@ var BaseGraph = React.createClass({
                 }
             })
             .bind("plotselected", function (event, ranges) {
-                if(that.props.node_id){
+                if(that.props.node_id){//single
                     var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
                     $(".zoomTime .zoomInfo").html(
                         Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
