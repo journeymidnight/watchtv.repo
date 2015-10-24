@@ -358,7 +358,7 @@ var nodeCommander = function(nodes, enables, disables) {
                 function (err, resp, body) {
                     logger(err, resp, body);
                 }
-            )
+            );
         },
         function (err, _) {
             if (err) {
@@ -609,10 +609,11 @@ var modifyNode = function(node_id, req, res) {
                                 },
                                 function (err, results) {
                                     var originalMonitorItems = new Set([]);
-                                    tags = results.filter(
+                                    results.filter(
                                         function (t) {
                                             if (t) {
                                                 originalMonitorItems.merge(new Set(t.monitorItems));
+                                                console.log('[' + t.monitorItems + ']');
                                                 return true;
                                             } else {
                                                 return false;
