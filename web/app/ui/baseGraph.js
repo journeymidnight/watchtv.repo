@@ -31,7 +31,8 @@ var BaseGraph = React.createClass({
             metrics: this.props.graph.metrics,
             time: this.props.graph.time,
             title: this.props.graph.title,
-            config: this.props.config
+            config: this.props.config,
+            windowWidth: $(window).width()
         };
     },
     queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
@@ -118,6 +119,22 @@ var BaseGraph = React.createClass({
     componentWillMount: function(){
         this.handleGraph();
     },
+    componentDidMount: function () {
+        var that = this;
+
+        // check and set the state of windowWidth so as to redraw the graphs
+        // when window width changes
+        var checkWindowWidth = function () {
+            var windowWidth = $(window).width();
+            return function () {
+                if(windowWidth !== $(window).width()) {
+                    windowWidth = $(window).width();
+                    that.setState({windowWidth: windowWidth});
+                }
+            };
+        }();
+        setInterval(checkWindowWidth, 1200);
+    },
     componentDidUpdate: function() {
         var fitted_data=this.getFittedData();
         // unit is the last part of measure name, e.g.
@@ -139,15 +156,10 @@ var BaseGraph = React.createClass({
         }
 
         var uniq_id = Utility.generateKeyForGraph(this.props.graph);
-        var plot = function(){
-            $(window).unbind('resize',plot);
-            Utility.plotGraph('#graph' + uniq_id,
-                    fitted_data,
-                    formatter
-            );
-            setTimeout(function(){$(window).bind('resize',plot);},1000);
-        }
-        plot();
+        Utility.plotGraph('#graph' + uniq_id,
+            fitted_data,
+            formatter
+        );
         var that = this;
         $('#graph' + uniq_id)
             .unbind()
