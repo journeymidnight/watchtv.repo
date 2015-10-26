@@ -348,6 +348,7 @@ var nodeCommander = function(nodes, enables, disables) {
             request({
                     method: "POST",
                     url: 'http://' + addr + ':' + port + '/collector/enabled',
+                    timeout: 30 * 1000, // 30s
                     json: true,
                     headers: {
                         "content-type": "application/json"
