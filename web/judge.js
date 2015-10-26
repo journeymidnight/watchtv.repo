@@ -19,7 +19,10 @@ var nodeLivenessCheckFactory = function(node) {
                 if(ip.split(':')[1] == undefined) {
                     ip += ':' + config.webServer.defaultDiamondPort;
                 }
-                request('http://' + ip, function(err, response, body){
+                request({
+                    url: 'http://' + ip,
+                    timeout: 30 * 1000 // 30s
+                }, function(err, response, body){
                     if(err || response.statusCode != 200) {
                         callback(null, false);
                         return;

@@ -323,17 +323,19 @@ var isIPandPort = function(s) {
 // enables: ["item", ...]
 // disables: ["item", ...]
 var nodeCommander = function(nodes, enables, disables) {
+    logger('Command to Diamond: nodes:', nodes, ', enables:', enables,
+           ', disables:', disables);
     enables = enables.map(function(en){
         return ({
             "name": en,
             "config": {}
-        })
+        });
     });
     disables = disables.map(function(dis){
         return ({
             "name": dis,
             "config": {}
-        })
+        });
     });
     async.map(
         nodes,
@@ -346,6 +348,7 @@ var nodeCommander = function(nodes, enables, disables) {
             request({
                     method: "POST",
                     url: 'http://' + addr + ':' + port + '/collector/enabled',
+                    timeout: 30 * 1000, // 30s
                     json: true,
                     headers: {
                         "content-type": "application/json"
@@ -356,9 +359,9 @@ var nodeCommander = function(nodes, enables, disables) {
                     }
                 },
                 function (err, resp, body) {
-                    logger(err, resp, body);
+                    logger('Node command results:', err, resp, body);
                 }
-            )
+            );
         },
         function (err, _) {
             if (err) {
@@ -580,7 +583,6 @@ var modifyNode = function(node_id, req, res) {
                             }
                         }
                     );
-                    logger('update', update);
                     db.Node.findOneAndUpdate(
                         { _id: node_id },
                         { '$set': update },
@@ -595,21 +597,20 @@ var modifyNode = function(node_id, req, res) {
                                 res.status(404).send(node_id + ' does not exist');
                                 return
                             }
-                            logger('origin', n);
                             async.map(n.tags, // n.tags is an array of ids
                                 function (tag, map_callback) {
                                     db.Tag.findById(tag,
                                         function (err, t) {
                                             if (err) {
                                                 logger(err);
-                                                return
+                                                return;
                                             }
-                                            map_callback(null, t)
-                                        })
+                                            map_callback(null, t);
+                                        });
                                 },
                                 function (err, results) {
                                     var originalMonitorItems = new Set([]);
-                                    tags = results.filter(
+                                    results.filter(
                                         function (t) {
                                             if (t) {
                                                 originalMonitorItems.merge(new Set(t.monitorItems));
@@ -625,7 +626,12 @@ var modifyNode = function(node_id, req, res) {
                                         nodeCommander(n.ips, toEnable, toDisable);
                                     }
                                     if(ips) {
-                                        nodeCommander(ips, updatedMonitorItems, []);
+                                        var newIPs = ips.filter(function(ip){
+                                            return n.ips.indexOf(ip) === -1;
+                                        });
+                                        if(newIPs.length !== 0) {
+                                            nodeCommander(newIPs, updatedMonitorItems, []);
+                                        }
                                     }
                                 }
                             );
