@@ -217,6 +217,7 @@ var BaseGraph = React.createClass({
 
         // For updating graph title
         $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
+            if($(this).val()=="") return;
             var graph = {
                 title: $(this).val()
             };

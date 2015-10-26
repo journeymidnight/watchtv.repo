@@ -4,6 +4,9 @@ input:-webkit-autofill {-webkit-box-shadow: 0 100px #fff inset;-webkit-text-fill
 input:not(.titleInput)::-webkit-input-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 input:not(.titleInput)::-moz-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 input:not(.titleInput)::-ms-input-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
+input.titleInput::-webkit-input-placeholder{color:#fff !important;}
+input.titleInput::-moz-placeholder{color:#fff !important;}
+input.titleInput::-ms-input-placeholder{color:#fff !important;}
 th, td {padding-left: 20px!important;}
 li{list-style: none;}
 ::-webkit-scrollbar {width: 6px;height: 6px;background-color: rgba(190, 190, 190, 0.77);-webkit-border-radius: 3px;-moz-border-radius: 3px;border-radius: 3px;}
@@ -39,7 +42,7 @@ li{list-style: none;}
 .flot-overlay {cursor: crosshair;}
 .graphList > div ,.singleDefault > div{width:50%;float:left;}
 .graphList .singleDefault{width: 100%;}
-.graphList .graph{margin:5px;background-color: #1f1f1f;color: #AFB2B5;padding: 010px;position: relative;min-height: 250px;}
+.graphList .graph{margin:5px;background-color: #1f1f1f;color: #fff;padding: 010px;position: relative;min-height: 250px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
 .delDialog + div{padding-top: 0px!important;}
 .btnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 50%;height: 38px;margin-top: -18px;}
@@ -65,7 +68,7 @@ li{list-style: none;}
 .legend tr {float: left;margin-right: 20px;}
 .legendColorBox > div{border:none!important;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
-.legendLabel{color: #AFB2B5;transform: scale(.9);}
+.legendLabel{color: #fff;transform: scale(.9);}
 .add_node td > div{width:100%!important;}
 .metricList button + div {overflow: hidden;text-overflow: ellipsis;}
 .timeLists{float: right;margin-right: 255px;}
