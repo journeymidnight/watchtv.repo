@@ -62,9 +62,9 @@ var NodeList = React.createClass({
                 <td><mui.TextField ref="newName" /></td>
                 <td><mui.TextField ref="newIP" /></td>
                 <td><mui.TextField ref="newTag" /></td>
+                <td><mui.TextField ref="newProject" /></td>
                 <td><mui.TextField ref="newRegion" /></td>
                 <td><mui.TextField ref="newIdc" /></td>
-                <td><mui.TextField ref="newProject" /></td>
                 <td>
                     <mui.IconButton tooltip="Add" onClick={this.handleCreateNewNode}>
                         <mui.SvgIcon>
@@ -84,9 +84,9 @@ var NodeList = React.createClass({
                         <th>Name</th>
                         <th>IP Addresses</th>
                         <th>Tags</th>
+                        <th>Project</th>
                         <th>Region</th>
                         <th>IDC</th>
-                        <th>Project</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -118,9 +118,9 @@ var NodeEntry = React.createClass({
                 <td key={this.props.id + 'name'} className="name">{this.props.name}</td>
                 <td key={this.props.id + 'ip'} className="nodeIp">{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
+                <td key={this.props.id + 'project'}>{this.props.project.name}</td>
                 <td key={this.props.id + 'region'}>{this.props.region.name}</td>
                 <td key={this.props.id + 'idc'}>{this.props.idc.name}</td>
-                <td key={this.props.id + 'project'}>{this.props.project.name}</td>
                 <td key={this.props.id + 'actions'} className="toolBtn">
                     <NodeEditButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} nodeTags={this.props.tags}
@@ -188,12 +188,12 @@ var NodeEditButton = React.createClass({
                 ref="ipInput" />
             <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
                 ref="tagInput" />
+            <mui.TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
+                           ref="projectInput" />
             <mui.TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
                 ref="regionInput" />
             <mui.TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
                 ref="idcInput" />
-            <mui.TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
-                ref="projectInput" />
                 <div>
                     <mui.TextField floatingLabelText="Description"
                         defaultValue={this.props.nodeDescription}
