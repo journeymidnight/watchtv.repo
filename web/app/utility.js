@@ -127,7 +127,7 @@ var yAxisType = function(yAxisFormatter,i){
 };
 
 var plotGraph = function(placeholder, data, yAxisFormatters) {
-    var dataArr = [],yaxis,lineWidth = 1;
+    var dataArr = [],yaxis;
     for(var i = 0;i<data.length;i++){
         var type = yAxisType(yAxisFormatters, i);
         dataArr[i] = {
@@ -144,17 +144,17 @@ var plotGraph = function(placeholder, data, yAxisFormatters) {
                 show: true,
                 timezone: "browser",
                 color: "#444",
-                font: {color: "#AFB2B5"}
+                font: {color: "#fff"}
             },
             yaxes: [
                 {
                     color: "#444",
-                    font: {color: "#AFB2B5"},
+                    font: {color: "#fff"},
                     tickFormatter: yAxisFormatters[0]
                 },
                 {
                     color: "#444",
-                    font: {color: "#AFB2B5"},
+                    font: {color: "#fff"},
                     position:"right",
                     tickFormatter: yAxisFormatters[yAxisFormatters.length-1]
                 }
@@ -162,7 +162,7 @@ var plotGraph = function(placeholder, data, yAxisFormatters) {
             series: {
                 lines: {
                     show: true,
-                    lineWidth:lineWidth
+                    lineWidth:1
                 }
             },
             grid: {
