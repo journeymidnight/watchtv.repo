@@ -236,18 +236,17 @@ var BaseGraph = React.createClass({
                 }
             }
         );
-        // For series toggle
+        // Toggle serie legend labels to show/hide corresponding serie line
         $('#' + that.props.graph._id + ' td.legendLabel').parent()
             .map(function(index, label){ // this is jQuery selector map(), index comes first
+                if(that.state.data[index].enabled) {
+                    $(this).removeClass("disabled");
+                } else {
+                    $(this).addClass("disabled");
+                }
                 $(this).off().on('click', function () {
-                    var data = that.state.data,
-                        enabled = 1 - data[index].enabled;
-                    if(enabled) {
-                        $(this).removeClass("disabled");
-                    } else {
-                        $(this).addClass("disabled");
-                    }
-                    data[index].enabled = enabled;
+                    var data = that.state.data;
+                    data[index].enabled = 1 - data[index].enabled;
                     that.setState({data: data});
                 });
         });
