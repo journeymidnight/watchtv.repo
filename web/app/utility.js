@@ -162,7 +162,7 @@ var plotGraph = function(placeholder, data, yAxisFormatters) {
             series: {
                 lines: {
                     show: true,
-                    lineWidth:1
+                    lineWidth:2
                 }
             },
             grid: {
