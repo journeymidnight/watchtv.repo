@@ -415,7 +415,6 @@ var documentFromName = function (name, databaseModel, insertIfNotExist, callback
 
 app.post('/nodes', function(req, res) {
     var name = req.body.name,
-        nickname = valueWithDefault(req.body.nickname, ''),
         description = valueWithDefault(req.body.description, ''),
         ips = req.body.ips,
         tags = valueWithDefault(req.body.tags, ['']),
@@ -484,7 +483,6 @@ app.post('/nodes', function(req, res) {
                     );
                     handleCreate(res, {
                         name: name,
-                        nickname: nickname,
                         description: description,
                         ips: ips,
                         tags: tags,
@@ -508,7 +506,6 @@ app.put('/node/:node_id', function (req, res) {
 // FIXME too long a function
 var modifyNode = function(node_id, req, res) {
     var name = req.body.name,
-        nickname = req.body.nickname,
         description = req.body.description,
         ips = req.body.ips,
         tags = valueWithDefault(req.body.tags, null),
@@ -524,7 +521,6 @@ var modifyNode = function(node_id, req, res) {
         }
     }
     if (name) update.name = name;
-    if (nickname) update.nickname = nickname;
     if (description) update.description = description;
     if (ips) update.ips = ips;
     if (tags !== null && tags.constructor !== Array) {
@@ -945,21 +941,21 @@ var queryNode = function(req, res) {
             if(notUndefined(region)) {
                 documentFromName(region, db.Region, false, callback);
             } else {
-                callback(null, null)
+                callback(null, null);
             }
         },
         function(callback) {
             if(notUndefined(idc)) {
                 documentFromName(idc, db.Idc, false, callback);
             } else {
-                return callback(null, null)
+                return callback(null, null);
             }
         },
         function(callback) {
             if(notUndefined(project)) {
                 documentFromName(project, db.Project, false, callback);
             } else {
-                return callback(null, null)
+                return callback(null, null);
             }
         }
     ], function(err, results) {
@@ -971,11 +967,11 @@ var queryNode = function(req, res) {
             var projectFiltered = req.user.projects.filter(function(userProject){
                 if(!projectDoc || !userProject) return false;
                 // projectDoc._id is an ObjectId and userProject._id is a string
-                return projectDoc._id.equals(userProject._id)
+                return projectDoc._id.equals(userProject._id);
             });
             if(projectFiltered.length === 0) {
                 res.status(403).send('User is not allowed to access this project');
-                return
+                return;
             }
         }
         var filter = {}, projects = [];
@@ -988,9 +984,9 @@ var queryNode = function(req, res) {
         } else if(req.user.role !== 'Root') {
             // req.user.projects are populated so extract only ids
             req.user.projects.map(function(project){
-                projects.push(project._id)
+                projects.push(project._id);
             });
-            filter['project'] = { $in: projects }
+            filter['project'] = { $in: projects };
         }
         async.map(
             node.split(' '),
@@ -1002,10 +998,10 @@ var queryNode = function(req, res) {
                             db.Tag.find(q, {_id: 1}, // only return id
                                 function (err, tags) {
                                     if (err) {
-                                        callback(err, {})
+                                        callback(err, {});
                                     }
                                     var ids = tags.map(function (tag) {
-                                        return tag._id
+                                        return tag._id;
                                     });
                                     var nodeFilter = {tags: {$in: ids}};
                                     for(var k in filter) {
@@ -1014,17 +1010,16 @@ var queryNode = function(req, res) {
                                     db.Node.find(nodeFilter,
                                         function (err, nodes) {
                                             if (err) {
-                                                callback(err, {})
+                                                callback(err, {});
                                             }
-                                            callback(null, nodes)
+                                            callback(null, nodes);
                                         }).populate('tags region idc project', 'name');
                                 }
-                            )
+                            );
                         },
                         function (callback) {
                             var q = {$or:[
                                 {name: sregx},
-                                {nickname: sregx},
                                 {ips: sregx}
                             ]};
                             for(var k in filter) {
@@ -1032,7 +1027,7 @@ var queryNode = function(req, res) {
                             }
                             db.Node.find(q,
                                 function (err, nodes) {
-                                    callback(err, nodes)
+                                    callback(err, nodes);
                                 }).populate('tags region idc project', 'name');
                         }
                     ],
@@ -1040,38 +1035,38 @@ var queryNode = function(req, res) {
                         if(err){
                             logger(err);
                             res.status(500).send("Cannot complete your query");
-                            return
+                            return;
                         }
                         var uniq_nodes = {};
                         r.map(function(nodes){
                             nodes.map(function (node) {
-                                uniq_nodes[node._id] = node
-                            })
+                                uniq_nodes[node._id] = node;
+                            });
                         });
-                        map_callback(null, uniq_nodes)
-                    })
+                        map_callback(null, uniq_nodes);
+                    });
             },
             function(err, results) {
                 var ans = results.reduce(
                     function(pre, curr, index, array){
                         if(pre == null){
-                            return curr
+                            return curr;
                         } else {
                             var ans = {};
                             // intersection of pre and curr
                             for (var p in pre) {
                                 if (curr[p] != undefined){
-                                    ans[p] = pre[p]
+                                    ans[p] = pre[p];
                                 }
                             }
-                            return ans
+                            return ans;
                         }
                     },
                     null
                 );
                 var resultNodes = [];
                 for (var k in ans) {
-                    resultNodes.push(ans[k])
+                    resultNodes.push(ans[k]);
                 }
                 var returnObject = {
                     total: resultNodes.length,

@@ -23,7 +23,6 @@ var graphInfo = new Schema({
     graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}]
 });
 var nodeSchema = new Schema({
-        nickname: String,
         name: String,
         description: String,
         ips: [String],
