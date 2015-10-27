@@ -1516,11 +1516,73 @@ app.get('/logout', function(req, res) {
     res.redirect('/login.html');
 });
 
-
+// get regions, could be filtered by IDC and project
 app.get('/regions', function(req, res) {
-    handlePluralGet(req, res,
-        'region', db.Region, {}, []
-    )
+    var idc = req.query.idc,
+        project = req.query.project;
+    if(!idc && !project) {
+        db.Region.find({}, function(err, regions) {
+            if(err) {
+                res.status(500).send('Cannot list regions');
+                logger(err);
+                return;
+            }
+            res.send(regions);
+        });
+        return;
+    }
+
+    async.parallel([
+        function(callback) {
+            if(idc) {
+                documentFromName(idc, db.Idc, false, callback);
+            } else {
+                callback(null, null);
+            }
+        },
+        function(callback) {
+            if(project) {
+                documentFromName(project, db.Project, false, callback);
+            } else {
+                callback(null, null);
+            }
+        }
+    ], function(err, results){
+        if(err) {
+            res.status(500).send('Some database error');
+            logger(err);
+            return;
+        }
+        var query = {};
+        if(results[0]) query.idc = results[0]._id;
+        if(results[1]) query.project = results[1]._id;
+        db.Node.distinct('region', query, function(err, regions) {
+            if(err) {
+                res.status(500).send('Cannot get regions');
+                logger(err);
+                return;
+            }
+            async.map(regions, // regions is an array of region ids
+                function (r, map_callback) {
+                    db.Region.findById(r, function(err, region){
+                        if(err) {
+                            logger(err);
+                            return;
+                        }
+                        map_callback(null, region);
+                    })
+                },
+                function(err, results) {
+                    if(err) {
+                        res.status(500).send('Cannot populate regions');
+                        logger(err);
+                        return;
+                    }
+                    res.send(results);
+                }
+            )
+        })
+    });
 });
 
 app.post('/regions', function(req, res) {
@@ -1553,9 +1615,73 @@ app.get('/region/:region_id', function(req, res) {
 });
 
 
-app.get('/idcs', function(req, res){
-    handlePluralGet(req, res,
-        'IDC', db.Idc, {}, [])
+// FIXME: mirror of GET /regions, abstract them someday
+app.get('/idcs', function(req, res) {
+    var region = req.query.region,
+        project = req.query.project;
+    if(!region && !project) {
+        db.Idc.find({}, function(err, idcs) {
+            if(err) {
+                res.status(500).send('Cannot list IDCs');
+                logger(err);
+                return;
+            }
+            res.send(idcs);
+        });
+        return;
+    }
+
+    async.parallel([
+        function(callback) {
+            if(region) {
+                documentFromName(region, db.Region, false, callback);
+            } else {
+                callback(null, null);
+            }
+        },
+        function(callback) {
+            if(project) {
+                documentFromName(project, db.Project, false, callback);
+            } else {
+                callback(null, null);
+            }
+        }
+    ], function(err, results){
+        if(err) {
+            res.status(500).send('Some database error');
+            logger(err);
+            return;
+        }
+        var query = {};
+        if(results[0]) query.region = results[0]._id;
+        if(results[1]) query.project = results[1]._id;
+        db.Node.distinct('idc', query, function(err, idcs) {
+            if(err) {
+                res.status(500).send('Cannot get IDCs');
+                logger(err);
+                return;
+            }
+            async.map(idcs, // idcs is an array of IDC ids
+                function (i, map_callback) {
+                    db.Idc.findById(i, function(err, idc){
+                        if(err) {
+                            logger(err);
+                            return;
+                        }
+                        map_callback(null, idc);
+                    })
+                },
+                function(err, results) {
+                    if(err) {
+                        res.status(500).send('Cannot populate IDCs');
+                        logger(err);
+                        return;
+                    }
+                    res.send(results);
+                }
+            )
+        })
+    });
 });
 
 app.post('/idcs', function(req, res){

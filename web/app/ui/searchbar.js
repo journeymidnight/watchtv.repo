@@ -34,22 +34,46 @@ var displayName = {
 
 var SearchBar = React.createClass({
     mixins: [mixins.materialMixin],
-    collectStates: function() {
+    raiseStates: function() {
         var filter = {},
             that = this;
         this.props.additionalFilter.split(' ').map(function(dropdownName){
             if (dropdownName === '') return;
 
-            filter[dropdownName] = that.state[dropdownName + 'Selected'];
+            filter[dropdownName] = that.state[dropdownName];
         });
         filter.keywords = this.refs.keywords.getValue().trim();
-        return filter;
+        this.props.onNewKeywords(filter);
     },
     handleSearch: function(){
-        this.props.onNewKeywords(this.collectStates());
+        this.raiseStates();
     },
     handlePageSelect: function(event, selectedEvent) {
         this.props.onNewKeywords(undefined, selectedEvent.eventKey);
+    },
+    updateMenuItems: function () {
+        var that = this;
+        this.props.additionalFilter.split(' ').map(function(dropdownName){
+            if(dropdownName === '' || dropdownName === 'project') {
+                return;
+            }
+            var query = {};
+            if(that.state.project) query.project = that.state.project;
+            if(that.state.region) query.region = that.state.region;
+            if(that.state.idc) query.idc = that.state.idc;
+            $.ajax({
+                url: dropdownName + 's?' + $.param(query),
+                dataType: 'json',
+                success: function(data) {
+                    var state = {};
+                    state[dropdownName +'s'] = data;
+                    that.setState(state);
+                },
+                error: function(xhr, status, err) {
+                    console.error('Cannot fetch /' + dropdownName + 's');
+                }
+            });
+        });
     },
     getInitialState: function() {
         var state = {},
@@ -57,18 +81,21 @@ var SearchBar = React.createClass({
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
 
-            state[dropdownName] = [];
-            state[dropdownName + 'Selected'] = '';  // Selected value for dropdown
+            state[dropdownName + 's'] = []; // All items in dropdown
+            state[dropdownName] = '';       // Selected value for dropdown
             // dropdown change handler functions
             that[dropdownName + 'Handler'] = function(err, selectedIndex, menuItem) {
                 var newState = {};
-                newState[dropdownName + 'Selected'] = menuItem.payload;
-                that.setState(newState);
-                var states = that.collectStates();
-                // This is a workaround since the `collectStates` above cannot get the
-                // latest states
-                states[dropdownName] = menuItem.payload;
-                that.props.onNewKeywords(states);
+                newState[dropdownName] = menuItem.payload;
+                if(dropdownName === 'project') {
+                    newState['idc'] = '';
+                    newState['region'] = '';
+                }
+                var doUpdates = function() {
+                    that.updateMenuItems();
+                    that.raiseStates();
+                };
+                that.setState(newState, doUpdates);
             };
         });
         return state;
@@ -78,12 +105,26 @@ var SearchBar = React.createClass({
         this.props.additionalFilter.split(' ').map(function(dropdownName){
             if (dropdownName === '') return;
 
+            if (dropdownName === 'project') {
+                $.ajax({
+                    url: '/projects',
+                    dataType: 'json',
+                    success: function(data) {
+                        that.setState({projects: data.result});
+                    },
+                    error: function(xhr, status, err) {
+                        console.error('Cannot fetch /' + dropdownName + 's');
+                    }
+                });
+                return;
+            }
+
             $.ajax({
                 url: dropdownName + 's',
                 dataType: 'json',
                 success: function(data) {
                     var state = {};
-                    state[dropdownName] = data.result;
+                    state[dropdownName +'s'] = data;
                     that.setState(state);
                 },
                 error: function(xhr, status, err) {
@@ -103,12 +144,17 @@ var SearchBar = React.createClass({
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
 
-            var menuItems = [{payload: '', text: displayName[dropdownName] + ': All'}];
-            that.state[dropdownName].map(function (entry) {
+            var menuItems = [{payload: '', text: displayName[dropdownName] + ': All'}],
+                selectedIndex = 0;
+            that.state[dropdownName + 's'].map(function (entry, index) {
                 menuItems.push({payload: entry.name, text: entry.name});
+                if(entry.name === that.state[dropdownName]) {
+                    selectedIndex = index + 1; // for 0 is the "All"
+                }
             });
             searchComponents.push(<mui.DropDownMenu menuItems={menuItems}
                                     onChange={that[dropdownName + 'Handler']}
+                                    selectedIndex={selectedIndex}
                                     key={dropdownName + 'DropDown'} />);
         });
 

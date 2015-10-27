@@ -262,7 +262,7 @@ var NodeApp = React.createClass({
                     listClass={NodeList}
                     hintText="Find by name ip or tag"
                     config={this.state.config}
-                    additionalFilter="region idc project"
+                    additionalFilter="project region idc"
                 />
             </mui.AppCanvas>
         )
