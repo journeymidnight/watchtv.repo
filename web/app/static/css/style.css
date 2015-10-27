@@ -65,7 +65,8 @@ li{list-style: none;}
 .legend {position: absolute;bottom: -35px;height: 44px;overflow: auto;}
 .legend > div{display: none;}
 .legend table{position: static!important;height: 44px;overflow: auto;}
-.legend tr {float: left;margin-right: 20px;}
+.legend tr {float: left;margin-right: 20px;cursor: pointer;}
+tr.disabled {opacity: .5;}
 .legendColorBox > div{border:none!important;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
 .legendLabel{color: #fff;font-size: 12px;}

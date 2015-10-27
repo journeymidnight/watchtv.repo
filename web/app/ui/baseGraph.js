@@ -6,7 +6,8 @@ var Utility = require('../utility.js');
 // The component to actually draw a graph
 
 // data structures:
-// data: [{data: [metric data from DB], ip: '1.2.3.4', metric: 'cpu,cpu0,idle', metricIndex: 2}, ...]
+// data: [{data: [metric data from DB], ip: '1.2.3.4', metric: 'cpu,cpu0,idle',
+//          metricIndex: 2, enabled: 1}, ...]
 // formatters: [formatter for metricIndex[0], formatter for metricIndex[1], ...]
 // suffixes: [suffix for metricIndex[0], suffix for metricIndex[1], ...]
 // graph: same as in DB schema
@@ -46,7 +47,8 @@ var BaseGraph = React.createClass({
                     data:Utility.get_value(data),
                     ip:ip,
                     metric:metric,
-                    metricIndex: metricIndex
+                    metricIndex: metricIndex,
+                    enabled: 1  // 1 for enabled, 0 for disabled. If shown on graph
                 };
                 // A workaround. Should reconsider the relationship between time and timePeriod
                 if(this.props.node_id) {
@@ -105,7 +107,8 @@ var BaseGraph = React.createClass({
         var fitted_data=[];
         for(var i = 0;i<this.state.data.length;i++){
             fitted_data[i] = {
-                data:Utility.fitData(this.state.data[i].data),
+                data: this.state.data[i].enabled ?
+                    Utility.fitData(this.state.data[i].data) : [],
                 ip:this.state.data[i].ip,
                 metric:this.state.data[i].metric,
                 metricIndex:this.state.data[i].metricIndex
@@ -134,6 +137,24 @@ var BaseGraph = React.createClass({
             };
         }();
         setInterval(checkWindowWidth, 1200);
+
+        // For updating graph title
+        $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
+            if($(this).val()=="") return;
+            var graph = {
+                title: $(this).val()
+            };
+            $.ajax({
+                type: 'PUT',
+                url: 'graph/' + that.props.graph._id,
+                data: {graph: graph},
+                success: function(){
+                },
+                error:function(){
+                    console.log("error");
+                }
+            });
+        });
     },
     componentDidUpdate: function() {
         var fitted_data=this.getFittedData();
@@ -211,26 +232,24 @@ var BaseGraph = React.createClass({
                     Utility.plotGraph('#graph' + uniq_id,
                               fitted_data,
                               formatter
-                    )
+                    );
                 }
-            });
-
-        // For updating graph title
-        $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
-            if($(this).val()=="") return;
-            var graph = {
-                title: $(this).val()
-            };
-            $.ajax({
-                type: 'PUT',
-                url: 'graph/' + that.props.graph._id,
-                data: {graph: graph},
-                success: function(){
-                },
-                error:function(){
-                    console.log("error");
-                }
-            });
+            }
+        );
+        // For series toggle
+        $('#' + that.props.graph._id + ' td.legendLabel').parent()
+            .map(function(index, label){ // this is jQuery selector map(), index comes first
+                $(this).off().on('click', function () {
+                    var data = that.state.data,
+                        enabled = 1 - data[index].enabled;
+                    if(enabled) {
+                        $(this).removeClass("disabled");
+                    } else {
+                        $(this).addClass("disabled");
+                    }
+                    data[index].enabled = enabled;
+                    that.setState({data: data});
+                });
         });
     },
     componentWillReceiveProps:function(nextProps){
