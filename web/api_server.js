@@ -42,7 +42,7 @@ var valueWithDefault = function(value, defaultValue) {
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function(req, res, next) {
-    logger('visited:', req.url);
+    logger(req.method, req.url);
     if(req.url.indexOf('/login') >= 0 || req.url.indexOf('/js') >= 0
         || req.url.indexOf('/css') >= 0 || req.url.indexOf('/images') >= 0) {
         next();
@@ -53,14 +53,14 @@ var requireLogin = function(req, res, next) {
             function(err, u) {
                 if(u) {
                     req.user = u;
-                    next()
+                    next();
                 } else {
-                    res.redirect('/login.html')
+                    res.redirect('/login.html');
                 }
             }
-        ).populate(userPopulateArgument.path,userPopulateArgument.select);
+        ).populate(userPopulateArgument.path, userPopulateArgument.select);
     } else {
-        res.redirect('/login.html')
+        res.redirect('/login.html');
     }
 };
 
@@ -829,7 +829,11 @@ app.delete('/node/:node_id/graph/:graph_id', function(req, res) {
 });
 
 app.delete('/node/:node_id', function(req, res) {
-    handleDeleteById(req, res, 'node', db.Node);
+    var node_id = req.params.node_id;
+    db.Node.findById(node_id, function(err, node) {
+        logger('User', req.session.user, 'deletes node', node.name, node.ips);
+        handleDeleteById(req, res, 'node', db.Node);
+    });
 });
 
 app.get('/tags', function(req, res) {
@@ -923,7 +927,11 @@ app.put('/tag/:tag_id', function(req, res){
 });
 
 app.delete('/tag/:tag_id', function(req, res) {
-    handleDeleteById(req, res, 'tag', db.Tag);
+    var tag_id = req.params.tag_id;
+    db.Tag.findById(tag_id, function(err, tag) {
+        logger('User', req.session.user, 'deletes tag', tag.name, tag.monitorItems);
+        handleDeleteById(req, res, 'tag', db.Tag);
+    });
 });
 
 var queryNode = function(req, res) {
@@ -1448,7 +1456,11 @@ app.get('/user/:user_id', requireLeader, function(req, res) {
 
 app.delete('/user/:user_id', requireRoot,
     function(req, res) {
-        handleDeleteById(req, res, 'user', db.User);
+        var user_id = req.params.user_id;
+        db.User.findById(user_id, function(err, user){
+            logger('User', req.session.user, 'deletes user', user.name, user.projects);
+            handleDeleteById(req, res, 'user', db.User);
+        });
     }
 );
 
@@ -1872,7 +1884,11 @@ app.put('/project/:project_id', requireRoot, function(req, res){
 });
 
 app.delete('/project/:project_id', requireRoot, function(req, res){
-    handleDeleteById(req, res, 'project', db.Project);
+    var project_id = req.params.project_id;
+    db.Project.findById(project_id, function (err, project) {
+        logger('User', req.session.user, 'deletes project', project.name, project.leader);
+        handleDeleteById(req, res, 'project', db.Project);
+    });
 });
 
 app.get('/project/:project_id', requireRoot, function(req, res){
