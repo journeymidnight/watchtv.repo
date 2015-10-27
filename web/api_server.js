@@ -991,10 +991,22 @@ var queryNode = function(req, res) {
         async.map(
             node.split(' '),
             function(s, map_callback){
-                var sregx = new RegExp(s, 'i');
                 async.parallel([
                         function (callback) {
-                            var q = {name: sregx};
+                            var tagRegExp;
+                            if(s.indexOf(':') !== -1) { // handle 'tag:xxx'
+                                var k = s.split(':')[0],
+                                    v = s.split(':')[1];
+                                if(k === 'tag') {
+                                    tagRegExp = new RegExp(v, 'i');
+                                } else {
+                                    callback(null, []);
+                                    return;
+                                }
+                            } else {
+                                tagRegExp = new RegExp(s, 'i');
+                            }
+                            var q = {name: tagRegExp};
                             db.Tag.find(q, {_id: 1}, // only return id
                                 function (err, tags) {
                                     if (err) {
@@ -1018,10 +1030,25 @@ var queryNode = function(req, res) {
                             );
                         },
                         function (callback) {
-                            var q = {$or:[
-                                {name: sregx},
-                                {ips: sregx}
-                            ]};
+                            var q = {};
+                            if(s.indexOf(':') !== -1) { // handle 'name:xxx' and 'ip:xxx'
+                                var k = s.split(':')[0],
+                                    v = s.split(':')[1];
+                                if(k === 'name') {
+                                    q.name = new RegExp(v, 'i');
+                                } else if(k === 'ip') {
+                                    q.ips = new RegExp(v, 'i');
+                                } else {
+                                    callback(null, []);
+                                    return;
+                                }
+                            } else {
+                                var sregx = new RegExp(s, 'i');
+                                q = { $or: [
+                                    {name: sregx},
+                                    {ips: sregx}
+                                ]};
+                            }
                             for(var k in filter) {
                                 q[k] = filter[k];
                             }
