@@ -1,5 +1,4 @@
 var React = require('react');
-var mui = require('material-ui');
 
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationbar.js');

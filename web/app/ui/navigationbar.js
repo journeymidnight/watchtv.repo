@@ -1,6 +1,10 @@
 var React = require('react');
 var injectTapEventPlugin = require("react-tap-event-plugin");
-var mui = require('material-ui');
+var Styles = require('material-ui/lib/styles');
+var MenuItem = require('material-ui/lib/menu/menu-item');
+var AppBar = require('material-ui/lib/app-bar');
+var LeftNav = require('material-ui/lib/left-nav');
+var FlatButton = require('material-ui/lib/flat-button');
 
 var mixins = require('../mixins.js');
 
@@ -37,11 +41,11 @@ var NavigationBar = React.createClass({
             cursor: 'pointer',
             //.mui-font-style-headline
             fontSize: '24px',
-            color: mui.Styles.Typography.textFullWhite,
-            lineHeight: mui.Styles.Spacing.desktopKeylineIncrement + 'px',
-            fontWeight: mui.Styles.Typography.fontWeightLight,
-            backgroundColor: mui.Styles.Colors.cyan500,
-            paddingLeft: mui.Styles.Spacing.desktopGutter,
+            color: Styles.Typography.textFullWhite,
+            lineHeight: Styles.Spacing.desktopKeylineIncrement + 'px',
+            fontWeight: Styles.Typography.fontWeightLight,
+            backgroundColor: Styles.Colors.cyan500,
+            paddingLeft: Styles.Spacing.desktopGutter,
             paddingTop: '0px',
             marginBottom: '8px'
         };
@@ -56,24 +60,24 @@ var NavigationBar = React.createClass({
             </div>
         );
         var menuItems = [
-            {type: mui.MenuItem.Types.LINK, payload:'/', text: 'Node'},
-            {type: mui.MenuItem.Types.LINK, payload:'/tag.html', text: 'Tag'},
-            {type: mui.MenuItem.Types.LINK, payload:'/dashboard.html', text: 'Dashboard'}
+            {type: MenuItem.Types.LINK, payload:'/', text: 'Node'},
+            {type: MenuItem.Types.LINK, payload:'/tag.html', text: 'Tag'},
+            {type: MenuItem.Types.LINK, payload:'/dashboard.html', text: 'Dashboard'}
         ];
         if(this.state.user.role === 'Root' || this.state.user.role === 'Leader') {
-            menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/user.html', text: 'User'});
+            menuItems.push({type: MenuItem.Types.LINK, payload:'/user.html', text: 'User'});
         }
         if(this.state.user.role === 'Root') {
-            menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/project.html', text: 'Project'})
+            menuItems.push({type: MenuItem.Types.LINK, payload:'/project.html', text: 'Project'})
         }
-        menuItems.push({type: mui.MenuItem.Types.LINK, payload:'/logout', text: 'Log Out'});
+        menuItems.push({type: MenuItem.Types.LINK, payload:'/logout', text: 'Log Out'});
         return (
             <div>
                 <div className="head">
-                    <mui.AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi}
-                                iconElementRight={<mui.FlatButton label={this.state.user.name} />}
+                    <AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi}
+                                iconElementRight={<FlatButton label={this.state.user.name} />}
                     />
-                    <mui.LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
+                    <LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
                         header={header} isInitiallyOpen={true} />
                 </div>
                 <div className="afterNav"></div>

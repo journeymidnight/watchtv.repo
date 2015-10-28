@@ -1,5 +1,7 @@
 var React = require('react');
-var mui = require('material-ui');
+var FlatButton = require('material-ui/lib/flat-button');
+var Dialog = require('material-ui/lib/dialog');
+var DropDownMenu = require('material-ui/lib/drop-down-menu');
 
 var GraphSelector = require('./graphSelector.js');
 var NodeSelector = require('./nodeSelector.js');
@@ -116,7 +118,7 @@ var dashboardGraphEditor = React.createClass({
         if(this.props.graph_id) { // inside a graph
             deleteButton =
                 <div className="delDialog">
-                    <mui.FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog} />
+                    <FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog} />
                 </div>
         } else { // outside a graph
             deleteButton = <div></div>;
@@ -125,19 +127,19 @@ var dashboardGraphEditor = React.createClass({
         return (
             <div className="btnParent" >
                 <div className="graphBtn" onClick={this.showGraphEditDialog}></div>
-                <mui.Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
+                <Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}
-                    <mui.Dialog title="Delete confirmation"
+                    <Dialog title="Delete confirmation"
                                 actions={[
                                             { text: 'Cancel' },
                                             { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
                                         ]}
                                 ref="delDialog">
                         Please confirm to delete this graph.
-                    </mui.Dialog>
+                    </Dialog>
                     <div>
-                        <mui.DropDownMenu selectedIndex={selectedTimeIndex}
+                        <DropDownMenu selectedIndex={selectedTimeIndex}
                                           menuItems={timeList} className="timeLists"
                                           onChange={this.handleTimeChange} />
                         <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
@@ -150,7 +152,7 @@ var dashboardGraphEditor = React.createClass({
                                        ref='graphMetrics'
                         />
                     </div>
-                </mui.Dialog>
+                </Dialog>
             </div>
         )
     }

@@ -1,6 +1,12 @@
 var React = require('react');
-var mui = require('material-ui');
-var bootstrap = require('react-bootstrap');
+var Table = require('react-bootstrap/lib/Table');
+var Badge = require('react-bootstrap/lib//Badge');
+var TextField = require('material-ui/lib/text-field');
+var IconButton = require('material-ui/lib/icon-button');
+var SvgIcon = require('material-ui/lib/svg-icon');
+var Snackbar = require('material-ui/lib/snackbar');
+var Dialog = require('material-ui/lib/dialog');
+var AppCanvas = require('material-ui/lib/app-canvas');
 
 var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deletebutton.js');
@@ -62,26 +68,26 @@ var NodeList = React.createClass({
         });
         var addNewNodeRow =
             <tr className="add_node">
-                <td><mui.TextField ref="newName" /></td>
-                <td><mui.TextField ref="newIP" /></td>
-                <td><mui.TextField ref="newTag" /></td>
-                <td><mui.TextField ref="newProject" /></td>
-                <td><mui.TextField ref="newRegion" /></td>
-                <td><mui.TextField ref="newIdc" /></td>
+                <td><TextField ref="newName" /></td>
+                <td><TextField ref="newIP" /></td>
+                <td><TextField ref="newTag" /></td>
+                <td><TextField ref="newProject" /></td>
+                <td><TextField ref="newRegion" /></td>
+                <td><TextField ref="newIdc" /></td>
                 <td>
-                    <mui.IconButton tooltip="Add" onClick={this.handleCreateNewNode}>
-                        <mui.SvgIcon>
+                    <IconButton tooltip="Add" onClick={this.handleCreateNewNode}>
+                        <SvgIcon>
                             <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                                 <path d="M0 0h24v24H0z" fill="none"/>
                             </svg>
-                        </mui.SvgIcon>
-                    </mui.IconButton>
+                        </SvgIcon>
+                    </IconButton>
                 </td>
             </tr>;
         return (
             <div className="clear">
-            <bootstrap.Table striped bordered hover condensed>
+            <Table striped bordered hover condensed>
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -99,8 +105,8 @@ var NodeList = React.createClass({
                 <tfoot>
                     {addNewNodeRow}
                 </tfoot>
-            </bootstrap.Table>
-            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </Table>
+            <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </div>
         )
     }
@@ -111,9 +117,9 @@ var NodeEntry = React.createClass({
         var that = this;
         var tags = this.props.tags.map(function(tag, index){
             return(
-                <bootstrap.Badge key={that.props.id+'tag'+tag['name']}>
+                <Badge key={that.props.id+'tag'+tag['name']}>
                     {tag['name']}
-                </bootstrap.Badge>
+                </Badge>
             )
         });
         return (
@@ -187,21 +193,21 @@ var NodeEditButton = React.createClass({
             return t.name;
         });
         var edits = <div>
-            <mui.TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
+            <TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
                 ref="nameInput" />
-            <mui.TextField floatingLabelText="IP Address"
+            <TextField floatingLabelText="IP Address"
                 defaultValue={this.props.nodeIps.join("  ")}
                 ref="ipInput" />
-            <mui.TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
+            <TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
                 ref="tagInput" />
-            <mui.TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
+            <TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
                            ref="projectInput" />
-            <mui.TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
+            <TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
                 ref="regionInput" />
-            <mui.TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
+            <TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
                 ref="idcInput" />
                 <div>
-                    <mui.TextField floatingLabelText="Description"
+                    <TextField floatingLabelText="Description"
                         defaultValue={this.props.nodeDescription}
                         ref="descriptionInput" multiLine={true}
                     />
@@ -209,21 +215,21 @@ var NodeEditButton = React.createClass({
             </div>;
         return (
             <span>
-            <mui.IconButton tooltip="Edit" onClick={this.handleClick}>
-                <mui.SvgIcon>
+            <IconButton tooltip="Edit" onClick={this.handleClick}>
+                <SvgIcon>
                     <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                         <path d="M0 0h24v24H0z" fill="none"/>
                     </svg>
-                </mui.SvgIcon>
-            </mui.IconButton>
-            <mui.Dialog
+                </SvgIcon>
+            </IconButton>
+            <Dialog
                 title={"Edit info for " + this.props.nodeName}
                 actions={editActions}
                 ref="editDialog">
             {edits}
-            </mui.Dialog>
-            <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </Dialog>
+            <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>
         )
     }
@@ -244,14 +250,14 @@ var NodeInfoButton = React.createClass({
         }
         return (
             <span>
-                <mui.IconButton tooltip="Info" onClick={this.showInfo} className="infoBtn">
-                    <mui.SvgIcon>
+                <IconButton tooltip="Info" onClick={this.showInfo} className="infoBtn">
+                    <SvgIcon>
                         <svg fill={fillColor} height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
                             <path d="M0 0h24v24H0z" fill="none"/>
                         </svg>
-                    </mui.SvgIcon>
-                </mui.IconButton>
+                    </SvgIcon>
+                </IconButton>
             </span>
         )
     }
@@ -261,7 +267,7 @@ var NodeApp = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     render: function(){
         return (
-            <mui.AppCanvas>
+            <AppCanvas>
                 <NavigationBar title="Nodes" />
                 <SearchableList
                     type="node"
@@ -270,7 +276,7 @@ var NodeApp = React.createClass({
                     config={this.state.config}
                     additionalFilter="project region idc"
                 />
-            </mui.AppCanvas>
+            </AppCanvas>
         )
     }
 });

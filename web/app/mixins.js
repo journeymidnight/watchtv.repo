@@ -1,6 +1,6 @@
 var React = require("react");
-var mui = require('material-ui');
-var ThemeManager = new mui.Styles.ThemeManager();
+var Styles = require('material-ui/lib/styles');
+var ThemeManager = new Styles.ThemeManager();
 
 var materialMixin = {
     childContextTypes: {

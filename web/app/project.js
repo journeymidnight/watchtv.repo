@@ -1,6 +1,11 @@
 var React = require('react');
-var mui = require('material-ui');
-var bootstrap = require('react-bootstrap');
+var Table = require('react-bootstrap/lib/Table');
+var TextField = require('material-ui/lib/text-field');
+var IconButton = require('material-ui/lib/icon-button');
+var SvgIcon = require('material-ui/lib/svg-icon');
+var Snackbar = require('material-ui/lib/snackbar');
+var Dialog = require('material-ui/lib/dialog');
+var AppCanvas = require('material-ui/lib/app-canvas');
 
 var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deletebutton.js');
@@ -45,22 +50,22 @@ var ProjectList = React.createClass({
         });
         var addNewProjectRow =
             <tr>
-                <td><mui.TextField ref="newName" /></td>
-                <td><mui.TextField ref="newLeader" /></td>
+                <td><TextField ref="newName" /></td>
+                <td><TextField ref="newLeader" /></td>
                 <td>
-                    <mui.IconButton tooltip="Add" onClick={this.handleCreateNewProject}>
-                        <mui.SvgIcon>
+                    <IconButton tooltip="Add" onClick={this.handleCreateNewProject}>
+                        <SvgIcon>
                             <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                                 <path d="M0 0h24v24H0z" fill="none"/>
                             </svg>
-                        </mui.SvgIcon>
-                    </mui.IconButton>
+                        </SvgIcon>
+                    </IconButton>
                 </td>
             </tr>;
         return (
             <div className="clear">
-                <bootstrap.Table striped bordered hover condensed>
+                <Table striped bordered hover condensed>
                     <thead>
                     <tr>
                         <th>Name</th>
@@ -74,8 +79,8 @@ var ProjectList = React.createClass({
                     <tfoot>
                     {addNewProjectRow}
                     </tfoot>
-                </bootstrap.Table>
-                <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+                </Table>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </div>
         )
     }
@@ -148,33 +153,33 @@ var ProjectEditButton = React.createClass({
         var edits =
             <div>
                 <div>
-                    <mui.TextField floatingLabelText="Name" defaultValue={this.props.name}
+                    <TextField floatingLabelText="Name" defaultValue={this.props.name}
                                    ref="nameInput" />
                 </div>
                 <div>
-                    <mui.TextField floatingLabelText="Leader"
+                    <TextField floatingLabelText="Leader"
                                    defaultValue={leader}
                                    ref="leaderInput" multiLine={true} />
                 </div>
             </div>;
         return (
             <span>
-                <mui.IconButton tooltip="Edit" onClick={this.handleClick}>
-                    <mui.SvgIcon>
+                <IconButton tooltip="Edit" onClick={this.handleClick}>
+                    <SvgIcon>
                         <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                             <path d="M0 0h24v24H0z" fill="none"/>
                         </svg>
-                    </mui.SvgIcon>
-                </mui.IconButton>
-                <mui.Dialog
+                    </SvgIcon>
+                </IconButton>
+                <Dialog
                     title={"Edit info for " + this.props.name}
                     actions={editActions}
                     modal={true}
                     ref="editDialog">
                     {edits}
-                </mui.Dialog>
-                <mui.Snackbar ref="snackbar" message={this.state.snackMsg} />
+                </Dialog>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>
         )
     }
@@ -184,7 +189,7 @@ var ProjectApp = React.createClass({
     mixins: [mixins.materialMixin, mixins.configMixin],
     render: function(){
         return (
-            <mui.AppCanvas>
+            <AppCanvas>
                 <NavigationBar title="Projects" />
                 <SearchableList
                     type="project"
@@ -193,7 +198,7 @@ var ProjectApp = React.createClass({
                     config={this.state.config}
                     additionalFilter=""
                     />
-            </mui.AppCanvas>
+            </AppCanvas>
         )
     }
 });

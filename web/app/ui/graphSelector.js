@@ -1,5 +1,9 @@
 var React = require('react');
-var mui = require('material-ui');
+var DropDownMenu = require('material-ui/lib/drop-down-menu');
+var IconButton = require('material-ui/lib/icon-button');
+var SvgIcon = require('material-ui/lib/svg-icon');
+var List = require('material-ui/lib/lists/list');
+var ListItem = require('material-ui/lib/lists/list-item');
 
 var mixins = require('../mixins.js');
 var Utility = require('../utility.js');
@@ -147,14 +151,14 @@ var GraphSelector = React.createClass({
         if(this.props.onChange) this.props.onChange(metrics);
     },
     deleteButtonMaker: function(item) {
-        return <mui.IconButton tooltip="Delete" onClick={this.handleDelete.bind(null, item)}>
-            <mui.SvgIcon hoverColor="#e53935">
+        return <IconButton tooltip="Delete" onClick={this.handleDelete.bind(null, item)}>
+            <SvgIcon hoverColor="#e53935">
                 <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/>
                     <path d="M0 0h24v24H0z" fill="none"/>
                 </svg>
-            </mui.SvgIcon>
-        </mui.IconButton>;
+            </SvgIcon>
+        </IconButton>;
     },
     render: function() {
         var that = this,
@@ -167,7 +171,7 @@ var GraphSelector = React.createClass({
             measurementsItems.push({ payload: m, text: m });
         });
         var selected = this.state.selected;
-        selectors.push(<mui.DropDownMenu menuItems={measurementsItems}
+        selectors.push(<DropDownMenu menuItems={measurementsItems}
                             selectedIndex={getIndex(measurementsItems, selected.measurement)}
                             onChange={this.onMeasurementChange}
                             key='measurements'
@@ -177,7 +181,7 @@ var GraphSelector = React.createClass({
             this.state.measurements[selected.measurement].measure.map(function(m){
                 measureItems.push({ payload: m, text: m });
             });
-            selectors.push(<mui.DropDownMenu menuItems={measureItems}
+            selectors.push(<DropDownMenu menuItems={measureItems}
                                 selectedIndex={getIndex(measureItems, selected.measure)}
                                 onChange={this.onMeasureChange}
                                 key='measure'
@@ -188,7 +192,7 @@ var GraphSelector = React.createClass({
                 device.map(function(d) {
                     deviceItems.push({ payload: d, text: d });
                 });
-                selectors.push(<mui.DropDownMenu menuItems={deviceItems}
+                selectors.push(<DropDownMenu menuItems={deviceItems}
                                     selectedIndex={getIndex(deviceItems, selected.device)}
                                     onChange={this.onDeviceChange}
                                     key='device'
@@ -197,7 +201,7 @@ var GraphSelector = React.createClass({
         }
 
         var metricItems = this.state.metrics.map(function(metric) {
-            return <mui.ListItem primaryText={metric}
+            return <ListItem primaryText={metric}
                                  rightIconButton={that.deleteButtonMaker(metric)}
                                  key={metric}/>
         });
@@ -205,19 +209,19 @@ var GraphSelector = React.createClass({
             <div>
                 <div className='configList'>
                     {selectors}
-                    <mui.IconButton tooltip="Add" onClick={this.handleAddingMetric} className="addMetricBtn">
-                        <mui.SvgIcon>
+                    <IconButton tooltip="Add" onClick={this.handleAddingMetric} className="addMetricBtn">
+                        <SvgIcon>
                             <svg fill="#444444" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                                 <path d="M0 0h24v24H0z" fill="none"/>
                             </svg>
-                        </mui.SvgIcon>
-                    </mui.IconButton>
+                        </SvgIcon>
+                    </IconButton>
                 </div>
                 <div className='metricList'>
-                    <mui.List>
+                    <List>
                         {metricItems}
-                    </mui.List>
+                    </List>
                 </div>
             </div>
         )

@@ -1,6 +1,8 @@
 var React = require('react');
-var mui = require('material-ui');
-var bootstrap = require('react-bootstrap');
+var Pagination = require('react-bootstrap/lib/Pagination');
+var TextField = require('material-ui/lib/text-field');
+var RaisedButton = require('material-ui/lib/raised-button');
+var DropDownMenu = require('material-ui/lib/drop-down-menu');
 
 var mixins = require('../mixins.js');
 
@@ -140,9 +142,9 @@ var SearchBar = React.createClass({
         var that = this,
             searchComponents = [];
 
-        searchComponents.push(<mui.TextField hintText={this.props.hintText} ref="keywords"
+        searchComponents.push(<TextField hintText={this.props.hintText} ref="keywords"
                                key="keywords" />);
-        searchComponents.push(<mui.RaisedButton label="Find" key="find"
+        searchComponents.push(<RaisedButton label="Find" key="find"
                                onClick={this.handleSearch} />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
@@ -155,7 +157,7 @@ var SearchBar = React.createClass({
                     selectedIndex = index + 1; // for 0 is the "All"
                 }
             });
-            searchComponents.push(<mui.DropDownMenu menuItems={menuItems}
+            searchComponents.push(<DropDownMenu menuItems={menuItems}
                                     onChange={that[dropdownName + 'Handler']}
                                     selectedIndex={selectedIndex}
                                     key={dropdownName + 'DropDown'} />);
@@ -173,7 +175,7 @@ var SearchBar = React.createClass({
                     }>
                     {searchComponents}
                 </form>
-                <bootstrap.Pagination
+                <Pagination
                     first={true}
                     last={true}
                     maxButtons={this.props.totalPages > 10 ? 10: this.props.totalPages}
