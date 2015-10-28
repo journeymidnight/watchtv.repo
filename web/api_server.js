@@ -60,7 +60,7 @@ var requireLogin = function (req, res, next) {
                 }
             }).populate(userPopulateArgument.path, userPopulateArgument.select);
     } else {
-        if (req.url.indexOf('.html') >= 0) { // page requests are from browser
+        if (req.url.indexOf('.html') >= 0 || req.url === '/') { // page requests are from browser
             res.redirect('/login.html');
             return;
         }
