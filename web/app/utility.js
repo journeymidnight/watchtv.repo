@@ -85,9 +85,9 @@ var fitData = function(data) {
         var d = [Date.parse(data[i]) , data[i+1]];
         fitted_data.push(d);
     }
-    
-    if(fitted_data.length === 0) {
-        return [];
+    if(fitted_data.length < 2) {  // len=0 would cause null value,
+                                  // 1 would cause divide by 0
+        return fitted_data;
     }
     // do linear fitting to eliminate null values
     var last_i = null,
