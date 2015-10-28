@@ -83,7 +83,11 @@ var fitData = function(data) {
     var fitted_data = [];
     for (var i = 0; i < data.length; i+=2){
         var d = [Date.parse(data[i]) , data[i+1]];
-        fitted_data.push(d)
+        fitted_data.push(d);
+    }
+    
+    if(fitted_data.length === 0) {
+        return [];
     }
     // do linear fitting to eliminate null values
     var last_i = null,
