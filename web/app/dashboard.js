@@ -1,7 +1,7 @@
 var React = require('react');
 
 var mixins = require('./mixins.js');
-var NavigationBar = require('./ui/navigationbar.js');
+var NavigationBar = require('./ui/navigationBar.js');
 var BaseGraph  = require('./ui/baseGraph.js');
 var GraphEditor = require('./ui/dashboardGraphEditor.js');
 

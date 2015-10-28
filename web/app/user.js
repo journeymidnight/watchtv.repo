@@ -9,9 +9,9 @@ var AppCanvas = require('material-ui/lib/app-canvas');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
 
 var mixins = require('./mixins.js');
-var DeleteButton = require('./ui/deletebutton.js');
-var NavigationBar = require('./ui/navigationbar.js');
-var SearchableList = require('./ui/searchablelist.js');
+var DeleteButton = require('./ui/deleteButton.js');
+var NavigationBar = require('./ui/navigationBar.js');
+var SearchableList = require('./ui/searchableList.js');
 
 var roleItems = [
     {payload: 'User', text: 'User'},

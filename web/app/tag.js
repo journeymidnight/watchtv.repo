@@ -8,9 +8,9 @@ var Dialog = require('material-ui/lib/dialog');
 var AppCanvas = require('material-ui/lib/app-canvas');
 
 var mixins = require('./mixins.js');
-var DeleteButton = require('./ui/deletebutton.js');
-var NavigationBar = require('./ui/navigationbar.js');
-var SearchableList = require('./ui/searchablelist.js');
+var DeleteButton = require('./ui/deleteButton.js');
+var NavigationBar = require('./ui/navigationBar.js');
+var SearchableList = require('./ui/searchableList.js');
 
 
 var TagList = React.createClass({

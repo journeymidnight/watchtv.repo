@@ -1,6 +1,6 @@
 var React = require('react');
 
-var SearchBar = require('./searchbar.js');
+var SearchBar = require('./searchBar.js');
 
 
 // The integration place for SearchBar and a table class
