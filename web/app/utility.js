@@ -86,10 +86,17 @@ var fitData = function(data) {
         fitted_data.push(d)
     }
     // do linear fitting to eliminate null values
-    var last_i = null;
+    var last_i = null,
+        timeSpan = fitted_data[fitted_data.length-1][0] - fitted_data[0][0],
+        // don't do fitting if more than 10min data are lost
+        thresholdPointNumber = Math.floor((10 * 60 * 1000 * fitted_data.length) / timeSpan);
     for (i = 0; i < fitted_data.length; i += 1) {
         if(fitted_data[i][1]) {
            if (last_i) {
+               if(i - last_i > thresholdPointNumber) {
+                   last_i = i;
+                   continue;
+               }
                for(var j = last_i + 1; j < i; j += 1) {
                    var y1 = fitted_data[last_i][1];
                    var y2 = fitted_data[i][1];
