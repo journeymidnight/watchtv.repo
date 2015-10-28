@@ -70,6 +70,9 @@ var SearchBar = React.createClass({
                     that.setState(state);
                 },
                 error: function(xhr, status, err) {
+                    if (xhr.status === 401) {
+                        location.assign('/login.html');
+                    }
                     console.error('Cannot fetch /' + dropdownName + 's');
                 }
             });

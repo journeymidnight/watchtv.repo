@@ -41,6 +41,9 @@ var DeleteButton = React.createClass({
                 this.props.onRefresh();
             }.bind(this),
             error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 this.setState({snackMsg: xhr.responseText});
                 this.refs.snackbar.show()
             }.bind(this)

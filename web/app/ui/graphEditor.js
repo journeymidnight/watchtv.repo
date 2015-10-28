@@ -58,6 +58,9 @@ var graphEditor = React.createClass({
                 that.props.onRefresh();
             },
             error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 console.log('Error deleting user graph', xhr, status, error);
             }
         });
@@ -94,6 +97,9 @@ var graphEditor = React.createClass({
                 that.props.onRefresh();
             },
             error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 console.log('Error adding user graph', xhr, status, error);
             }
         });

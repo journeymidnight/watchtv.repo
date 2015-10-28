@@ -41,26 +41,29 @@ var valueWithDefault = function(value, defaultValue) {
 
 app.set('port', (config.webServer.port || 3000));
 
-var requireLogin = function(req, res, next) {
+var requireLogin = function (req, res, next) {
     logger(req.method, req.url);
-    if(req.url.indexOf('/login') >= 0 || req.url.indexOf('/js') >= 0
-        || req.url.indexOf('/css') >= 0 || req.url.indexOf('/images') >= 0) {
+    if (req.url.indexOf('/login') >= 0 || req.url.indexOf('/js') >= 0 ||
+            req.url.indexOf('/css') >= 0 || req.url.indexOf('/images') >= 0) {
         next();
         return;
     }
-    if(req.session && req.session.user) {
+    if (req.session && req.session.user) {
         db.User.findOne({name: req.session.user},
-            function(err, u) {
-                if(u) {
+            function (err, u) {
+                if (u) {
                     req.user = u;
                     next();
                 } else {
-                    res.redirect('/login.html');
+                    res.status(401).send('Please login again');
                 }
-            }
-        ).populate(userPopulateArgument.path, userPopulateArgument.select);
+            }).populate(userPopulateArgument.path, userPopulateArgument.select);
     } else {
-        res.redirect('/login.html');
+        if (req.url.indexOf('.html') >= 0) { // page requests are from browser
+            res.redirect('/login.html');
+            return;
+        }
+        res.status(401).send('Please login again');
     }
 };
 
@@ -69,15 +72,15 @@ var requireLeader = function (req, res, next) {
     if (req.user.role === 'Leader' || req.user.role === 'Root') {
         next();
     } else {
-        res.status(401).send('You must be Leader to perform this action');
+        res.status(403).send('You must be Leader to perform this action');
     }
 };
 
-var requireRoot = function(req, res, next) {
-    if(req.user.role === 'Root') {
+var requireRoot = function (req, res, next) {
+    if (req.user.role === 'Root') {
         next();
     } else {
-        res.status(401).send('You must be Root to perform this action');
+        res.status(403).send('You must be Root to perform this action');
     }
 };
 

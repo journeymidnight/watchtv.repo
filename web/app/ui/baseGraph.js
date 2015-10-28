@@ -99,6 +99,9 @@ var BaseGraph = React.createClass({
             success: function () {
             },
             error: function (xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 console.log('Error updating user graph', xhr, status, error);
             }
         });
@@ -150,7 +153,10 @@ var BaseGraph = React.createClass({
                 data: {graph: graph},
                 success: function(){
                 },
-                error:function(){
+                error:function(xhr, status, err){
+                    if (xhr.status === 401) {
+                        location.assign('/login.html');
+                    }
                     console.log("error");
                 }
             });

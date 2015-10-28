@@ -35,6 +35,9 @@ var NodeList = React.createClass({
                 this.props.onRefresh();
             }.bind(this),
             error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 console.error(xhr, status, err.toString());
                 this.setState({snackMsg: xhr.responseText});
                 this.refs.snackbar.show();
@@ -167,6 +170,9 @@ var NodeEditButton = React.createClass({
                 this.props.onRefresh()
             }.bind(this),
             error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 this.setState({snackMsg: xhr.responseText});
                 this.refs.snackbar.show()
             }.bind(this)

@@ -69,6 +69,11 @@ var SearchableList = React.createClass({
                     totalPages: Math.ceil(data.total / itemsPerPage),
                     activePage: pageNumber
                 });
+            },
+            error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
             }
         });
     },

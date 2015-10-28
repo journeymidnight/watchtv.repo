@@ -85,6 +85,9 @@ var GraphList = React.createClass({
                 that.setState({graphs: data});
             },
             error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
                 console.log('Error fetching node graphs', xhr, status, error);
             }
         });
