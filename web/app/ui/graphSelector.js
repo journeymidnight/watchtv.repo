@@ -58,9 +58,14 @@ var GraphSelector = React.createClass({
             metrics: metrics // currently listed in metrics list
         };
     },
-    getMeasurements: function() {
+    getMeasurements: function(defaultIPs) {
         var that = this;
-        var ip = this.props.ips[0].replace(/\./g, '_');
+        var ips = defaultIPs || this.props.ips;
+        if(ips.length === 0) {
+            that.setState({measurements: {}});
+            return;
+        }
+        var ip = ips[0].replace(/\./g, '_');
         $.ajax({
             url: that.props.config.influxdbURL + '/query?' + $.param(
                 Utility.q_param(that.props.config,
@@ -82,17 +87,16 @@ var GraphSelector = React.createClass({
             this.getMeasurements();
         }
     },
-    componentDidUpdate: function() {
-        if(this.props.needToQueryMeasurements && this.props.ips && this.props.ips.length > 0) {
-            this.getMeasurements();
-        }
-    },
     componentWillReceiveProps: function(nextProps) {
         // Mainly for `single` page measurements props updates
         if(!this.props.needToQueryMeasurements && nextProps.initialMeasurements) {
             this.setState({
                 measurements: nextProps.initialMeasurements
             });
+        }
+        // Mainly for `dashboard` page ip updates
+        if(nextProps.needToQueryMeasurements && nextProps.ips) {
+            this.getMeasurements(nextProps.ips);
         }
     },
     onMeasurementChange: function(err, selectedIndex, menuItem) {
