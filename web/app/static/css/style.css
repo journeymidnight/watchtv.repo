@@ -42,7 +42,7 @@ li{list-style: none;}
 .flot-overlay {cursor: crosshair;}
 .graphList > div ,.singleDefault > div{width:50%;float:left;}
 .graphList .singleDefault{width: 100%;}
-.graphList .graph{margin:5px;background-color: #1f1f1f;color: #fff;padding: 010px;position: relative;min-height: 250px;}
+.graphList .graph{margin:5px;background-color: #1f1f1f;color: #fff;padding: 010px;overflow:hidden;position: relative;min-height: 250px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
 .delDialog + div{padding-top: 0px!important;}
 .btnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 50%;height: 38px;margin-top: -18px;}
@@ -51,6 +51,13 @@ li{list-style: none;}
 .graphBtn:hover{left: 0px;}
 .graphList > div .graphBtn{position: static;background: #77B300 url('../images/edit.png') no-repeat center;}
 .singleDefault .graphBtn,.singleDefault .titleInput{display: none;}
+/*btn animation*/
+.graphBtn,.btnParent{-webkit-animation: moveLeft 0.4s ease-in-out 1s backwards;-moz-animation: moveLeft 0.4s ease-in-out 1s backwards;-o-animation: moveLeft 0.4s ease-in-out 1s backwards;-ms-animation: moveLeft 0.4s ease-in-out 1s backwards;animation: moveLeft 0.4s ease-in-out 1s backwards;}
+@-webkit-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
+@-moz-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
+@-o-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
+@-ms-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
+@keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
 .singleDefault .graphTitle {margin-top: 25px;}
 .configInfo {float: left;position: relative;z-index: 2;color: #505050;border: 1px solid #E0E0E0;padding: 10px;border-radius: 3px;width: 230px;height: 105px;max-height: 105px;margin-top: -6px;overflow: auto;overflow-x: hidden;}
 .single .configInfo {margin-top: 10px;min-height: 150px;}
