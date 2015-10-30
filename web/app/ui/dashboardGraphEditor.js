@@ -123,10 +123,17 @@ var dashboardGraphEditor = React.createClass({
         } else { // outside a graph
             deleteButton = <div></div>;
         }
-
+        var btn;//add or edit
+        if(this.props.title.indexOf("Add")>=0){
+            btn = <i className="fa fa-plus fa-white"></i>;
+        }else{
+            btn = <i className="fa fa-pencil fa-white"></i>
+        }
         return (
             <div className="btnParent" >
-                <div className="graphBtn" onClick={this.showGraphEditDialog}></div>
+                <div className="graphBtn" onClick={this.showGraphEditDialog}>
+                    {btn}
+                </div>
                 <Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                     {deleteButton}

@@ -161,6 +161,7 @@ var BaseGraph = React.createClass({
                 }
             });
         });
+        $(".singleDefault .titleInput").off().attr("disabled",true);
     },
     componentDidUpdate: function() {
         var fitted_data=this.getFittedData();
