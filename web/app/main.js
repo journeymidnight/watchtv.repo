@@ -231,7 +231,7 @@ var NodeInfoButton = React.createClass({
         return {}
     },
     showInfo: function(){
-        window.location.href = "/single.html?_id="+this.props.nodeId;
+        window.open( "/single.html?_id="+this.props.nodeId);
     },
     render: function(){
         if(this.props.state == "Good") {// green, signifies the node is in good condition

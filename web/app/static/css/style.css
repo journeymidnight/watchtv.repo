@@ -64,6 +64,8 @@ li{list-style: none;}
 .graphList > div .graphBtn{position: static;background: #77B300;}
 .graphList > div .graphBtn .fa{font-size: 20px;margin:10px;}
 .singleDefault .graphBtn{display: none;}
+.nodeInfo{line-height: 30px;text-align: center;font-size: 16px;}
+.nodeInfo span{margin-right: 10px;}
 /*btn animation*/
 .graphBtn,.btnParent{-webkit-animation: moveLeft 0.4s ease-in-out 1s backwards;-moz-animation: moveLeft 0.4s ease-in-out 1s backwards;-o-animation: moveLeft 0.4s ease-in-out 1s backwards;-ms-animation: moveLeft 0.4s ease-in-out 1s backwards;animation: moveLeft 0.4s ease-in-out 1s backwards;}
 @-webkit-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}

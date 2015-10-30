@@ -18,17 +18,23 @@ var GraphList = React.createClass({
             zoomTimeIndex: 5, // last 12h
             ips: [],
             measurements: null,
-            timePeriod: null
+            timePeriod: null,
+            node:{
+                project:{name:""},
+                idc:{name:""},
+                region:{name:""},
+                description:"",
+            }//node info
         };
     },
     getBasics: function () {
         var that = this;
         $.ajax({
-            url: "/node/" + this.state.node_id + '/ips',
+            url: "/node/" + this.state.node_id,
             type: "GET",
             success: function(data) {
                 var ips = data.ips;
-                that.setState({ips: ips});
+                that.setState({ips: ips,node:data});
 
                 for(var i = 0; i<ips.length; i++) {
                     var hostIP = Utility.dotted2underscoredIP(ips[i]);
@@ -185,6 +191,13 @@ var GraphList = React.createClass({
                             {zoomTimeList}
                         </ul>
                     </div>
+                </div>
+                <div className="nodeInfo">
+                    <span>IP:{this.state.node.ips}</span>
+                    <span>Project:{this.state.node.project.name}</span>
+                    <span>IDC:{this.state.node.idc.name}</span>
+                    <span>Region:{this.state.node.region.name}</span>
+                    <span>Description:{this.state.node.description}</span>
                 </div>
                 <div className="graphList">
                     <div className="singleDefault">{defaultGraphList}</div>
