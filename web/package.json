@@ -20,6 +20,7 @@
     "react": "^0.13.3",
     "react-bootstrap": "^0.23.5",
     "request": "^2.58.0",
+    "swig": "^1.4.2",
     "underscore": "^1.8.3",
     "update": "^0.3.6",
     "validator": "^3.40.1"

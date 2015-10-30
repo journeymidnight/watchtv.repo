@@ -10,6 +10,7 @@ var request = require('request');
 var Set = require('jsclass/src/set').Set;
 var app = express();
 var session = require('client-sessions');
+var swig = require('swig');
 
 var db = require('./db.js');
 var config = require('./config.js');
@@ -39,6 +40,9 @@ var valueWithDefault = function(value, defaultValue) {
     return value;
 };
 
+app.engine('html', swig.renderFile);
+app.set('view engine', 'html');
+app.set('views', path.join(__dirname, 'app', 'static', 'views'));
 app.set('port', (config.webServer.port || 3000));
 
 var requireLogin = function (req, res, next) {
@@ -92,7 +96,7 @@ app.use(session({
     activeDurations: config.webServer.sessionActiveDuration
 }));
 app.use(requireLogin);
-app.use('/', express.static(path.join(__dirname, 'app', 'static')));
+app.use('/static/', express.static(path.join(__dirname, 'app', 'static')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -290,6 +294,21 @@ var findByIdAndUpdate = function(res, documentId, toUpdate, name, model) {
         }
     );
 };
+
+var render = function(name) {
+    return function(req, res) {
+        res.render(name);
+    };
+};
+
+app.get('/', render('node'));
+app.get('/index.html', render('node'));
+app.get('/dashboard.html', render('dashboard'));
+app.get('/project.html', render('project'));
+app.get('/single.html', render('single'));
+app.get('/tag.html', render('tag'));
+app.get('/user.html', render('user'));
+app.get('/login.html', render('login'));
 
 app.get('/nodes', function(req, res) {
     var q = {}, projects = [];
