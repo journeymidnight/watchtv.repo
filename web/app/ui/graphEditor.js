@@ -71,7 +71,6 @@ var graphEditor = React.createClass({
     },
     saveConfig: function () {
         var that = this;
-
         if(this.props.graph_id) {
             // graph_id exists, so the edit is inside a graph
             // PUT action should be handled inside a graph
@@ -84,7 +83,10 @@ var graphEditor = React.createClass({
             this.refs.graphEditDialog.dismiss();
             return;
         }
-
+        if(that.state.metrics.length==0){
+            alert("请选择Metric信息");
+            return;
+        }
         $.ajax({
             url: '/node/' + this.props.node_id + '/graphs',
             type: 'POST',

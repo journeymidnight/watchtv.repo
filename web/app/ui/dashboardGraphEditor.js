@@ -35,7 +35,14 @@ var dashboardGraphEditor = React.createClass({
     },
     saveConfig: function () {
         var that = this;
-
+        if(that.state.ips.length==0){
+            alert("请选择IP");
+            return;
+        }
+        if(that.state.metrics.length==0){
+            alert("请选择Metric信息");
+            return;
+        }
         if(this.props.graph_id) {
             // graph_id exists, so the edit is inside a graph
             // PUT action should be handled inside a graph
