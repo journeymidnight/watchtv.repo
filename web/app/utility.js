@@ -185,7 +185,7 @@ var plotGraph = function(placeholder, data, yAxisFormatters) {
                      "#E24D42","#E600FF","#FF0000","#48FF00","#FFE600"],
             crosshair: {
                 mode: "x",
-                color: "#444"
+                color: "#f00"
             },
             selection: {
                 mode: "x"

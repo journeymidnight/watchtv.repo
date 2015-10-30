@@ -277,7 +277,6 @@ var BaseGraph = React.createClass({
                 <div className="graph">
                     <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
-                    <div className="graphTitle"></div>
                     <div id={'graph' + uniq_id}
                          style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f",marginTop:'10px'}}>
                     </div>
