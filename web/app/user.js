@@ -205,7 +205,7 @@ var UserEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.name}
                     actions={editActions}
-                    ref="editDialog">
+                    ref="editDialog" contentClassName="dropDownDiv">
                 {edits}
                 </Dialog>
                 <Snackbar ref="snackbar" message={this.state.snackMsg} />

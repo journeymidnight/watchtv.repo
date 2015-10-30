@@ -260,9 +260,9 @@ var getElePosition = function(obj){
 };
 
 var getTimeList = function(){
-    var arr1 = ['Last 5m' ,'Last 10m','Last 30m','Last 1h' ,'Last 6h' ,'Last 12h','Last 1d' ,
+    var arr1 = ['Last 30m','Last 1h' ,'Last 6h' ,'Last 12h','Last 1d' ,
                 'Last 2d' ,'Last 3d' ,'Last 4d' ,'Last 5d' ,'Last 6d' ,'Last 7d' ,'Last 30d'];
-    var arr2 = [300,600,1800,3600,21600,43200,86400,
+    var arr2 = [1800,3600,21600,43200,86400,
                 172800,259200,345600,432000,518400,604800,2592000];
     var timeList = [];
     for(var i = 0;i<arr1.length;i++){
