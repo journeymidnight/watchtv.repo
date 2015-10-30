@@ -22,6 +22,7 @@ var NodeList = React.createClass({
         var name = this.refs.newName.getValue().trim(),
             ips = this.refs.newIP.getValue().trim().split(/[\s,]+/),
             tags = this.refs.newTag.getValue().trim().split(/[\s,]+/),
+            description = this.refs.newDescription.getValue().trim().split(/[\s,]+/),
             region = this.refs.newRegion.getValue().trim(),
             idc = this.refs.newIdc.getValue().trim(),
             project = this.refs.newProject.getValue().trim();
@@ -32,6 +33,7 @@ var NodeList = React.createClass({
                 "name": name,
                 "ips": ips,
                 "tags": tags,
+                "description": description,
                 "region": region,
                 "idc": idc,
                 "project": project
@@ -51,7 +53,7 @@ var NodeList = React.createClass({
     },
     componentDidUpdate: function(){
         // clicking on table also triggers info button(show single page)
-        $(".table").off().on('click','.name,.nodeIp',function(){
+        $(".table").on('click','.name,.nodeIp',function(){
             $(this).parent().find('.toolBtn .infoBtn').trigger("click");
         });
     },
@@ -70,6 +72,7 @@ var NodeList = React.createClass({
                 <td><TextField ref="newName" /></td>
                 <td><TextField ref="newIP" /></td>
                 <td><TextField ref="newTag" /></td>
+                <td><TextField ref="newDescription" /></td>
                 <td><TextField ref="newProject" /></td>
                 <td><TextField ref="newRegion" /></td>
                 <td><TextField ref="newIdc" /></td>
@@ -85,6 +88,7 @@ var NodeList = React.createClass({
                         <th>Name</th>
                         <th>IP Addresses</th>
                         <th>Tags</th>
+                        <th>Description</th>
                         <th>Project</th>
                         <th>Region</th>
                         <th>IDC</th>
@@ -119,6 +123,7 @@ var NodeEntry = React.createClass({
                 <td key={this.props.id + 'name'} className="name">{this.props.name}</td>
                 <td key={this.props.id + 'ip'} className="nodeIp">{this.props.ips.join('  ')}</td>
                 <td key={this.props.id + 'tags'}>{tags}</td>
+                <td key={this.props.id + 'description'}>{this.props.description}</td>
                 <td key={this.props.id + 'project'}>{this.props.project.name}</td>
                 <td key={this.props.id + 'region'}>{this.props.region.name}</td>
                 <td key={this.props.id + 'idc'}>{this.props.idc.name}</td>
