@@ -1451,6 +1451,49 @@ app.post('/user/graphs', function(req, res) {
     });
 });
 
+// import graphs to user's dashboard
+app.post('/user/graphs/imports', function(req, res) {
+    var user_id = req.user._id;
+    var graphs = req.body.graphs;
+    if(graphs.constructor !== Array) {
+        res.status(400).send('Graphs should be an array');
+        return;
+    }
+    for(var i=0; i<graphs.length; i++) {
+        var graph = graphs[i];
+        if(!graph.ips || graph.ips.constructor !== Array || graph.ips.length === 0) {
+            res.status(400).send('Missing IPs or bad format for graph#' + i);
+            return;
+        }
+        if(!graph.metrics || graph.metrics.constructor !== Array || graph.metrics.length === 0) {
+            res.status(400).send('Missing metrics or bad format for graph#' + i);
+            return;
+        }
+        if(!graph.time) {
+            res.status(400).send('Missing time for graph#' + i);
+            return;
+        }
+    }
+    db.Graph.create(graphs, function(err, created){
+        if(err) {
+            res.status(500).send('Graph import failed');
+            return;
+        }
+        db.User.findByIdAndUpdate(user_id,
+            { $push: {graphs: {$each: created}}},
+            function(err, u) {
+                if(err) {
+                    res.status(500).send('Adding graph to user failed');
+                    return;
+                }
+                res.status(201)
+                    .location('/user/graphs')
+                    .send('Graphs imported to user');
+            }
+        )
+    })
+});
+
 // delete graph with graph_id in current user
 app.delete('/user/graph/:graph_id', function(req, res) {
     var user_id = req.user._id,
