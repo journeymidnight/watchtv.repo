@@ -2,6 +2,7 @@ var React = require('react');
 var FlatButton = require('material-ui/lib/flat-button');
 var Dialog = require('material-ui/lib/dialog');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
+var TextField = require('material-ui/lib/text-field');
 
 var GraphSelector = require('./graphSelector.js');
 var NodeSelector = require('./nodeSelector.js');
@@ -73,6 +74,35 @@ var dashboardGraphEditor = React.createClass({
         });
         this.refs.graphEditDialog.dismiss();
     },
+    importGraph: function() {
+        var that = this, graphs;
+        var graphJson = this.refs.graphInput.getValue().trim();
+        try {
+            graphs = JSON.parse(graphJson);
+        } catch (e) {
+            this.refs.parseErrorDialog.show();
+            return;
+        }
+        $.ajax({
+            url: '/user/graphs/imports',
+            type: 'POST',
+            data: {
+                graphs: graphs
+            },
+            success: function() {
+                // graph_id does not exist, edit is outside a graph,
+                // just let the container to refresh all graphs
+                that.props.onRefresh();
+            },
+            error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                console.log('Error adding user graph', xhr, status, error);
+            }
+        });
+        this.refs.graphImportDialog.dismiss();
+    },
     handleTimeChange: function (err, selectedIndex, menuItem) {
         this.setState({time: menuItem.value});
     },
@@ -87,6 +117,9 @@ var dashboardGraphEditor = React.createClass({
     },
     showDelDialog:function(){
         this.refs.delDialog.show();
+    },
+    showGraphImportDialog: function() {
+        this.refs.graphImportDialog.show();
     },
     deleteGraph: function() {
         var that = this;
@@ -131,42 +164,66 @@ var dashboardGraphEditor = React.createClass({
             deleteButton = <div></div>;
         }
         var btn;//add or edit
+        var importButton = <i></i>;
         if(this.props.title.indexOf("Add")>=0){
             btn = <i className="fa fa-plus fa-white"></i>;
+            importButton = <i className='fa fa-arrow-down fa-white'></i>;
         }else{
             btn = <i className="fa fa-pencil fa-white"></i>
         }
+        var graphImportAction = [
+            {text: 'Cancel'},
+            {text: 'Import', onClick: this.importGraph, ref: 'import'}
+        ];
         return (
-            <div className="btnParent" >
-                <div className="graphBtn" onClick={this.showGraphEditDialog}>
-                    {btn}
-                </div>
-                <Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
-                            contentClassName='scrollDialog' >
-                    {deleteButton}
-                    <Dialog title="Delete confirmation"
-                                actions={[
-                                            { text: 'Cancel' },
-                                            { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
-                                        ]}
-                                ref="delDialog">
-                        Please confirm to delete this graph.
-                    </Dialog>
-                    <div>
-                        <DropDownMenu selectedIndex={selectedTimeIndex}
-                                          menuItems={timeList} className="timeLists"
-                                          onChange={this.handleTimeChange} />
-                        <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
-                                      initialIPs={this.state.ips}
-                        />
-                        <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
-                                       config={this.props.config}
-                                       initialMetrics={this.state.metrics}
-                                       needToQueryMeasurements={true}
-                                       ref='graphMetrics'
-                        />
+            <div>
+                <div className="btnParent" >
+                    <div className="graphBtn" onClick={this.showGraphEditDialog}>
+                        {btn}
                     </div>
-                </Dialog>
+                    <Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
+                                contentClassName='scrollDialog' >
+                        {deleteButton}
+                        <Dialog title="Delete confirmation"
+                                    actions={[
+                                                { text: 'Cancel' },
+                                                { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
+                                            ]}
+                                    ref="delDialog">
+                            Please confirm to delete this graph.
+                        </Dialog>
+                        <div>
+                            <DropDownMenu selectedIndex={selectedTimeIndex}
+                                              menuItems={timeList} className="timeLists"
+                                              onChange={this.handleTimeChange} />
+                            <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
+                                          initialIPs={this.state.ips}
+                            />
+                            <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
+                                           config={this.props.config}
+                                           initialMetrics={this.state.metrics}
+                                           needToQueryMeasurements={true}
+                                           ref='graphMetrics'
+                            />
+                        </div>
+                    </Dialog>
+                </div>
+                <div className="importBtnParent">
+                    <div className="importGraphBtn" onClick={this.showGraphImportDialog}>
+                        {importButton}
+                    </div>
+                    <Dialog title="Import graph" actions={graphImportAction}
+                            ref='graphImportDialog' >
+                        <TextField hintText='Paste the JSON string here' ref='graphInput'
+                                   style={{width: '90%'}} multiLine={true}
+                            />
+                    </Dialog>
+                    <Dialog title="Cannot parse the content"
+                            actions={[{ text: 'OK' }]}
+                            ref="parseErrorDialog">
+                        Please double check your input
+                    </Dialog>
+                </div>
             </div>
         )
     }

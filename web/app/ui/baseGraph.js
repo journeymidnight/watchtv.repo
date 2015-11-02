@@ -1,4 +1,6 @@
 var React = require('react');
+var Dialog = require('material-ui/lib/dialog');
+var TextField = require('material-ui/lib/text-field');
 
 var unit = require('../unit.js');
 var Utility = require('../utility.js');
@@ -267,13 +269,30 @@ var BaseGraph = React.createClass({
             this.setState({data: [], time: nextProps.graph.time}, this.handleGraph);
         }
     },
+    showShareDialog: function () {
+        this.refs.shareDialog.show();
+    },
     render: function(){
         var placeholderText = "Click Here to Edit Graph Name";
         if(this.state.title!=null&&this.state.title!="") placeholderText = this.state.title;
 
         var uniq_id = Utility.generateKeyForGraph(this.props.graph);
+        var shareAction = [{text: 'Close'}];
+        var shareContent = '[' + JSON.stringify({
+            ips: this.state.ips,
+            metrics: this.state.metrics,
+            time: this.state.time,
+            title: this.state.title
+        }) + ']';
+        console.log(shareContent);
         return (
             <div id={this.props.graph._id}>
+                <Dialog title="Copy the contents below to share this graph" actions={shareAction}
+                        autoDetectWindowHeight={true} autoScrollBodyContent={true}
+                        ref='shareDialog'>
+                    <TextField value={shareContent} style={{width: '90%'}}
+                               multiLine={true} />
+                </Dialog>
                 <div className="graph">
                     <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
@@ -290,6 +309,11 @@ var BaseGraph = React.createClass({
                             borderRadius: "4px",
                             zIndex:"1"
                         }}>
+                    </div>
+                    <div className='shareBtnParent'>
+                        <div className="graphBtn" onClick={this.showShareDialog}>
+                            <i className='fa fa-share fa-white'></i>
+                        </div>
                     </div>
                     <this.props.graphEditor title="Edit" initialIPs={this.state.ips}
                                             ips={this.props.nodeIPs}
