@@ -305,7 +305,9 @@ app.get('/', render('node'));
 app.get('/index.html', render('node'));
 app.get('/dashboard.html', render('dashboard'));
 app.get('/project.html', render('project'));
-app.get('/single.html', render('single'));
+app.get('/single.html', function(req, res) {
+    res.render('single', {single: true});
+});
 app.get('/tag.html', render('tag'));
 app.get('/user.html', render('user'));
 app.get('/login.html', render('login'));

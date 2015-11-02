@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="static/css/style.css">
     {% endblock %}
 </head>
-<body>
+<body {% if single %}class="single"{% endif %}>
     <div id="content"></div>
     <script type="text/javascript">
         WebFontConfig = {

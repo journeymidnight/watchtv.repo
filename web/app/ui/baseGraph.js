@@ -284,7 +284,6 @@ var BaseGraph = React.createClass({
             time: this.state.time,
             title: this.state.title
         }) + ']';
-        console.log(shareContent);
         return (
             <div id={this.props.graph._id}>
                 <Dialog title="Copy the contents below to share this graph" actions={shareAction}
