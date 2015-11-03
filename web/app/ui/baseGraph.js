@@ -204,7 +204,7 @@ var BaseGraph = React.createClass({
                     var left = item.pageX - position.left + 20,
                         top = item.pageY - position.top + 20,
                         obj = $('#tooltip' + uniq_id);
-                    obj.html(ip + '<br>' + metric + '<br>' + y + '<br>' + x );
+                    obj.html(ip + '<br>' + metric.toString().replace(",,",",") + '<br>' + y + '<br>' + x );
                     if((item.pageX + obj.width()) > ($("body").width()-30)){
                         left -= (obj.width()+30);
                     }
@@ -258,6 +258,10 @@ var BaseGraph = React.createClass({
                     data[index].enabled = 1 - data[index].enabled;
                     that.setState({data: data});
                 });
+                var text = $(this).text();
+                if(text.indexOf(",,")>0){
+                    $(this).find(".legendLabel").text(text.replace(",,",","));
+                }
         });
     },
     componentWillReceiveProps:function(nextProps){
