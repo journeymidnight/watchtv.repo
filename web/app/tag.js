@@ -99,7 +99,7 @@ var TagEntry = React.createClass({
                     <TagEditButton id={this.props.id} name={this.props.name}
                         monitorItems={this.props.monitorItems}
                         onRefresh={this.props.onRefresh} />
-                    <DeleteButton id={this.props.id} name={this.props.name} url="tag"
+                    <DeleteButton ids={[this.props.id]} name={this.props.name} url="tag"
                         onRefresh={this.props.onRefresh}/>
                 </td>
             </tr>

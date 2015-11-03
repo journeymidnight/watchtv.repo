@@ -23,7 +23,7 @@ var Snackbar = require('material-ui/lib/snackbar');
 
 // props:
 //   name: string, the "name" part above
-//   id: any type that could be converted into mongoDB ObjectId, the item id to delete
+//   ids: any type that could be converted into mongoDB ObjectId, the item ids to delete
 //   url: string, url base of the delete API
 //        e.g. DELETE /node/<id> then url="node"
 //   onRefresh: callback func, after a successful deletion, the function will be called
@@ -37,20 +37,29 @@ var DeleteButton = React.createClass({
         return {snackMsg: ''}
     },
     deleteItem: function(){
-        $.ajax({
-            type:'DELETE',
-            url: this.props.url + '/' + this.props.id,
-            success: function(_){
-                this.props.onRefresh();
-            }.bind(this),
-            error: function(xhr, status, err) {
-                if (xhr.status === 401) {
-                    location.assign('/login.html');
-                }
-                this.setState({snackMsg: xhr.responseText});
-                this.refs.snackbar.show()
-            }.bind(this)
-        })
+        var that = this;
+        var deleteRequests = [];
+        this.props.ids.map(function(id){
+            deleteRequests.push(
+                $.ajax({
+                    type: 'DELETE',
+                    url: that.props.url + '/' + id,
+                    error: function(xhr, status, err) {
+                        if (xhr.status === 401) {
+                            location.assign('/login.html');
+                        }
+                    }
+                })
+            )
+        });
+        $.when.apply($, deleteRequests)
+         .done(function(){
+                that.props.onRefresh();
+                that.refs.deleteConfirm.dismiss();
+         }).fail(function(){
+                that.setState({snackMsg: 'Failed to delete' + that.props.name});
+                that.refs.snackbar.show();
+         });
     },
     render: function(){
         var deleteConfirm = [

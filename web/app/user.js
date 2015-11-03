@@ -1,5 +1,5 @@
 var React = require('react');
-var Table = require('react-bootstrap/lib/Table');
+//var Table = require('react-bootstrap/lib/Table');
 var TextField = require('material-ui/lib/text-field');
 var IconButton = require('material-ui/lib/icon-button');
 var SvgIcon = require('material-ui/lib/svg-icon');
@@ -7,6 +7,14 @@ var Snackbar = require('material-ui/lib/snackbar');
 var Dialog = require('material-ui/lib/dialog');
 var AppCanvas = require('material-ui/lib/app-canvas');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
+
+var Table = require('material-ui/lib/table/table');
+var TableBody = require('material-ui/lib/table/table-body');
+var TableFooter =  require('material-ui/lib/table/table-footer');
+var TableHeader= require('material-ui/lib/table/table-header');
+var TableHeaderColumn = require('material-ui/lib/table/table-header-column');
+var TableRow = require('material-ui/lib/table/table-row');
+var TableRowColumn = require('material-ui/lib/table/table-row-column');
 
 var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deleteButton.js');
@@ -24,38 +32,108 @@ var UserList = React.createClass({
     getInitialState: function () {
         return {
             snackMsg: '',
-            roleStateDropDown: 'User'
+            selectedRows: []
         }
     },
-    handleCreateNewUser: function() {
-        var name = this.refs.newName.getValue().trim(),
-            role = this.state.roleStateDropDown,
-            projects = this.refs.newProject.getValue().trim().split(/[\s,]+/);
-        $.ajax({
-            type: "POST",
-            url: "users",
-            data: {
-                "name": name,
-                "role": role,
-                "projects": projects
-            },
-            success: function(_) {
-                this.props.onRefresh();
-            }.bind(this),
-            error: function(xhr, status, err) {
-                if (xhr.status === 401) {
-                    location.assign('/login.html');
-                }
-                console.error(xhr, status, err.toString());
-                this.setState({snackMsg: xhr.responseText});
-                this.refs.snackbar.show();
-            }.bind(this)
-        })
+    onRowSelection: function (selectedRows) {
+        this.setState({selectedRows: selectedRows});
     },
-    handleRoleDropDownChange: function(err, selectedIndex, menuItem) {
-        this.setState({roleStateDropDown: menuItem.text});
+    onRefresh: function() { // use this method to also clear current selections,
+                            // otherwise only use `this.props.onRefresh` to keep them
+        this.setState({selectedRows: []});
+        this.props.onRefresh();
     },
-    componentDidUpdate: function() {
+    render: function() {
+        var that = this;
+
+        var userList = this.props.data.map(function(user, index){
+            var projects = user.projects.map(function(project){
+                return project.name;
+            });
+            var selected = true;
+            if(that.state.selectedRows.indexOf(index) === -1) {
+                selected = false;
+            }
+            return (
+                <TableRow key={index} selected={selected}>
+                    <TableRowColumn key={user._id + 'name'}>{user.name}</TableRowColumn>
+                    <TableRowColumn key={user._id + 'role'}>{user.role}</TableRowColumn>
+                    <TableRowColumn key={user._id + 'projects'}>{projects.join(' ')}</TableRowColumn>
+                </TableRow>
+            )
+        });
+
+        var actions = [];
+        var names = [], ids = [];
+        this.state.selectedRows.map(function(rowIndex){
+            var user = that.props.data[rowIndex];
+            names.push(user.name);
+            ids.push(user._id);
+        });
+        names = names.join(', ');
+        actions.push(<UserAddButton onRefresh={this.props.onRefresh}/>);
+        if(this.state.selectedRows.length === 1) {
+            actions.push(<UserEditButton id={ids[0]}
+                user={that.props.data[that.state.selectedRows[0]]}
+                onRefresh={that.props.onRefresh}/>);
+        }
+        if(this.state.selectedRows.length >= 1) {
+            actions.push(<DeleteButton name={names} ids={ids} url='user'
+                                       onRefresh={this.onRefresh}/>);
+        }
+        var ActionsRow =
+            <TableRow>
+                <TableRowColumn></TableRowColumn>
+                <TableRowColumn></TableRowColumn>
+                <TableRowColumn>
+                    Actions: {actions}
+                </TableRowColumn>
+            </TableRow>;
+
+        return (
+            <div className="clear">
+                <Table
+                    fixedHeader={false}
+                    fixedFooter={false}
+                    selectable={true}
+                    multiSelectable={true}
+                    onRowSelection={this.onRowSelection}>
+                    <TableHeader
+                        displaySelectAll={false}
+                        enableSelectAll={false}>
+                        <TableRow>
+                            <TableHeaderColumn>Name</TableHeaderColumn>
+                            <TableHeaderColumn>Role</TableHeaderColumn>
+                            <TableHeaderColumn>Projects</TableHeaderColumn>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody
+                        showRowHover={true}
+                        deselectOnClickaway={false}>
+                        {userList}
+                    </TableBody>
+                    <TableFooter>
+                        {ActionsRow}
+                    </TableFooter>
+                </Table>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </div>
+        )
+    }
+});
+
+var UserAddButton = React.createClass({
+    mixins: [mixins.materialMixin],
+    handleClick: function(){
+        this.refs.editDialog.show();
+    },
+    getInitialState: function(){
+        return {snackMsg: ''}
+    },
+    handleDropDownChange: function(err, selectedIndex, menuItem) {
+        this.setState({roleStateDropDown: menuItem.text})
+    },
+    bindAutocomplete: function() {
         $('#newNameInput').autocomplete({
             source: function(req, res) {
                 var input = req.term;
@@ -75,67 +153,56 @@ var UserList = React.createClass({
             }
         })
     },
-    render: function() {
-        var that = this;
-        var userList = this.props.data.map(function(user){
-            return (
-                <UserEntry name={user.name} role={user.role} projects={user.projects} key={user._id}
-                    id={user._id} onRefresh={that.props.onRefresh} />
-            )
-        });
-        var addNewUserRow =
-            <tr>
-                <td><TextField ref="newName" id="newNameInput" /></td>
-                <td><DropDownMenu ref="newRole" menuItems={roleItems}
-                    onChange={this.handleRoleDropDownChange} /></td>
-                <td><TextField ref="newProject" /></td>
-                <td>
-                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewUser} title="Add"></i>
-                </td>
-            </tr>;
+    addUser: function(){
+        $.ajax({
+            type: "POST",
+            url: "users",
+            data: {
+                "name": this.refs.nameInput.getValue().trim(),
+                "role": this.state.roleStateDropDown,
+                "projects": this.refs.projectInput.getValue().trim().split(/[\s,]+/)
+            },
+            success: function(data) {
+                this.refs.editDialog.dismiss();
+                this.props.onRefresh(null, null, true)
+            }.bind(this),
+            error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                this.setState({snackMsg: xhr.responseText});
+                this.refs.snackbar.show()
+            }.bind(this)
+        })
+    },
+    render: function(){
+        var actions = [
+            {text: 'Cancel'},
+            {text: 'Add', onClick: this.addUser}
+        ];
+        var edits =
+            <div>
+                <TextField floatingLabelText="Name" defaultValue=''
+                           id="newNameInput" ref="nameInput"/>
+                <DropDownMenu menuItems={roleItems}
+                              selectedIndex={0}
+                              onChange={this.handleDropDownChange}
+                    />
+                <TextField floatingLabelText="Projects" defaultValue=''
+                           ref="projectInput"/>
+            </div>;
         return (
-            <div className="clear">
-                <Table striped bordered hover condensed>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Role</th>
-                            <th>Projects</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {userList}
-                    </tbody>
-                    <tfoot>
-                        {addNewUserRow}
-                    </tfoot>
-                </Table>
+            <span>
+                <i className="fa fa-plus fa-bg" onClick={this.handleClick} title="Add"></i>
+                <Dialog
+                    title="Add new user"
+                    actions={actions}
+                    ref="editDialog" contentClassName="dropDownDiv"
+                    onShow={this.bindAutocomplete}>
+                    {edits}
+                </Dialog>
                 <Snackbar ref="snackbar" message={this.state.snackMsg} />
-            </div>
-        )
-    }
-});
-
-var UserEntry = React.createClass({
-    render: function() {
-        var that = this;
-        var projects = this.props.projects.map(function(project){
-                return project.name;
-        });
-        return (
-            <tr>
-                <td key={this.props.id + 'name'}>{this.props.name}</td>
-                <td key={this.props.id + 'role'}>{this.props.role}</td>
-                <td key={this.props.id + 'projects'}>{projects.join(' ')}</td>
-                <td key={this.props.id + 'actions'}>
-                    <UserEditButton id={this.props.id} name={this.props.name}
-                        userProjects={this.props.projects} userRole={this.props.role}
-                        onRefresh={this.props.onRefresh} />
-                    <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
-                        name={this.props.name} url="user" />
-                </td>
-            </tr>
+            </span>
         )
     }
 });
@@ -154,14 +221,14 @@ var UserEditButton = React.createClass({
     updateUser: function(){
         $.ajax({
             type: "PUT",
-            url: "user/" + this.props.id,
+            url: "user/" + this.props.user._id,
             data: {
                 "role": this.state.roleStateDropDown,
                 "projects": this.refs.projectInput.getValue().trim().split(/[\s,]+/)
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
-                this.props.onRefresh()
+                this.props.onRefresh(null, null, true)
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {
@@ -177,14 +244,14 @@ var UserEditButton = React.createClass({
             {text: 'Cancel'},
             {text: 'Update', onClick: this.updateUser}
         ];
-        var projects = this.props.userProjects.map(function(p){
+        var projects = this.props.user.projects.map(function(p){
             return p.name;
         });
         var selectedRoleIndex = 0;
         if (!this.state.roleStateDropDown) {
-            if(this.props.userRole === 'User') selectedRoleIndex = 0;
-            if(this.props.userRole === 'Leader') selectedRoleIndex = 1;
-            if(this.props.userRole === 'Root') selectedRoleIndex = 2;
+            if(this.props.user.role === 'User') selectedRoleIndex = 0;
+            if(this.props.user.role === 'Leader') selectedRoleIndex = 1;
+            if(this.props.user.role === 'Root') selectedRoleIndex = 2;
         } else {
             if(this.state.roleStateDropDown === 'User') selectedRoleIndex = 0;
             if(this.state.roleStateDropDown === 'Leader') selectedRoleIndex = 1;
@@ -203,7 +270,7 @@ var UserEditButton = React.createClass({
             <span>
                 <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
                 <Dialog
-                    title={"Edit info for " + this.props.name}
+                    title={"Edit info for " + this.props.user.name}
                     actions={editActions}
                     ref="editDialog" contentClassName="dropDownDiv">
                 {edits}
