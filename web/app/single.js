@@ -64,6 +64,7 @@ var GraphList = React.createClass({
                             return {
                                 _id: graph._id,
                                 metrics: graph.metrics,
+                                title: graph.title,
                                 ips: ips,
                                 time: 43200  // 12h by default
                             };
