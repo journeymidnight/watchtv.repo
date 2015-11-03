@@ -51,12 +51,6 @@ var NodeList = React.createClass({
             }.bind(this)
         });
     },
-    componentDidUpdate: function(){
-        // clicking on table also triggers info button(show single page)
-        $(".table").on('click','.name,.nodeIp',function(){
-            $(this).parent().find('.toolBtn .infoBtn').trigger("click");
-        });
-    },
     render: function() {
         var that = this;
         var nodeList = this.props.data.map(function(node){

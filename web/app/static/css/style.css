@@ -1,5 +1,6 @@
 /*global & base*/
 html, body {width: 100%;height: 100%;font: 12px "Helvetica Neue", Helvetica, Microsoft Yahei, Hiragino Sans GB, WenQuanYi Micro Hei, sans-serif, monospace;-webkit-font-smoothing: antialiased;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;}
+table{-webkit-user-select: initial;-moz-user-select: initial;-ms-user-select: initial;}
 input:-webkit-autofill {-webkit-box-shadow: 0 100px #fff inset;-webkit-text-fill-color: #000;border-bottom: 3px solid #0089cc;}
 input:not(.titleInput)::-webkit-input-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
 input:not(.titleInput)::-moz-placeholder{color:#000 !important;font-size: 16px;font-weight: 700;}
@@ -39,7 +40,6 @@ li{list-style: none;}
 .scrollDialog {width: 85%!important;max-width: 800px!important;max-height: 80%;}
 .scrollDialog select {margin: 10px 0;height: 30px;padding-left: 2px;border: none;border-bottom: 1px solid #E0E0E0;font-family: Roboto, sans-serif;color: #494949;}
 /*content - dashboard*/
-.nodeEntry .name,.nodeEntry .nodeIp{cursor: pointer;}
 .dashboard .scrollDialog select ,.single .scrollDialog select {display: block;}
 .single .scrollDialog h3 + div{height: 218px;}
 .dropDownMenu{margin-left: -24px;z-index: 111;}
@@ -54,14 +54,15 @@ li{list-style: none;}
 .flot-overlay {cursor: crosshair;}
 .graphList > div ,.singleDefault > div{width:50%;float:left;}
 .graphList .singleDefault{width: 100%;}
-.graphList .graph{margin:5px;background-color: #1f1f1f;color: #fff;padding: 010px;overflow:hidden;position: relative;min-height: 250px;}
+.graphList .graph{margin:5px 10px;background-color: #1f1f1f;color: #fff;padding: 010px;overflow:hidden;position: relative;min-height: 250px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
 .delDialog + div{padding-top: 0px!important;}
-.btnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 50%;height: 38px;margin-top: -18px;}
-.shareBtnParent, .importBtnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 70%;height: 38px;margin-top: -18px;}
+.btnParent,.shareBtnParent, .importBtnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 25%;height: 38px;}
+.shareBtnParent{top: initial;bottom: 25%;}
 .btnParent:hover, .shareBtnParent:hover, .importBtnParent:hover{width:37px;}
-.graphBtn{width:37px;height:38px;background: #77B300;background-size: 25px;position: fixed;top:50%;left: -31px;cursor: pointer;}
-.importGraphBtn{width:37px;height:38px;background: #77B300;background-size: 25px;position: fixed;top:60%;left: -31px;cursor: pointer;}
+.graphBtn{width:37px;height:38px;background: #77B300;background-size: 25px;position: fixed;top:40%;left: -31px;cursor: pointer;}
+.importBtnParent{top:60%;}
+.importGraphBtn{height:38px;background: #77B300;}
 .graphBtn:hover, .importGraphBtn:hover{left: 0px;}
 .graphList > div .graphBtn{position: static;background: #77B300;}
 .graphList > div .graphBtn .fa{font-size: 20px;margin:10px;}

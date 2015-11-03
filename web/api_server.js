@@ -44,7 +44,8 @@ app.engine('html', swig.renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'app', 'static', 'views'));
 app.set('port', (config.webServer.port || 3000));
-
+app.set('view cache', false);
+swig.setDefaults({ cache: false });
 var requireLogin = function (req, res, next) {
     logger(req.method, req.url);
     if (req.url.indexOf('/login') >= 0 || req.url.indexOf('/js') >= 0 ||

@@ -60,17 +60,17 @@ var NavigationBar = React.createClass({
             </div>
         );
         var menuItems = [
-            {type: MenuItem.Types.LINK, payload:'/', text: 'Node'},
-            {type: MenuItem.Types.LINK, payload:'/tag.html', text: 'Tag'},
-            {type: MenuItem.Types.LINK, payload:'/dashboard.html', text: 'Dashboard'}
+            {text: 'Node',icon:<i className="fa fa-nav fa-sitemap" data-url="/"></i>},
+            {text: 'Tag',icon:<i className="fa fa-nav fa-tag" data-url="/tag.html"></i>},
+            {text: 'Dashboard',icon:<i className="fa fa-nav fa-signal" data-url="/dashboard.html"></i>}
         ];
         if(this.state.user.role === 'Root' || this.state.user.role === 'Leader') {
-            menuItems.push({type: MenuItem.Types.LINK, payload:'/user.html', text: 'User'});
+            menuItems.push({text: 'User',icon:<i className="fa fa-nav fa-user" data-url="/user.html"></i>});
         }
         if(this.state.user.role === 'Root') {
-            menuItems.push({type: MenuItem.Types.LINK, payload:'/project.html', text: 'Project'})
+            menuItems.push({payload:'/project.html', text: 'Project',icon:<i className="fa fa-nav fa-joomla" data-url="/project.html"></i>})
         }
-        menuItems.push({type: MenuItem.Types.LINK, payload:'/logout', text: 'Log Out'});
+        menuItems.push({payload:'/logout', text: 'Log Out',icon:<i className="fa fa-nav fa-sign-out" data-url="/logout"></i>});
         return (
             <div>
                 <div className="head">
@@ -78,7 +78,7 @@ var NavigationBar = React.createClass({
                                 iconElementRight={<FlatButton label={this.state.user.name} />}
                     />
                     <LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
-                        header={header} isInitiallyOpen={true} />
+                        header={header} isInitiallyOpen={true}/>
                 </div>
                 <div className="afterNav"></div>
             </div>
