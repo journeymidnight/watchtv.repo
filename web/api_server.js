@@ -1410,6 +1410,40 @@ app.get('/user/graphs', function(req, res) {
     }).populate('graphs', 'ips metrics time title')
 });
 
+// Add new projects to user
+app.post('/user/:user_id/projects', function(req, res) {
+    var user_id = req.params.user_id;
+    var projects = req.body.projects;
+
+    async.map(projects, function(project, map_callback) {
+            documentFromName(project, db.Project, false, map_callback);
+        },
+        function(err, results) {
+            var filtered = results.filter(function(p) {
+                    if(!p) return false;
+
+                    if(!p.leader) return false;
+                    // p.leader is an ObjectId and user._id is a string
+                    return p.leader.equals(req.user._id);  // Users can only add projects
+                                                           // under their control
+                }
+            );
+            db.User.findByIdAndUpdate(user_id,
+                { $push: { projects: {$each: filtered} }},
+                function(err, u) {
+                    if(err) {
+                        res.status(500).send('Adding projects to user failed');
+                        return;
+                    }
+                    res.status(201)
+                       .location('/user/' + user_id)
+                       .send('Projects added to user');
+                }
+            )
+        }
+    )
+});
+
 // add new graph to current user
 app.post('/user/graphs', function(req, res) {
     var user_id = req.user._id;

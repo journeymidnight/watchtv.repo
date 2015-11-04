@@ -80,6 +80,8 @@ var UserList = React.createClass({
         if(this.state.selectedRows.length >= 1) {
             actions.push(<DeleteButton name={names} ids={ids} url='user'
                                        onRefresh={this.onRefresh}/>);
+            actions.push(<BatchAddProjectButton names={names} ids={ids}
+                                    onRefresh={this.props.onRefresh}/>)
         }
         var ActionsRow =
             <TableRow>
@@ -274,6 +276,69 @@ var UserEditButton = React.createClass({
                     actions={editActions}
                     ref="editDialog" contentClassName="dropDownDiv">
                 {edits}
+                </Dialog>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
+            </span>
+        )
+    }
+});
+
+var BatchAddProjectButton = React.createClass({
+    mixins: [mixins.materialMixin],
+    handleClick: function() {
+        this.refs.editDialog.show();
+    },
+    getInitialState: function() {
+        return {snackMsg: ''}
+    },
+    addUser: function() {
+        var that = this;
+        var appendRequests = [];
+        this.props.ids.map(function(id){
+            appendRequests.push(
+                $.ajax({
+                    type: 'POST',
+                    url: 'user/' + id + '/projects',
+                    data: {
+                        projects: that.refs.projectInput.getValue().trim().split(/[\s,]+/)
+                    },
+                    error: function(xhr, status, err) {
+                        if (xhr.status === 401) {
+                            location.assign('/login.html');
+                        }
+                    }
+                })
+            );
+            $.when.apply($, appendRequests)
+             .done(function(){
+                 that.props.onRefresh(null, null, true);
+                 that.refs.editDialog.dismiss();
+             }).fail(function(){
+                that.setState({snackMsg: 'Failed to add projects'});
+                that.refs.snackbar.show();
+             })
+        });
+    },
+    render: function() {
+        var actions = [
+            {text: 'Cancel'},
+            {text: 'Add', onClick: this.addUser}
+        ];
+        var edits =
+            <div>
+                <TextField floatingLabelText="Projects" defaultValue=''
+                           ref="projectInput"/>
+            </div>;
+        return (
+            <span>
+                <i className="fa fa-tags fa-bg" onClick={this.handleClick} title="Add Projects"></i>
+                <Dialog
+                    title="Add extra projects to these users:"
+                    actions={actions}
+                    ref="editDialog" contentClassName="dropDownDiv"
+                    onShow={this.bindAutocomplete}>
+                    {'Users: ' + this.props.names}
+                    {edits}
                 </Dialog>
                 <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>
