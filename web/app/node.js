@@ -133,7 +133,7 @@ var NodeEntry = React.createClass({
                         nodeIps={this.props.ips} description={this.props.description}
                         state={this.props.state} config={this.props.config}
                     />
-                    <DeleteButton id={this.props.id} onRefresh={this.props.onRefresh}
+                    <DeleteButton ids={[this.props.id]} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
                 </td>
             </tr>

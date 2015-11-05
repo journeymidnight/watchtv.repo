@@ -39,13 +39,17 @@ var SearchableList = React.createClass({
             }
         };
     },
-    handleKeyword: function(keyword, pageNumber){
+    handleKeyword: function(keyword, pageNumber, keepPage){
         var itemsPerPage = this.props.config.itemsPerPage;
         if(keyword == undefined) {
             keyword = this.state.keyword;
         }
         if(!pageNumber) {
-            pageNumber = 1;
+            if(keepPage) {
+                pageNumber = this.state.activePage;
+            } else {
+                pageNumber = 1;
+            }
         }
         var that = this;
         var urlParameter = {
