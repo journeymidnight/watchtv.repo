@@ -170,10 +170,19 @@ var GraphSelector = React.createClass({
             deviceItems = [],
             measureItems = [],
             selectors = [];
+        var compare = function(a, b) {
+            if(a.payload < b.payload) {
+                return -1;
+            } else if(a.payload > b.payload) {
+                return 1;
+            }
+            return 0;
+        };
         // First(measurements) dropdown
         Object.keys(this.state.measurements).map(function(m) {
             measurementsItems.push({ payload: m, text: m });
         });
+        measurementsItems.sort(compare);
         var selected = this.state.selected;
         selectors.push(<DropDownMenu menuItems={measurementsItems}
                             selectedIndex={getIndex(measurementsItems, selected.measurement)}
@@ -185,6 +194,7 @@ var GraphSelector = React.createClass({
             this.state.measurements[selected.measurement].measure.map(function(m){
                 measureItems.push({ payload: m, text: m });
             });
+            measureItems.sort(compare);
             selectors.push(<DropDownMenu menuItems={measureItems}
                                 selectedIndex={getIndex(measureItems, selected.measure)}
                                 onChange={this.onMeasureChange}
@@ -196,6 +206,7 @@ var GraphSelector = React.createClass({
                 device.map(function(d) {
                     deviceItems.push({ payload: d, text: d });
                 });
+                deviceItems.sort(compare);
                 selectors.push(<DropDownMenu menuItems={deviceItems}
                                     selectedIndex={getIndex(deviceItems, selected.device)}
                                     onChange={this.onDeviceChange}
