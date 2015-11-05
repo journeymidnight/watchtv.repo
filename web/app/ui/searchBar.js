@@ -143,12 +143,25 @@ var SearchBar = React.createClass({
             });
         });
     },
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.handleSearch();
+        }
+    },
+    bindEnterKeypress: function () {
+        $(document).bind('keydown', this.onKeydown);
+    },
+    unbindEnterKeypress: function () {
+        $(document).unbind('keydown', this.onKeydown);
+    },
     render: function(){
         var that = this,
             searchComponents = [];
 
         searchComponents.push(<TextField hintText={this.props.hintText} ref="keywords"
-                               key="keywords" />);
+                               key="keywords" onFocus={this.bindEnterKeypress}
+                               onBlur={this.unbindEnterKeypress}/>);
         searchComponents.push(<RaisedButton label="Find" key="find"
                                onClick={this.handleSearch} />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
