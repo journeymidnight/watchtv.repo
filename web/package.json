@@ -11,7 +11,6 @@
     "fixed-data-table": "^0.3.0",
     "flot": "^0.8.0-alpha",
     "jquery": "^2.1.4",
-    "jsclass": "^4.0.5",
     "markdown": "^0.5.0",
     "material-ui": "^0.11.1",
     "mkdirp": "^0.5.1",

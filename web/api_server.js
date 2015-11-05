@@ -7,7 +7,6 @@ var bodyParser = require('body-parser');
 var validator = require('validator');
 var async = require('async');
 var request = require('request');
-var Set = require('jsclass/src/set').Set;
 var app = express();
 var session = require('client-sessions');
 var swig = require('swig');
@@ -38,6 +37,34 @@ var valueWithDefault = function(value, defaultValue) {
         return defaultValue;
     }
     return value;
+};
+
+// s is a set(array), push i into s
+var setAdd = function(s, i) {
+    if(s.indexOf(i) === -1) {
+        s.push(i);
+    }
+};
+
+// a & b are sets(arrays), return array c which is set(a) + set(b)
+var setMerge = function(a, b) {
+    var c = a.slice();  // c is now a copy of a
+    b.map(function(item){
+        setAdd(c, item);
+    });
+    return c;
+};
+
+// a & b are sets(arrays), return array c which is set(a) - set(b),
+// order matters
+var setDiff = function(a, b) {
+    var c = [];
+    a.map(function(item) {
+        if(b.indexOf(item) === -1) {
+            c.push(item);
+        }
+    });
+    return c;
 };
 
 app.engine('html', swig.renderFile);
@@ -384,7 +411,7 @@ var nodeCommander = function(nodes, enables, disables) {
                     }
                 },
                 function (err, resp, body) {
-                    logger('Node command results:', err, resp, body);
+                    logger('Node command results:', err, JSON.stringify(body));
                 }
             );
         },
@@ -495,11 +522,11 @@ app.post('/nodes', function(req, res) {
                     documentFromName(tag, db.Tag, false, map_callback);
                 },
                 function (err, results) {
-                    var monitorItems = new Set([]);
+                    var monitorItems = [];
                     tags = results.filter(
                         function (t) {
                             if (t) {
-                                monitorItems.merge(new Set(t.monitorItems));
+                                monitorItems = setMerge(monitorItems, t.monitorItems);
                                 return true;
                             } else {
                                 return false;
@@ -515,8 +542,8 @@ app.post('/nodes', function(req, res) {
                         idc: idc_doc,
                         project: project_doc
                     }, 'Node', db.Node);
-                    if (monitorItems.entries().length !== 0) {
-                        nodeCommander(ips, monitorItems.entries(), []);
+                    if (monitorItems.length !== 0) {
+                        nodeCommander(ips, monitorItems, []);
                     }
                 });
         }
@@ -593,11 +620,11 @@ var modifyNode = function(node_id, req, res) {
                     documentFromName(tag, db.Tag, false, map_callback);
                 },
                 function(err, results) {
-                    var updatedMonitorItems = new Set([]);
+                    var updatedMonitorItems = [];
                     update.tags = results.filter(
                         function (t) {
                             if (t) {
-                                updatedMonitorItems.merge(new Set(t.monitorItems));
+                                updatedMonitorItems = setMerge(updatedMonitorItems, t.monitorItems);
                                 return true;
                             } else {
                                 return false;
@@ -630,20 +657,16 @@ var modifyNode = function(node_id, req, res) {
                                         });
                                 },
                                 function (err, results) {
-                                    var originalMonitorItems = new Set([]);
-                                    results.filter(
-                                        function (t) {
+                                    var originalMonitorItems = [];
+                                    results.map(function (t) {
                                             if (t) {
-                                                originalMonitorItems.merge(new Set(t.monitorItems));
-                                                return true;
-                                            } else {
-                                                return false;
+                                                originalMonitorItems = setMerge(originalMonitorItems, t.monitorItems);
                                             }
                                         }
                                     );
-                                    var toDisable = originalMonitorItems.difference(updatedMonitorItems);
-                                    var toEnable = updatedMonitorItems.difference(originalMonitorItems);
-                                    if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
+                                    var toDisable = setDiff(originalMonitorItems, updatedMonitorItems);
+                                    var toEnable = setDiff(updatedMonitorItems, originalMonitorItems);
+                                    if(!(toEnable.length === 0 && toDisable.length === 0)) {
                                         nodeCommander(n.ips, toEnable, toDisable);
                                     }
                                     if(ips) {
@@ -936,12 +959,10 @@ app.put('/tag/:tag_id', function(req, res){
                         nodes.map(function(n){
                             nodeAddrs = nodeAddrs.concat(n.ips)
                         });
-                        var originalItems = new Set(t.monitorItems),
-                            updateItems = new Set(update.monitorItems);
-                        var toDisable = originalItems.difference(updateItems),
-                            toEnable = updateItems.difference(originalItems);
-                        if(!(toEnable.isEmpty() && toDisable.isEmpty())) {
-                            nodeCommander(nodeAddrs, toEnable, toDisable)
+                        var toDisable = setDiff(t.monitorItems, update.monitorItems),
+                            toEnable = setDiff(update.monitorItems, t.monitorItems);
+                        if(!(toEnable.length === 0 && toDisable.length === 0)) {
+                            nodeCommander(nodeAddrs, toEnable, toDisable);
                         }
                     }
                 )

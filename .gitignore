@@ -8,3 +8,4 @@ web/npm-debug.log
 web/app/static/js/project.js
 web/app/static/js/single.js
 web/app/static/js/user.js
+web/.idea/*
