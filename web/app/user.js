@@ -1,8 +1,5 @@
 var React = require('react');
-//var Table = require('react-bootstrap/lib/Table');
 var TextField = require('material-ui/lib/text-field');
-var IconButton = require('material-ui/lib/icon-button');
-var SvgIcon = require('material-ui/lib/svg-icon');
 var Snackbar = require('material-ui/lib/snackbar');
 var Dialog = require('material-ui/lib/dialog');
 var AppCanvas = require('material-ui/lib/app-canvas');
@@ -54,9 +51,13 @@ var UserList = React.createClass({
             if(that.state.selectedRows.indexOf(index) === -1) {
                 selected = false;
             }
+            var name = user.name;
+            if(user.showName) {
+                name = user.showName + '(' + name + ')';
+            }
             return (
                 <TableRow key={index} selected={selected}>
-                    <TableRowColumn key={user._id + 'name'}>{user.name}</TableRowColumn>
+                    <TableRowColumn key={user._id + 'name'}>{name}</TableRowColumn>
                     <TableRowColumn key={user._id + 'role'}>{user.role}</TableRowColumn>
                     <TableRowColumn key={user._id + 'projects'}>{projects.join(' ')}</TableRowColumn>
                 </TableRow>

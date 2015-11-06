@@ -23,6 +23,7 @@ li{list-style: none;}
 .fa-bg.active{background-color: #019875;}
 .fa-white{color: #fff;font-size: 24px;margin: 8px;}
 .fa-cir{font-size: 14px;width: 20px;height: 20px;color: #fff;background-color: #444;border-radius: 50%;text-align: center;padding-top: 2px;}
+.fa-ellipsis-v:after {content:'';position:absolute;top:-20px; bottom:-20px;left:-20px; right:-20px;}
 .dropDownDiv h3 + div,.scrollDialog h3 + div,.configList{overflow: initial!important;}
 /*navBar*/
 .head {position: fixed;top: 0;left: 0;width: 100%;z-index: 111;}

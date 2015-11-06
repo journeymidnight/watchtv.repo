@@ -1324,7 +1324,7 @@ app.post('/users', requireLeader,
                                 showName: '',
                                 graphs: graphs,
                                 graphColumnNumber: 2,
-                                graphRefreshInterval: 600,
+                                graphRefreshInterval: 0,
                                 role: role,
                                 projects: projects
                             },
@@ -1421,13 +1421,13 @@ var modifyUser = function(user_id, req, res) {
         });
 };
 
-app.put('/user/:user_id/preferences', function (req, res) {
-    var user_id = req.params.user_id;
+app.put('/preferences', function (req, res) {
+    var user_id = req.user._id;
     var showName = req.body.showName,
         graphColumnNumber = req.body.graphColumnNumber,
         graphRefreshInterval = req.body.graphRefreshInterval;
     var update = {};
-    if(showName) update.showName = showName;
+    if(showName != null) update.showName = showName;
     if(graphColumnNumber) {
         if(validator.isInt(graphColumnNumber)) {
             update.graphColumnNumber = graphColumnNumber;

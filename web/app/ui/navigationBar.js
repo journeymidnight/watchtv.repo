@@ -1,10 +1,14 @@
 var React = require('react');
 var injectTapEventPlugin = require("react-tap-event-plugin");
 var Styles = require('material-ui/lib/styles');
-var MenuItem = require('material-ui/lib/menu/menu-item');
+var IconMenu = require('material-ui/lib/menus/icon-menu');
+var FontIcon = require('material-ui/lib/font-icon');
+var MenuItem = require('material-ui/lib/menus/menu-item');
 var AppBar = require('material-ui/lib/app-bar');
 var LeftNav = require('material-ui/lib/left-nav');
-var FlatButton = require('material-ui/lib/flat-button');
+var DropDownMenu = require('material-ui/lib/drop-down-menu');
+var Dialog = require('material-ui/lib/dialog');
+var TextField = require('material-ui/lib/text-field');
 
 var mixins = require('../mixins.js');
 
@@ -20,13 +24,15 @@ var NavigationBar = React.createClass({
     getInitialState:function(){
         var user = {
             name: '',
-            role: 'User'
+            showName: '',
+            role: 'User',
+            graphColumnNumber: 2
         };
         return {
             user: user
         };
     },
-    componentDidMount: function () {
+    fetchUser: function () {
         var that = this;
         $.ajax({
             url: "/user",
@@ -35,6 +41,9 @@ var NavigationBar = React.createClass({
                 that.setState({user: data});
             }
         });
+    },
+    componentDidMount: function () {
+        this.fetchUser();
     },
     getStyles: function() {
         return {
@@ -53,12 +62,54 @@ var NavigationBar = React.createClass({
     showNavi: function() {
         this.refs.navi.toggle()
     },
+    handleRightMenuChange: function (event, value) {
+        if(value === 'help') {
+            window.location.href="http://wiki.letv.cn/display/pla/watchTV";
+        } else if(value === 'logout') {
+            window.location.href="/logout";
+        } else if(value === 'preferences') {
+            this.refs.preferenceDialog.show();
+        }
+    },
+    updatePreference: function () {
+        $.ajax({
+            type: 'PUT',
+            url: '/preferences',
+            data: {
+                showName: this.refs.showNameInput.getValue().trim(),
+                graphColumnNumber: this.getDropdownValue()
+            },
+            success: function() {
+                this.refs.preferenceDialog.dismiss();
+                this.fetchUser();
+            }.bind(this),
+            error: function(xhr, status, err) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                console.log(err);
+            }
+        });
+    },
+    createDropdownChangeHandler: function (selected) {
+        var selectedValue = selected;
+        this.getDropdownValue = function() {
+            return selectedValue;
+        };
+        return function (event, index, item) {
+            selectedValue = item.payload;
+        }
+    },
     render: function() {
         var header = (
             <div style={this.getStyles()} >
                 watchTV
             </div>
         );
+        var name = this.state.user.name;
+        if(this.state.user.showName) {
+            name = this.state.user.showName + '(' + name + ')';
+        }
         var menuItems = [
             {text: 'Node',icon:<i className="fa fa-nav fa-sitemap" data-url="/"></i>},
             {text: 'Tag',icon:<i className="fa fa-nav fa-tag" data-url="/tag.html"></i>},
@@ -70,15 +121,61 @@ var NavigationBar = React.createClass({
         if(this.state.user.role === 'Root') {
             menuItems.push({payload:'/project.html', text: 'Project',icon:<i className="fa fa-nav fa-joomla" data-url="/project.html"></i>})
         }
-        menuItems.push({payload:'/logout', text: 'Log Out',icon:<i className="fa fa-nav fa-sign-out" data-url="/logout"></i>});
+
+        var preferenceActions = [
+            {text: 'Cancel'},
+            {text: 'Update', onClick: this.updatePreference}
+        ];
+        var preferenceEdits = [];
+        var dropdownItems = [
+            {payload: 2, text: 'Graph column number'},
+            {payload: 1, text: '1'},
+            {payload: 2, text: '2'},
+            {payload: 3, text: '3'},
+            {payload: 4, text: '4'}
+        ], selectedIndex = 0;
+        for(var i=1; i<dropdownItems.length; i++) {
+            if(dropdownItems[i].payload === this.state.user.graphColumnNumber) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        preferenceEdits.push(<TextField floatingLabelText="Show Name"
+                                         defaultValue={this.state.user.showName}
+                                         ref="showNameInput" />);
+        preferenceEdits.push(<DropDownMenu menuItems={dropdownItems}
+                                            selectedIndex={selectedIndex}
+                                            onChange={this.createDropdownChangeHandler()}/>);
         return (
             <div>
                 <div className="head">
                     <AppBar title={this.props.title} onLeftIconButtonTouchTap={this.showNavi}
-                                iconElementRight={<FlatButton label={this.state.user.name} />}
+                            iconElementRight={
+                                <IconMenu iconButtonElement={<FontIcon className="fa fa-ellipsis-v"
+                                    color="#d8f4f9" />}  desktop={true}
+                                    onChange={this.handleRightMenuChange}>
+                                <MenuItem primaryText={name} disabled={true} />
+                                <MenuItem primaryText="Preferences"
+                                    leftIcon={<FontIcon className="fa fa-cog" style={{margin: 0}} />}
+                                    value="preferences" />
+                                <MenuItem primaryText="Help"
+                                    leftIcon={<FontIcon className="fa fa-lightbulb-o" style={{margin: 0}}/>}
+                                    value="help" />
+                                <MenuItem primaryText="Log Out"
+                                    leftIcon={<FontIcon className="fa fa-sign-out" style={{margin: 0}}/>}
+                                    value="logout" />
+                                </IconMenu>
+                            }
                     />
                     <LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
                         header={header} isInitiallyOpen={true}/>
+                    <Dialog
+                        title="Preferences"
+                        actions={preferenceActions}
+                        ref="preferenceDialog"
+                        contentClassName="dropDownDiv">
+                        {preferenceEdits}
+                    </Dialog>
                 </div>
                 <div className="afterNav"></div>
             </div>

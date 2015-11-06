@@ -49,7 +49,7 @@ var userSchema = new Schema({
         showName: String,
         graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],
         graphColumnNumber: Number,
-        graphRefreshInterval: Number,  // In seconds
+        graphRefreshInterval: Number,  // In seconds, 0 for "don't refresh"
         role: {type: String, enum: roles},
         projects: [{type: Schema.Types.ObjectId, ref: 'Project'}]
     },
