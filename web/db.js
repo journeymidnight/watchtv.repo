@@ -46,7 +46,10 @@ var Node = mongoose.model('Node', nodeSchema);
 var roles = ['Root', 'Leader', 'User'];
 var userSchema = new Schema({
         name: String,
+        showName: String,
         graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],
+        graphColumnNumber: Number,
+        graphRefreshInterval: Number,  // In seconds
         role: {type: String, enum: roles},
         projects: [{type: Schema.Types.ObjectId, ref: 'Project'}]
     },

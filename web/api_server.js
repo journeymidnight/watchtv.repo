@@ -1321,7 +1321,10 @@ app.post('/users', requireLeader,
                         );
                         db.User.create({
                                 name: name,
+                                showName: '',
                                 graphs: graphs,
+                                graphColumnNumber: 2,
+                                graphRefreshInterval: 600,
                                 role: role,
                                 projects: projects
                             },
@@ -1417,6 +1420,32 @@ var modifyUser = function(user_id, req, res) {
                 );
         });
 };
+
+app.put('/user/:user_id/preferences', function (req, res) {
+    var user_id = req.params.user_id;
+    var showName = req.body.showName,
+        graphColumnNumber = req.body.graphColumnNumber,
+        graphRefreshInterval = req.body.graphRefreshInterval;
+    var update = {};
+    if(showName) update.showName = showName;
+    if(graphColumnNumber) {
+        if(validator.isInt(graphColumnNumber)) {
+            update.graphColumnNumber = graphColumnNumber;
+        } else {
+            res.status(400).send('Graph column number should be a number');
+            return;
+        }
+    }
+    if(graphRefreshInterval) {
+        if(validator.isInt(graphRefreshInterval)) {
+            update.graphRefreshInterval = graphRefreshInterval;
+        } else {
+            res.status(400).send('Graph refresh interval should be a number');
+            return;
+        }
+    }
+    findByIdAndUpdate(res, user_id, update, 'User preferences', db.User);
+});
 
 // for users to get info about themselves
 app.get('/user', function(req, res) {
