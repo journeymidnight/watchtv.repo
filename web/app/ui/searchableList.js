@@ -11,10 +11,10 @@ var SearchBar = require('./searchBar.js');
 // listClass: react class, currently "NodeList", "TagList", "UserList"
 // hintText: string, text to show as a placeholder in search input box
 
+var itemsPerPage = 10; // TODO: should be configurable per user in UI
 
 var SearchableList = React.createClass({
     componentDidMount: function(){
-        var itemsPerPage = this.props.config.itemsPerPage;
         $.ajax({
             url: this.props.type + 's?' + $.param({limit: itemsPerPage}),
             dataType: 'json',
@@ -40,7 +40,6 @@ var SearchableList = React.createClass({
         };
     },
     handleKeyword: function(keyword, pageNumber, keepPage){
-        var itemsPerPage = this.props.config.itemsPerPage;
         if(keyword == undefined) {
             keyword = this.state.keyword;
         }
@@ -89,7 +88,6 @@ var SearchableList = React.createClass({
                     additionalFilter={this.props.additionalFilter}
                 />
                 <this.props.listClass data={this.state.data} onRefresh={this.handleKeyword}
-                    config={this.props.config}
                 />
             </div>
         )

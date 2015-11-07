@@ -58,7 +58,7 @@ var NodeList = React.createClass({
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     region={node.region} idc={node.idc} project={node.project}
                     id={node._id} description={node.description} state={node.state}
-                    onRefresh={that.props.onRefresh} config={that.props.config} />
+                    onRefresh={that.props.onRefresh} />
             )
         });
         var addNewNodeRow =
@@ -131,7 +131,7 @@ var NodeEntry = React.createClass({
                     />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} description={this.props.description}
-                        state={this.props.state} config={this.props.config}
+                        state={this.props.state}
                     />
                     <DeleteButton ids={[this.props.id]} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
@@ -254,7 +254,6 @@ var NodeApp = React.createClass({
                     type="node"
                     listClass={NodeList}
                     hintText="Find by name ip or tag"
-                    config={this.state.config}
                     additionalFilter="project region idc"
                 />
             </AppCanvas>

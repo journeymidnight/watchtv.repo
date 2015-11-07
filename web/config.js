@@ -9,10 +9,6 @@ config.webServer = {
     sessionActiveDuration: 7 * 24 * 60 * 60 * 1000  // in ms
 };
 
-config.webApp = {
-    itemsPerPage: 10
-};
-
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
     influxdbURL: "http://10.130.211.68:8086",

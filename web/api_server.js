@@ -1264,10 +1264,6 @@ app.get('/q', function(req, res){
     }
 });
 
-app.get('/config', function(req, res) {
-    res.status(200).send(config.webApp);
-});
-
 app.get('/users', requireLeader, function(req, res) {
     handlePluralGet(req, res,
         'user', db.User, {},

@@ -180,7 +180,6 @@ var ProjectApp = React.createClass({
                     type="project"
                     listClass={ProjectList}
                     hintText="Find projects"
-                    config={this.state.config}
                     additionalFilter=""
                     />
             </AppCanvas>

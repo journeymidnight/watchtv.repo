@@ -178,7 +178,6 @@ var TagApp = React.createClass({
                     type="tag"
                     listClass={TagList}
                     hintText="Find tags"
-                    config={this.state.config}
                     additionalFilter=""
                 />
             </AppCanvas>

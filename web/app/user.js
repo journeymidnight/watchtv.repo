@@ -357,7 +357,6 @@ var UserApp = React.createClass({
                     type="user"
                     listClass={UserList}
                     hintText="Find known users"
-                    config={this.state.config}
                     additionalFilter="project"
                 />
             </AppCanvas>

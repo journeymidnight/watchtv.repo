@@ -13,26 +13,6 @@ var materialMixin = {
     }
 };
 
-var configMixin = {
-    getInitialState: function() {
-        return {config: {}}
-    },
-    componentWillMount: function(){
-        $.ajax({
-            url: '/config',
-            dataType: 'json',
-            success: function(data) {
-                this.setState({config: data})
-            }.bind(this),
-            error: function(_) {
-                this.setState({config: {}})
-            }.bind(this),
-            async: false
-        });
-    }
-};
-
 module.exports = {
-    materialMixin: materialMixin,
-    configMixin: configMixin
+    materialMixin: materialMixin
 };
