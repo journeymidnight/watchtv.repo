@@ -19,7 +19,6 @@ var Utility = require('../utility.js');
 // node_id: mongodb id. Used to build URLs, could be null for Dashboard page, but not
 //                      for Single page.
 // nodeIPs: array of string. Used for single page to select from.
-// config: Watchtv config object, could be fetched by GET /config
 // graphEditor: react component, could be dashboardGraphEditor or singleGraphEditor.
 //              Used to render the edit dialog.
 // onRefresh: callback function(fromTime, toTime).
@@ -34,14 +33,12 @@ var BaseGraph = React.createClass({
             metrics: this.props.graph.metrics,
             time: this.props.graph.time,
             title: this.props.graph.title,
-            config: this.props.config,
             windowWidth: $(window).width()
         };
     },
     queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
         $.ajax({
-            url: this.state.config.influxdbURL + '/query?' +
-                $.param(Utility.q_param(this.state.config, queryString)),
+            url: '/influxdb/query?' + encodeURIComponent(queryString),
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
@@ -322,7 +319,6 @@ var BaseGraph = React.createClass({
                                             ips={this.props.nodeIPs}
                                             initialMetrics={this.state.metrics}
                                             initialTime={this.state.time}
-                                            config={this.props.config}
                                             onUpdate={this.handleEditorUpdate}
                                             onRefresh={this.handleDeleteSelf}
                                             graph_id={this.props.graph._id}

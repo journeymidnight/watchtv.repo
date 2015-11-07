@@ -10,6 +10,8 @@ var request = require('request');
 var app = express();
 var session = require('client-sessions');
 var swig = require('swig');
+var url = require('url');
+var querystring = require('querystring');
 
 var db = require('./db.js');
 var config = require('./config.js');
@@ -1209,7 +1211,8 @@ var queryOauthUser = function(req, res) {
         method: 'GET',
         url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
         + query + '&appid=watchtv&appkey=watchtv&limit=5',
-        json: true
+        json: true,
+        timeout: 10 * 1000
     },
         function(err, resp, body) {
             if(err) {
@@ -1295,7 +1298,8 @@ app.post('/users', requireLeader,
             method: 'GET',
             url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
                  + name + '&appid=watchtv&appkey=watchtv&limit=3',
-            json: true
+            json: true,
+            timeout: 10 * 1000
         },
         function(err, resp, body) {
             if(err) {
@@ -1671,7 +1675,8 @@ app.post('/login', function(req, res) {
         method: "GET",
         url: 'https://oauth.lecloud.com/nopagelogin?username=' + user +
              '&password=' + password + '&ldap=true',
-        json: true
+        json: true,
+        timeout: 10 * 1000
         },
         function(err, resp, body) {
             if(err) {
@@ -1946,7 +1951,8 @@ var ensureUserExistence = function(user, res, callback) {
                 method: 'GET',
                 url: 'https://oauth.lecloud.com/watchtvgetldapuser?username='
                 + user + '&appid=watchtv&appkey=watchtv&limit=3',
-                json: true
+                json: true,
+                timeout: 10 * 1000
             }, function(err, resp, body) {
                 if(err) {
                     callback(err, false);
@@ -2050,4 +2056,26 @@ app.get('/project/:project_id', requireRoot, function(req, res){
             arguments: ['leader', 'name']
         }]
     );
+});
+
+app.get('/influxdb/query', function(req, res) {
+    var query = decodeURIComponent(url.parse(req.url).query);
+    var parameters = {
+        u: config.db.influxdbUser,
+        p: config.db.influxdbPassword,
+        db: config.db.influxdbDatabase,
+        q: query
+    };
+    request({
+        url: config.db.influxdbURL + '/query?' +
+                querystring.stringify(parameters),
+        json: true,
+        timeout: 1000 // 1s
+    }, function(err, resp, body) {
+        if(err) {
+            res.status(500).send('Error querying InfluxDB');
+            return;
+        }
+        res.send(body);
+    })
 });

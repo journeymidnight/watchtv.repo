@@ -4,8 +4,6 @@ var Dialog = require('material-ui/lib/dialog');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
 
 var GraphSelector = require('./graphSelector.js');
-var NodeSelector = require('./nodeSelector.js');
-var Utility = require('../utility.js');
 
 // The graph editor for Single page, includes a dropdown menu to pick IPs,
 // and a GraphSelector to pick metrics
@@ -15,7 +13,6 @@ var Utility = require('../utility.js');
 // ips: array of string.
 // initialIPs: string. Could be null.
 // initialMetrics: array of string. Could be null.
-// config: Watchtv config object, could be fetched by GET /config
 // graph_id: mongodb object id. Used for DELETE action
 // node_id: mongodb object id. Used to build URLs
 // onRefresh: callback function(this.state). Called when all graphs on the dashboard should be
@@ -168,7 +165,6 @@ var graphEditor = React.createClass({
                         {ipPicker}
                         <GraphSelector onChange={this.handleMetricChange}
                                        ips={[this.state.selectedIP]}
-                                       config={this.props.config}
                                        initialMetrics={this.state.metrics}
                                        needToQueryMeasurements={false}
                                        initialMeasurements={this.props.measurements}

@@ -22,6 +22,7 @@
     "swig": "^1.4.2",
     "underscore": "^1.8.3",
     "update": "^0.3.6",
+    "url": "^0.11.0",
     "validator": "^3.40.1"
   },
   "devDependencies": {

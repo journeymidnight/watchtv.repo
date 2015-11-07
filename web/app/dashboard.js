@@ -6,7 +6,7 @@ var BaseGraph  = require('./ui/baseGraph.js');
 var GraphEditor = require('./ui/dashboardGraphEditor.js');
 
 var GraphList = React.createClass({
-    mixins: [mixins.materialMixin, mixins.configMixin],
+    mixins: [mixins.materialMixin],
     getInitialState: function () {
         return {
             graphs: []
@@ -38,7 +38,7 @@ var GraphList = React.createClass({
         var _this = this;
         var graphList = this.state.graphs.map(function(graph) {
 
-            return <BaseGraph config={_this.state.config} key={graph._id}
+            return <BaseGraph key={graph._id}
                               graph={graph}
                               onRefresh={_this.refreshGraph}
                               graphEditor={GraphEditor}
@@ -51,7 +51,6 @@ var GraphList = React.createClass({
                 </div>
                 <GraphEditor title="Add new dashboard"
                              onRefresh={this.refreshGraph}
-                             config={this.state.config}
                 />
             </div>
         );

@@ -7,7 +7,7 @@ var BaseGraph  = require('./ui/baseGraph.js');
 var GraphEditor = require('./ui/graphEditor.js');
 
 var GraphList = React.createClass({
-    mixins: [mixins.materialMixin, mixins.configMixin],
+    mixins: [mixins.materialMixin],
     getInitialState: function () {
         var url = window.location.href,
             node_id = url.split("?")[1].split("=")[1];
@@ -40,9 +40,8 @@ var GraphList = React.createClass({
                     var hostIP = Utility.dotted2underscoredIP(ips[i]);
                     // Similar to graphSelector.js
                     $.ajax({
-                        url: that.state.config.influxdbURL + '/query?' + $.param(
-                            Utility.q_param(that.state.config,
-                                "SHOW SERIES WHERE host='" + hostIP + "'")),
+                        url: '/influxdb/query?' +
+                            encodeURIComponent("SHOW SERIES WHERE host='" + hostIP + "'"),
                         dataType: 'json',
                         success: function (data) {
                             var measurements = Utility.get_measurements(data);
@@ -158,7 +157,7 @@ var GraphList = React.createClass({
         var defaultGraphList = that.state.defaultGraphs.map(function(graph) {
             // default graphs are not editable by users
             var dummyEditor = React.createClass({render: function () {return <div></div>}});
-            return <BaseGraph config={that.state.config} key={graph._id}
+            return <BaseGraph key={graph._id}
                               graph={graph} onRefresh={that.refreshGraph}
                               node_id={that.state.node_id}
                               graphEditor={dummyEditor}
@@ -166,7 +165,7 @@ var GraphList = React.createClass({
                    />;
         });
         var graphList = that.state.graphs.map(function(graph) {
-            return <BaseGraph config={that.state.config} key={graph._id}
+            return <BaseGraph key={graph._id}
                               graph={graph} onRefresh={that.refreshGraph}
                               node_id={that.state.node_id}
                               nodeIPs={that.state.ips}
@@ -208,7 +207,6 @@ var GraphList = React.createClass({
                              ips = {this.state.ips}
                              needToQueryMeasurements={false}
                              measurements={this.state.measurements}
-                             config={this.state.config}
                              onRefresh={this.refreshGraph}
                              node_id={this.state.node_id}
                 />

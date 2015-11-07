@@ -16,7 +16,6 @@ var Utility = require('../utility.js');
 // initialIPs: array of string. Could be null.
 // initialMetrics: array of string. Could be null.
 // initialTime: number. Could be null.
-// config: Watchtv config object, could be fetched by GET /config
 // graph_id: mongodb object id. Used for DELETE action
 // onRefresh: callback function(this.state). Called when all graphs on the dashboard should be
 //              fetched again, for creating and deleting graphs.
@@ -200,7 +199,6 @@ var dashboardGraphEditor = React.createClass({
                                           initialIPs={this.state.ips}
                             />
                             <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
-                                           config={this.props.config}
                                            initialMetrics={this.state.metrics}
                                            needToQueryMeasurements={true}
                                            ref='graphMetrics'

@@ -29,7 +29,6 @@ var Utility = require('../utility.js');
 // initialMetrics: `metrics` object. Could be null.
 // ips: array of string. If there're multiple IPs, fetch the first one's measurements for ease of
 //      implementation.
-// config: Watchtv config object, could be fetched by GET /config
 // onChange: callback function(metrics). Return current selected measurements.
 
 // Use `getSelected()` to get current selected measurements,
@@ -67,9 +66,8 @@ var GraphSelector = React.createClass({
         }
         var ip = ips[0].replace(/\./g, '_');
         $.ajax({
-            url: that.props.config.influxdbURL + '/query?' + $.param(
-                Utility.q_param(that.props.config,
-                    "SHOW SERIES WHERE host='" + ip + "'")),
+            url: '/influxdb/query?' +
+                encodeURIComponent("SHOW SERIES WHERE host='" + ip + "'"),
             dataType: 'json',
             success: function (data) {
                 var measurements = Utility.get_measurements(data);

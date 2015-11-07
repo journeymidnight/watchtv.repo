@@ -1,12 +1,4 @@
 var _ = require('underscore');
-var q_param = function(config, q) {
-    return {
-        u: config.influxdbUser,
-        p: config.influxdbPassword,
-        db: config.influxdbDatabase,
-        q: q
-    }
-};
 
 var get_value = function (ret) {
     if (ret.results[0].series == undefined){
@@ -301,7 +293,6 @@ var generateKeyForGraph = function(graph) { // graph is same as in DB schema
 };
 
 var Utility = {
-    q_param: q_param,
     get_value: get_value,
     get_measurements: get_measurements,
     buildQuery: buildQuery,
