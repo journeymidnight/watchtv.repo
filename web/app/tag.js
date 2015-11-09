@@ -31,7 +31,9 @@ var TagList = React.createClass({
                 'alarmReceiverGroups': []  // not implemented yet
             },
             success: function(){
-                this.props.onRefresh()
+                this.props.onRefresh(null, null, true);
+                this.setState({snackMsg: 'Tag"' + name + '" created'});
+                this.refs.snackbar.show();
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {
@@ -125,7 +127,7 @@ var TagEditButton = React.createClass({
             },
             success: function() {
                 this.refs.editDialog.dismiss();
-                this.props.onRefresh()
+                this.props.onRefresh(null, null, true)
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {

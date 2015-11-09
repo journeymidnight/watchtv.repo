@@ -39,7 +39,9 @@ var NodeList = React.createClass({
                 "project": project
             },
             success: function() {
-                this.props.onRefresh();
+                this.props.onRefresh(null, null, true);
+                this.setState({snackMsg: 'Node "' + name + '" created'});
+                this.refs.snackbar.show();
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {
@@ -164,7 +166,7 @@ var NodeEditButton = React.createClass({
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
-                this.props.onRefresh()
+                this.props.onRefresh(null, null, true)
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {

@@ -64,7 +64,7 @@ var NavigationBar = React.createClass({
     },
     handleRightMenuChange: function (event, value) {
         if(value === 'help') {
-            window.location.href="http://wiki.letv.cn/display/pla/watchTV";
+            window.open("http://wiki.letv.cn/display/pla/watchTV");
         } else if(value === 'logout') {
             window.location.href="/logout";
         } else if(value === 'preferences') {

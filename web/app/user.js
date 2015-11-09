@@ -157,17 +157,20 @@ var UserAddButton = React.createClass({
         })
     },
     addUser: function(){
+        var name = this.refs.nameInput.getValue().trim();
         $.ajax({
             type: "POST",
             url: "users",
             data: {
-                "name": this.refs.nameInput.getValue().trim(),
+                "name": name,
                 "role": this.state.roleStateDropDown,
                 "projects": this.refs.projectInput.getValue().trim().split(/[\s,]+/)
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
-                this.props.onRefresh(null, null, true)
+                this.props.onRefresh(null, null, true);
+                this.setState({snackMsg: 'User "' + name + '" added'});
+                this.refs.snackbar.show();
             }.bind(this),
             error: function(xhr, status, err) {
                 if (xhr.status === 401) {

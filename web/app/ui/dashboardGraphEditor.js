@@ -3,6 +3,7 @@ var FlatButton = require('material-ui/lib/flat-button');
 var Dialog = require('material-ui/lib/dialog');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
 var TextField = require('material-ui/lib/text-field');
+var Snackbar = require('material-ui/lib/snackbar');
 
 var GraphSelector = require('./graphSelector.js');
 var NodeSelector = require('./nodeSelector.js');
@@ -36,11 +37,13 @@ var dashboardGraphEditor = React.createClass({
     saveConfig: function () {
         var that = this;
         if(that.state.ips.length==0){
-            alert("请选择IP");
+            that.setState({snackMsg: 'IP address is required'});
+            that.refs.snackbar.show();
             return;
         }
         if(that.state.metrics.length==0){
-            alert("请选择Metric信息");
+            that.setState({snackMsg: 'Metric field is required'});
+            that.refs.snackbar.show();
             return;
         }
         if(this.props.graph_id) {
@@ -222,6 +225,7 @@ var dashboardGraphEditor = React.createClass({
                         Please double check your input
                     </Dialog>
                 </div>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </div>
         )
     }

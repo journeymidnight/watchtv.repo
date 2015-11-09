@@ -2,6 +2,7 @@ var React = require('react');
 var FlatButton = require('material-ui/lib/flat-button');
 var Dialog = require('material-ui/lib/dialog');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
+var Snackbar = require('material-ui/lib/snackbar');
 
 var GraphSelector = require('./graphSelector.js');
 
@@ -81,7 +82,8 @@ var graphEditor = React.createClass({
             return;
         }
         if(that.state.metrics.length==0){
-            alert("请选择Metric信息");
+            that.setState({snackMsg: 'Metric field is required'});
+            that.refs.snackbar.show();
             return;
         }
         $.ajax({
@@ -172,6 +174,7 @@ var graphEditor = React.createClass({
                         />
                     </div>
                 </Dialog>
+                <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </div>
         )
     }
