@@ -62,9 +62,9 @@ li{list-style: none;}
 .btnParent,.shareBtnParent, .importBtnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 25%;height: 38px;}
 .shareBtnParent{top: initial;bottom: 25%;}
 .btnParent:hover, .shareBtnParent:hover, .importBtnParent:hover{width:37px;}
-.graphBtn{width:37px;height:38px;background: #77B300;background-size: 25px;position: fixed;top:40%;left: -31px;cursor: pointer;}
-.importBtnParent{top:60%;}
-.importGraphBtn{height:38px;background: #77B300;}
+.graphBtn, .importGraphBtn{width:37px;height:38px;background: #77B300;background-size: 25px;position: fixed;left: -31px;cursor: pointer;}
+.graphBtn{top: 40%;}
+.importGraphBtn{top: 60%;}
 .graphBtn:hover, .importGraphBtn:hover{left: 0px;}
 .graphList > div .graphBtn{position: static;background: #77B300;}
 .graphList > div .graphBtn .fa{font-size: 20px;margin:10px;}
