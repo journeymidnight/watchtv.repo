@@ -42,6 +42,7 @@ li{list-style: none;}
 /*content - dashboard*/
 .dashboard .scrollDialog select ,.single .scrollDialog select {display: block;}
 .single .scrollDialog h3 + div{height: 218px;}
+.single .delDialog + div h3 + div{height: 0;}
 .dropDownMenu{margin-left: -24px;z-index: 111;}
 .dropDownMenu svg + div{margin-top: -10px!important;}
 .ipList,.configList,.metricList{width: 30%;max-width:270px;margin-right: 3%;margin-top: 20px;float: left;position:relative;border: 1px solid #E0E0E0;padding: 10px 5px 10px 10px;border-radius: 3px;height: 170px;overflow: auto;overflow-x: hidden;}
@@ -55,7 +56,7 @@ li{list-style: none;}
 .flot-overlay {cursor: crosshair;}
 .graphList > div ,.singleDefault > div{width:50%;float:left;}
 .graphList .singleDefault{width: 100%;}
-.graphList .graph{margin:5px 10px;background-color: #1f1f1f;color: #fff;padding: 010px;overflow:hidden;position: relative;min-height: 250px;}
+.graphList .graph{margin:5px 10px;background-color: #1f1f1f;color: #fff;padding: 010px;position: relative;min-height: 250px;}
 .graphList > div .delBtn{display: block;position: absolute!important;right: 10px;top: 20px;}
 .delDialog + div{padding-top: 0px!important;}
 .btnParent,.shareBtnParent, .importBtnParent{width: 6px;overflow: hidden;position: absolute;left: 0;top: 25%;height: 38px;}
