@@ -292,6 +292,14 @@ var generateKeyForGraph = function(graph) { // graph is same as in DB schema
     return key;
 };
 
+var dataMapper = {
+    project: function(data) {
+        return data.result.map(function(project) {
+            return project.name;
+        });
+    }
+};
+
 var Utility = {
     get_value: get_value,
     get_measurements: get_measurements,
@@ -307,6 +315,7 @@ var Utility = {
     getTimeList:getTimeList,
     dateFormat:dateFormat,
     dotted2underscoredIP: dotted2underscoredIP,
-    generateKeyForGraph: generateKeyForGraph
+    generateKeyForGraph: generateKeyForGraph,
+    dataMapper: dataMapper
 };
 module.exports = Utility;

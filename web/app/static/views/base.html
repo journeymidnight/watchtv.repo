@@ -26,6 +26,69 @@
             var s = document.getElementsByTagName('script')[0];
             s.parentNode.insertBefore(wf, s);
         })();
+        (function() {
+            window.createSingleAutocompleteObject = function(url, dataMapper) {
+                return {
+                    source: function(req, res) {
+                        var input = req.term;
+                        if(input.length < 3) {
+                            res([]);
+                            return;
+                        }
+                        $.ajax({
+                            url: url + input,
+                            dataType: 'json',
+                            success: function(data) {
+                                var results = data;
+                                if(dataMapper && typeof dataMapper === 'function') {
+                                    results = dataMapper(data);
+                                }
+                                res(results);
+                            },
+                            error: function(_) {
+                                res([])
+                            }
+                        })
+                    }
+                }
+            };
+            window.createMultiAutocompleteObject = function(url, dataMapper) {
+                return {
+                    source: function(req, res) {
+                        var term = req.term.split(' ').pop();
+                        if(term.length < 2) {
+                            res([]);
+                            return;
+                        }
+                        $.ajax({
+                            url: url + term,
+                            dataType: 'json',
+                            success: function(data) {
+                                var results = data;
+                                if(dataMapper && typeof dataMapper === 'function') {
+                                    results = dataMapper(data);
+                                }
+                                res(results);
+                            },
+                            error: function(_) {
+                                res([])
+                            }
+                        })
+                    },
+                    focus: function (event, ui) {
+                        event.preventDefault();
+                    },
+                    select: function(event, ui) {
+                        event.preventDefault();
+                        var terms = this.value.split(' ');
+                        terms.pop(); // Remove current input
+                        terms.push(ui.item.value);
+                        terms.push('');
+                        this.value = terms.join(' ');
+                    }
+                }
+            };
+        })();
     </script>
     {% block jsFile %}{% endblock %}
 </body>
