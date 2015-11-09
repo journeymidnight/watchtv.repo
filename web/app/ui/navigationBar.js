@@ -100,6 +100,12 @@ var NavigationBar = React.createClass({
             selectedValue = item.payload;
         }
     },
+    componentDidUpdate: function() {
+        // make left navigation items clickable
+        $(".fa-nav").parent().off().click(function(){
+            window.location.href = $(this).find(".fa-nav").attr("data-url");
+        });
+    },
     render: function() {
         var header = (
             <div style={this.getStyles()} >
