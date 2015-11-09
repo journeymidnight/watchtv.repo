@@ -17,6 +17,7 @@ var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deleteButton.js');
 var NavigationBar = require('./ui/navigationBar.js');
 var SearchableList = require('./ui/searchableList.js');
+var utility = require('./utility.js');
 
 var roleItems = [
     {payload: 'User', text: 'User'},
@@ -137,24 +138,9 @@ var UserAddButton = React.createClass({
         this.setState({roleStateDropDown: menuItem.text})
     },
     bindAutocomplete: function() {
-        $('#newNameInput').autocomplete({
-            source: function(req, res) {
-                var input = req.term;
-                if(input.length < 3) {
-                    res([])
-                }
-                $.ajax({
-                    url: 'q?oauthuser=' + input,
-                    dataType: 'json',
-                    success: function(data) {
-                        res(data)
-                    },
-                    error: function(_) {
-                        res([])
-                    }
-                })
-            }
-        })
+        $('#newNameInput').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
+        $('#newProjectInput').autocomplete(createMultiAutocompleteObject('q?project=',
+            utility.dataMapper.project));
     },
     addUser: function(){
         var name = this.refs.nameInput.getValue().trim();
@@ -195,7 +181,7 @@ var UserAddButton = React.createClass({
                               onChange={this.handleDropDownChange}
                     />
                 <TextField floatingLabelText="Projects" defaultValue=''
-                           ref="projectInput"/>
+                           ref="projectInput" id="newProjectInput"/>
             </div>;
         return (
             <span>
@@ -245,6 +231,10 @@ var UserEditButton = React.createClass({
             }.bind(this)
         })
     },
+    bindAutocomplete: function() {
+        $('#projectEditInput').autocomplete(createMultiAutocompleteObject('q?project=',
+            utility.dataMapper.project));
+    },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
@@ -270,7 +260,7 @@ var UserEditButton = React.createClass({
                     onChange={this.handleDropDownChange}
                 />
                 <TextField floatingLabelText="Projects" defaultValue={projects.join(" ")}
-                    ref="projectInput" multiLine={true} />
+                    ref="projectInput" id="projectEditInput"/>
             </div>;
         return (
             <span>
@@ -278,6 +268,7 @@ var UserEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.user.name}
                     actions={editActions}
+                    onShow={this.bindAutocomplete}
                     ref="editDialog" contentClassName="dropDownDiv">
                 {edits}
                 </Dialog>
@@ -323,6 +314,10 @@ var BatchAddProjectButton = React.createClass({
              })
         });
     },
+    bindAutocomplete: function() {
+        $('#projectBatchInput').autocomplete(createMultiAutocompleteObject('q?project=',
+            utility.dataMapper.project));
+    },
     render: function() {
         var actions = [
             {text: 'Cancel'},
@@ -331,7 +326,7 @@ var BatchAddProjectButton = React.createClass({
         var edits =
             <div>
                 <TextField floatingLabelText="Projects" defaultValue=''
-                           ref="projectInput"/>
+                           ref="projectInput" id="projectBatchInput"/>
             </div>;
         return (
             <span>

@@ -1241,9 +1241,25 @@ var queryProject = function(req, res) {
         }]);
 };
 
+var queryRegion = function(req, res) {
+    var region = req.query.region;
+    var sregx = new RegExp(region.trim(), 'i');
+    var q = {name: sregx};
+    handlePluralGet(req, res,
+        'region', db.Region, q, []);
+};
+
+var queryIdc = function(req, res) {
+    var idc = req.query.idc;
+    var sregx = new RegExp(idc.trim(), 'i');
+    var q = {name: sregx};
+    handlePluralGet(req, res,
+        'idc', db.Idc, q, []);
+};
+
 // For "Find anything"
-app.get('/q', function(req, res){
-    if(req.query.node != undefined) {
+app.get('/q', function(req, res) {
+    if (req.query.node != undefined) {
         // /q?node=xxx
         queryNode(req, res);
     } else if (req.query.tag != undefined) {
@@ -1259,6 +1275,12 @@ app.get('/q', function(req, res){
     } else if (req.query.project != undefined) {
         // /q?project=xxx
         queryProject(req, res);
+    } else if (req.query.region != undefined) {
+        // q?region=xxx
+        queryRegion(req, res);
+    } else if (req.query.idc != undefined) {
+        // q?idc=xxx
+        queryIdc(req, res);
     } else {
         res.status(400).send("Invalid query");
     }

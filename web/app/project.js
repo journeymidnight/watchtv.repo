@@ -42,6 +42,9 @@ var ProjectList = React.createClass({
             }.bind(this)
         })
     },
+    componentDidMount: function() {
+        $('#newLeader').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
+    },
     render: function() {
         var that = this;
         var projectList = this.props.data.map(function(project){
@@ -53,7 +56,7 @@ var ProjectList = React.createClass({
         var addNewProjectRow =
             <tr>
                 <td><TextField ref="newName" /></td>
-                <td><TextField ref="newLeader" /></td>
+                <td><TextField ref="newLeader" id="newLeader"/></td>
                 <td>
                     <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewProject} title="Add"></i>
                 </td>
@@ -134,6 +137,9 @@ var ProjectEditButton = React.createClass({
             }.bind(this)
         })
     },
+    bindAutocomplete: function() {
+        $('#leaderInput').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
+    },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
@@ -154,7 +160,7 @@ var ProjectEditButton = React.createClass({
                 <div>
                     <TextField floatingLabelText="Leader"
                                    defaultValue={leader}
-                                   ref="leaderInput" multiLine={true} />
+                                   ref="leaderInput" id="leaderInput"/>
                 </div>
             </div>;
         return (
@@ -163,6 +169,7 @@ var ProjectEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.name}
                     actions={editActions}
+                    onShow={this.bindAutocomplete}
                     ref="editDialog">
                     {edits}
                 </Dialog>

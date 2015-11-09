@@ -27,11 +27,12 @@
             s.parentNode.insertBefore(wf, s);
         })();
         (function() {
-            window.createSingleAutocompleteObject = function(url, dataMapper) {
+            window.createSingleAutocompleteObject = function(url, dataMapper, minLength) {
+                if(!minLength) minLength = 3;
                 return {
                     source: function(req, res) {
                         var input = req.term;
-                        if(input.length < 3) {
+                        if(input.length < minLength) {
                             res([]);
                             return;
                         }
@@ -52,11 +53,12 @@
                     }
                 }
             };
-            window.createMultiAutocompleteObject = function(url, dataMapper) {
+            window.createMultiAutocompleteObject = function(url, dataMapper, minLength) {
+                if(!minLength) minLength = 2;
                 return {
                     source: function(req, res) {
                         var term = req.term.split(' ').pop();
-                        if(term.length < 2) {
+                        if(term.length < minLength) {
                             res([]);
                             return;
                         }

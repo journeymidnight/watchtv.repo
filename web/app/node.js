@@ -2,7 +2,6 @@ var React = require('react');
 var Table = require('react-bootstrap/lib/Table');
 var Badge = require('react-bootstrap/lib//Badge');
 var TextField = require('material-ui/lib/text-field');
-var IconButton = require('material-ui/lib/icon-button');
 var Snackbar = require('material-ui/lib/snackbar');
 var Dialog = require('material-ui/lib/dialog');
 var AppCanvas = require('material-ui/lib/app-canvas');
@@ -11,6 +10,7 @@ var mixins = require('./mixins.js');
 var DeleteButton = require('./ui/deleteButton.js');
 var NavigationBar = require('./ui/navigationBar.js');
 var SearchableList = require('./ui/searchableList.js');
+var utility = require('./utility.js');
 
 
 var NodeList = React.createClass({
@@ -53,6 +53,16 @@ var NodeList = React.createClass({
             }.bind(this)
         });
     },
+    componentDidMount: function() {
+        $('#newTag').autocomplete(createMultiAutocompleteObject('q?tag=',
+            utility.dataMapper.tag));
+        $('#newProject').autocomplete(createSingleAutocompleteObject('q?project=',
+            utility.dataMapper.project, 1));
+        $('#newRegion').autocomplete(createSingleAutocompleteObject('q?region=',
+            utility.dataMapper.region, 1));
+        $('#newIdc').autocomplete(createSingleAutocompleteObject('q?idc=',
+            utility.dataMapper.idc, 1));
+    },
     render: function() {
         var that = this;
         var nodeList = this.props.data.map(function(node){
@@ -67,11 +77,11 @@ var NodeList = React.createClass({
             <tr className="add_node">
                 <td><TextField ref="newName" /></td>
                 <td><TextField ref="newIP" /></td>
-                <td><TextField ref="newTag" /></td>
+                <td><TextField ref="newTag" id="newTag"/></td>
                 <td><TextField ref="newDescription" /></td>
-                <td><TextField ref="newProject" /></td>
-                <td><TextField ref="newRegion" /></td>
-                <td><TextField ref="newIdc" /></td>
+                <td><TextField ref="newProject" id="newProject"/></td>
+                <td><TextField ref="newRegion" id="newRegion"/></td>
+                <td><TextField ref="newIdc" id="newIdc"/></td>
                 <td>
                     <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewNode} title="Add"></i>
                 </td>
@@ -177,6 +187,16 @@ var NodeEditButton = React.createClass({
             }.bind(this)
         })
     },
+    bindAutocomplete: function() {
+        $('#tagInput').autocomplete(createMultiAutocompleteObject('q?tag=',
+            utility.dataMapper.tag));
+        $('#projectInput').autocomplete(createSingleAutocompleteObject('q?project=',
+            utility.dataMapper.project, 1));
+        $('#regionInput').autocomplete(createSingleAutocompleteObject('q?region=',
+            utility.dataMapper.region, 1));
+        $('#idcInput').autocomplete(createSingleAutocompleteObject('q?idc=',
+            utility.dataMapper.idc, 1));
+    },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
@@ -192,13 +212,13 @@ var NodeEditButton = React.createClass({
                 defaultValue={this.props.nodeIps.join("  ")}
                 ref="ipInput" />
             <TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
-                ref="tagInput" />
+                ref="tagInput" id="tagInput"/>
             <TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
-                           ref="projectInput" />
+                           ref="projectInput" id="projectInput"/>
             <TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
-                ref="regionInput" />
+                ref="regionInput" id="regionInput"/>
             <TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
-                ref="idcInput" />
+                ref="idcInput" id="idcInput"/>
                 <div>
                     <TextField floatingLabelText="Description"
                         defaultValue={this.props.nodeDescription}
@@ -212,6 +232,7 @@ var NodeEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.nodeName}
                     actions={editActions}
+                    onShow={this.bindAutocomplete}
                     ref="editDialog">
                 {edits}
                 </Dialog>

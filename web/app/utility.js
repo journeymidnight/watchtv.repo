@@ -292,12 +292,16 @@ var generateKeyForGraph = function(graph) { // graph is same as in DB schema
     return key;
 };
 
+var getNames = function(data) {
+    return data.result.map(function(item) {
+        return item.name;
+    })
+};
 var dataMapper = {
-    project: function(data) {
-        return data.result.map(function(project) {
-            return project.name;
-        });
-    }
+    project: getNames,
+    tag: getNames,
+    region: getNames,
+    idc: getNames
 };
 
 var Utility = {
