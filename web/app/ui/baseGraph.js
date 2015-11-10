@@ -33,7 +33,8 @@ var BaseGraph = React.createClass({
             metrics: this.props.graph.metrics,
             time: this.props.graph.time,
             title: this.props.graph.title,
-            windowWidth: $(window).width()
+            windowWidth: $(window).width(),
+            refreshTimePeriod:this.props.refreshTimePeriod
         };
     },
     queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
@@ -211,35 +212,11 @@ var BaseGraph = React.createClass({
                 }
             })
             .bind("plotselected", function (event, ranges) {
-                if(that.props.node_id){//single
-                    var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
-                    $(".zoomTime .zoomInfo").html(
-                        Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
-                        Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
-                    that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to);
-                }else{
-                    var fitted_data=that.getFittedData();
-                    var start = that.state.timePeriod[0].getTime(),
-                        end = that.state.timePeriod[1].getTime();
-                    var from = (ranges.xaxis.from - start)/(end - start),
-                        to = (ranges.xaxis.to - start)/(end - start);
-                    var data = that.state.data;
-                    for(var i = 0;i<fitted_data.length;i++){
-                        var arr = fitted_data[i].data;
-                        var oriData = data[i].data;
-                        fitted_data[i].data = arr.slice(parseInt(from*arr.length),parseInt(to*arr.length));
-                        var dataStart = parseInt(from*oriData.length),
-                            dataEnd = parseInt(to*oriData.length);
-                        dataStart%2 == 0?dataStart = dataStart:dataStart = dataStart+1;
-                        dataEnd%2 == 0?dataEnd = dataEnd:dataEnd = dataEnd+1;
-                        data[i].data = oriData.slice(dataStart,dataEnd);
-                    }
-                    that.setState({data:data,timePeriod:[new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)]});
-                    Utility.plotGraph('#graph' + uniq_id,
-                              fitted_data,
-                              formatter
-                    );
-                }
+                var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
+                $(".zoomTime .zoomInfo").html(
+                    Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
+                    Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
+                that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to);
             }
         );
         // Toggle serie legend labels to show/hide corresponding serie line
@@ -262,12 +239,12 @@ var BaseGraph = React.createClass({
         });
     },
     componentWillReceiveProps:function(nextProps){
-        if(nextProps.timePeriod != null && nextProps.timePeriod !== this.state.timePeriod) {
-            this.setState({data:[], timePeriod: nextProps.timePeriod});
-            this.handleGraph(nextProps.timePeriod);
-        }
-        if(nextProps.graph.time !== this.state.time) {
-            this.setState({data: [], time: nextProps.graph.time}, this.handleGraph);
+        if(nextProps.timePeriod!=null&&nextProps.timePeriod !== this.state.timePeriod) {//graph drag
+            this.setState({data:[], timePeriod: nextProps.timePeriod},
+                this.handleGraph(nextProps.timePeriod));
+        }else if(nextProps.refreshTimePeriod!=null&&
+                nextProps.refreshTimePeriod !== this.state.refreshTimePeriod) {//zoom out & refresh
+            this.setState({data:[]},this.handleGraph(nextProps.refreshTimePeriod));
         }
     },
     showShareDialog: function () {

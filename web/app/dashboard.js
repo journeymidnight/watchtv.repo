@@ -2,14 +2,17 @@ var React = require('react');
 
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationBar.js');
+var Utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
+var Zoom  = require('./ui/zoomGraph.js');
 var GraphEditor = require('./ui/dashboardGraphEditor.js');
 
 var GraphList = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function () {
         return {
-            graphs: []
+            graphs: [],
+            refreshTimePeriod:[]//zoom out 以及 自动刷新后展示graph的新的时间段
         };
     },
     getUserGraphs: function () {
@@ -28,24 +31,36 @@ var GraphList = React.createClass({
             }
         });
     },
-    refreshGraph: function () {
-        this.getUserGraphs();
-    },
     componentDidMount: function () {
         this.getUserGraphs();
+    },
+    refreshGraph: function (fromTime, toTime) {
+        if(fromTime != null && toTime != null) {
+            // scale graphs
+            var timePeriod;
+            timePeriod = [new Date(fromTime), new Date(toTime)];
+            this.setState({timePeriod:timePeriod});
+            return;
+        }
+        this.getUserGraphs();
+    },
+    refreshTime: function(timePeriod){
+        this.setState({refreshTimePeriod:timePeriod});
     },
     render: function(){
         var _this = this;
         var graphList = this.state.graphs.map(function(graph) {
-
             return <BaseGraph key={graph._id}
                               graph={graph}
                               onRefresh={_this.refreshGraph}
                               graphEditor={GraphEditor}
+                              timePeriod={_this.state.timePeriod}
+                              refreshTimePeriod={_this.state.refreshTimePeriod}
                    />
         });
         return (
             <div>
+                <Zoom onRefresh={this.refreshTime}/>
                 <div className="graphList">
                     {graphList}
                 </div>

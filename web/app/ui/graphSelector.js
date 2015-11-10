@@ -140,7 +140,7 @@ var GraphSelector = React.createClass({
         if(selected.device == null) selected.device = '';
         var metric = selected.measurement + ',' + selected.device + ',' + selected.measure;
         if(metrics.indexOf(metric) === -1) {
-            metrics.push(metric);
+            metrics.push(metric.replace(",,",","));
         }
         this.setState({metrics: metrics});
         if(this.props.onChange) this.props.onChange(metrics);

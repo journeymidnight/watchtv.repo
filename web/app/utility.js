@@ -304,6 +304,14 @@ var dataMapper = {
     idc: getNames
 };
 
+//根据当前graph时间段及刷新频率计算新的时间段
+var resetTimePeriod = function(time,refreshPeriod){
+    var oldPeriod = fitTimePeriod(time)
+    return [
+        new Date(oldPeriod[0].getTime()+refreshPeriod),
+        new Date(oldPeriod[1].getTime()+refreshPeriod),
+    ];
+}
 var Utility = {
     get_value: get_value,
     get_measurements: get_measurements,
@@ -320,6 +328,7 @@ var Utility = {
     dateFormat:dateFormat,
     dotted2underscoredIP: dotted2underscoredIP,
     generateKeyForGraph: generateKeyForGraph,
-    dataMapper: dataMapper
+    dataMapper: dataMapper,
+    resetTimePeriod:resetTimePeriod
 };
 module.exports = Utility;

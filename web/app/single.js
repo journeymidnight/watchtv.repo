@@ -4,6 +4,7 @@ var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationBar.js');
 var Utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
+var Zoom  = require('./ui/zoomGraph.js');
 var GraphEditor = require('./ui/graphEditor.js');
 
 var GraphList = React.createClass({
@@ -15,7 +16,6 @@ var GraphList = React.createClass({
             node_id: node_id,
             graphs: [],
             defaultGraphs: [],
-            zoomTimeIndex: 5, // last 12h
             ips: [],
             measurements: null,
             timePeriod: null,
@@ -24,7 +24,8 @@ var GraphList = React.createClass({
                 idc:{name:""},
                 region:{name:""},
                 description:"",
-            }//node info
+            },//node info
+            refreshTimePeriod:[]//zoom out 以及 自动刷新后展示graph的新的时间段
         };
     },
     getBasics: function () {
@@ -111,46 +112,8 @@ var GraphList = React.createClass({
         }
         this.getNodeGraphs();
     },
-    showZoomTime:function(){
-        $(".zoomTime ul").toggle();
-        $(".zoomTime ul").css('display')=="none"?
-                $(".zoomTime .zoomInfo").removeClass("selected"):$(".zoomTime .zoomInfo").addClass("selected");
-    },
-    zoomOut: function(){
-        var index = this.state.zoomTimeIndex + 1;
-        if(index > $(".zoomTime ul li").size()-1) return;
-        var obj = $(".zoomTime ul li").eq(index);
-        this.resetTime(obj);
-    },
-    changeTimeList:function(){
-        var obj = Utility.getEvent().target;
-        this.resetTime($(obj));
-    },
-    resetTime:function(obj){
-        var text = obj.html(),
-            value = obj.val(),
-            graphs = this.state.graphs,
-            defaultGraphs = this.state.defaultGraphs;
-        $(".zoomTime .zoomInfo").html(text);
-        $(".zoomTime li,.zoomTime .zoomInfo").removeClass("selected");
-        obj.addClass("selected");
-        $(".zoomTime ul").hide();
-        for(var i=0;i<graphs.length;i++){
-            graphs[i].time = value;
-        }
-        for(var i=0;i<defaultGraphs.length;i++){
-            defaultGraphs[i].time = value;
-        }
-        this.setState({ graphs: graphs, defaultGraphs: defaultGraphs, zoomTimeIndex:obj.index() });
-    },
-    componentWillMount:function(){
-        $("body").bind("click",function(){
-            var event = Utility.getEvent();
-            if($(event.target).parents(".zoomTime").size()==0){
-                $(".zoomTime ul").hide();
-                $(".zoomTime .zoomInfo").removeClass("selected");
-            }
-        });
+    refreshTime: function(timePeriod){
+        this.setState({refreshTimePeriod:timePeriod});
     },
     render: function(){
         var that = this;
@@ -162,6 +125,7 @@ var GraphList = React.createClass({
                               node_id={that.state.node_id}
                               graphEditor={dummyEditor}
                               timePeriod={that.state.timePeriod}
+                              refreshTimePeriod={that.state.refreshTimePeriod}
                    />;
         });
         var graphList = that.state.graphs.map(function(graph) {
@@ -172,26 +136,12 @@ var GraphList = React.createClass({
                               measurements={that.state.measurements}
                               graphEditor={GraphEditor}
                               timePeriod={that.state.timePeriod}
+                              refreshTimePeriod={that.state.refreshTimePeriod}
                    />;
-        });
-        var timeList = Utility.getTimeList();
-        var zoomTimeList = timeList.map(function(subArr,index){
-            if(index == 5)//last 12h
-                return <li className="selected" value={subArr.value} key={index} onClick={that.changeTimeList}>{subArr.text}</li>;
-            else
-                return <li value={subArr.value} key={index} onClick={that.changeTimeList}>{subArr.text}</li>;
         });
         return (
             <div>
-                <div className="zoomTime">
-                    <div className="zoom" onClick = {this.zoomOut}>Zoom Out</div>
-                    <div>
-                        <div className="zoomInfo" onClick={this.showZoomTime}>last 12h</div>
-                        <ul>
-                            {zoomTimeList}
-                        </ul>
-                    </div>
-                </div>
+                <Zoom onRefresh={this.refreshTime}/>
                 <div className="nodeInfo">
                     <span>IP:{this.state.node.ips}</span>
                     <span>Project:{this.state.node.project.name}</span>
