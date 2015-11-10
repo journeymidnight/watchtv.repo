@@ -1257,6 +1257,22 @@ var queryIdc = function(req, res) {
         'idc', db.Idc, q, []);
 };
 
+var queryMonitoredItems = function(req, res) {
+    var collectors = [
+        "CephCollector",
+        "LoadAverageCollector",
+        "CPUCollector",
+        "DiskSpaceCollector",
+        "DiskUsageCollector",
+        "NetworkCollector",
+        "MemoryCollector"
+    ];
+    var query = req.query.monitored.toLowerCase();
+    res.send(collectors.filter(function(c){
+        return c.toLowerCase().indexOf(query) !== -1;
+    }))
+};
+
 // For "Find anything"
 app.get('/q', function(req, res) {
     if (req.query.node != undefined) {
@@ -1281,6 +1297,10 @@ app.get('/q', function(req, res) {
     } else if (req.query.idc != undefined) {
         // q?idc=xxx
         queryIdc(req, res);
+    } else if (req.query.monitored) {
+        // q?monitored=xxx
+        // for auto-complete of `Monitored Items`
+        queryMonitoredItems(req, res);
     } else {
         res.status(400).send("Invalid query");
     }

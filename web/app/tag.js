@@ -45,6 +45,9 @@ var TagList = React.createClass({
             }.bind(this)
         })
     },
+    componentDidMount: function () {
+        $('#newMonitorItems').autocomplete(createMultiAutocompleteObject('q?monitored='));
+    },
     render: function() {
         var that = this;
         var tagList = this.props.data.map(function(tag){
@@ -57,7 +60,7 @@ var TagList = React.createClass({
         var addNewTagRow =
             <tr className="add_node">
                 <td><TextField ref="newName" /></td>
-                <td><TextField ref="newMonitorItems" /></td>
+                <td><TextField ref="newMonitorItems" id="newMonitorItems"/></td>
                 <td><TextField ref="newAlarmRules" disabled={true} /></td>
                 <td><TextField ref="newReceiverGroups" disabled={true} /></td>
                 <td>
@@ -138,6 +141,9 @@ var TagEditButton = React.createClass({
             }.bind(this)
         })
     },
+    bindAutocomplete: function () {
+        $('#monitorItemsInput').autocomplete(createMultiAutocompleteObject('q?monitored='));
+    },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
@@ -152,7 +158,7 @@ var TagEditButton = React.createClass({
                 <div>
                 <TextField floatingLabelText="Monitored Items"
                     defaultValue={this.props.monitorItems.join(" ")}
-                    ref="monitorItemsInput" multiLine={true} />
+                    ref="monitorItemsInput" id="monitorItemsInput" />
                 </div>
             </div>;
         return (
@@ -160,6 +166,7 @@ var TagEditButton = React.createClass({
                 <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
                 <Dialog
                     title={"Edit info for " + this.props.name}
+                    onShow={this.bindAutocomplete}
                     actions={editActions}
                     ref="editDialog">
             {edits}
