@@ -11,8 +11,7 @@ var GraphList = React.createClass({
     mixins: [mixins.materialMixin],
     getInitialState: function () {
         return {
-            graphs: [],
-            refreshTimePeriod:[]//zoom out 以及 自动刷新后展示graph的新的时间段
+            graphs: []
         };
     },
     getUserGraphs: function () {
@@ -45,7 +44,7 @@ var GraphList = React.createClass({
         this.getUserGraphs();
     },
     refreshTime: function(timePeriod){
-        this.setState({refreshTimePeriod:timePeriod});
+        this.setState({timePeriod:timePeriod});
     },
     render: function(){
         var _this = this;
@@ -55,7 +54,6 @@ var GraphList = React.createClass({
                               onRefresh={_this.refreshGraph}
                               graphEditor={GraphEditor}
                               timePeriod={_this.state.timePeriod}
-                              refreshTimePeriod={_this.state.refreshTimePeriod}
                    />
         });
         return (

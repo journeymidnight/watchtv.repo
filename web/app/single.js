@@ -113,7 +113,7 @@ var GraphList = React.createClass({
         this.getNodeGraphs();
     },
     refreshTime: function(timePeriod){
-        this.setState({refreshTimePeriod:timePeriod});
+        this.setState({timePeriod:timePeriod});
     },
     render: function(){
         var that = this;
@@ -125,7 +125,6 @@ var GraphList = React.createClass({
                               node_id={that.state.node_id}
                               graphEditor={dummyEditor}
                               timePeriod={that.state.timePeriod}
-                              refreshTimePeriod={that.state.refreshTimePeriod}
                    />;
         });
         var graphList = that.state.graphs.map(function(graph) {

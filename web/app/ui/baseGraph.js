@@ -33,8 +33,7 @@ var BaseGraph = React.createClass({
             metrics: this.props.graph.metrics,
             time: this.props.graph.time,
             title: this.props.graph.title,
-            windowWidth: $(window).width(),
-            refreshTimePeriod:this.props.refreshTimePeriod
+            windowWidth: $(window).width()
         };
     },
     queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
@@ -239,12 +238,10 @@ var BaseGraph = React.createClass({
         });
     },
     componentWillReceiveProps:function(nextProps){
-        if(nextProps.timePeriod!=null&&nextProps.timePeriod !== this.state.timePeriod) {//graph drag
+        //graph drag & zoom out & refresh
+        if(nextProps.timePeriod!=null&&nextProps.timePeriod !== this.state.timePeriod) {
             this.setState({data:[], timePeriod: nextProps.timePeriod},
                 this.handleGraph(nextProps.timePeriod));
-        }else if(nextProps.refreshTimePeriod!=null&&
-                nextProps.refreshTimePeriod !== this.state.refreshTimePeriod) {//zoom out & refresh
-            this.setState({data:[]},this.handleGraph(nextProps.refreshTimePeriod));
         }
     },
     showShareDialog: function () {
