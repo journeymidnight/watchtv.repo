@@ -19,7 +19,7 @@ var logger = require('./logger.js').getLogger('API');
 
 var userPopulateArgument = {
     path: "projects graphs",
-    select: "name ips metrics time title"
+    select: "name ips metrics title"
 };
 
 var isArray = function (value) {
@@ -756,7 +756,6 @@ app.post('/node/:node_id/graphs', function (req, res){
         user_id = req.user._id;
     var ips = req.body.ips,
         metrics = req.body.metrics,
-        time = req.body.time,
         title = valueWithDefault(req.body.title, '');
     if(!ips || ips.constructor !== Array || ips.length === 0) {
         res.status(400).send('Missing IPs or bad format');
@@ -766,14 +765,9 @@ app.post('/node/:node_id/graphs', function (req, res){
         res.status(400).send('Missing metrics or bad format');
         return;
     }
-    if(!time) {
-        res.status(400).send('Missing time for graph');
-        return;
-    }
     db.Graph.create({
         ips: ips,
         metrics: metrics,
-        time: time,
         title: title
     }, function(err, created){
         if(err) {
@@ -1498,7 +1492,7 @@ app.get('/user', function(req, res) {
 app.get('/user/graphs', function(req, res) {
     db.User.findById(req.user._id, function(err, user) {
         res.send(user.graphs);
-    }).populate('graphs', 'ips metrics time title')
+    }).populate('graphs', 'ips metrics title')
 });
 
 // Add new projects to user
@@ -1540,7 +1534,6 @@ app.post('/user/graphs', function(req, res) {
     var user_id = req.user._id;
     var ips = req.body.ips,
         metrics = req.body.metrics,
-        time = req.body.time,
         title = valueWithDefault(req.body.title, '');
     if(!ips || ips.constructor !== Array || ips.length === 0) {
         res.status(400).send('Missing IPs or bad format');
@@ -1550,14 +1543,9 @@ app.post('/user/graphs', function(req, res) {
         res.status(400).send('Missing metrics or bad format');
         return;
     }
-    if(!time) {
-        res.status(400).send('Missing time for graph');
-        return;
-    }
     db.Graph.create({
         ips: ips,
         metrics: metrics,
-        time: time,
         title: title
     }, function(err, created) {
         if(err) {
@@ -1595,10 +1583,6 @@ app.post('/user/graphs/imports', function(req, res) {
         }
         if(!graph.metrics || graph.metrics.constructor !== Array || graph.metrics.length === 0) {
             res.status(400).send('Missing metrics or bad format for graph#' + i);
-            return;
-        }
-        if(!graph.time) {
-            res.status(400).send('Missing time for graph#' + i);
             return;
         }
     }
