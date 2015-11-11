@@ -42,8 +42,15 @@ var ProjectList = React.createClass({
             }.bind(this)
         })
     },
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.handleCreateNewProject();
+        }
+    },
     componentDidMount: function() {
         $('#newLeader').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
+        $('#newName').bind('keydown', this.onKeydown);
     },
     render: function() {
         var that = this;
@@ -55,7 +62,7 @@ var ProjectList = React.createClass({
         });
         var addNewProjectRow =
             <tr>
-                <td><TextField ref="newName" /></td>
+                <td><TextField ref="newName" id="newName"/></td>
                 <td><TextField ref="newLeader" id="newLeader"/></td>
                 <td>
                     <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewProject} title="Add"></i>
@@ -116,7 +123,7 @@ var ProjectEditButton = React.createClass({
     getInitialState: function(){
         return {snackMsg: ''}
     },
-    updateNode: function(){
+    updateProject: function(){
         $.ajax({
             type: "PUT",
             url: "project/" + this.props.id,
@@ -137,13 +144,20 @@ var ProjectEditButton = React.createClass({
             }.bind(this)
         })
     },
-    bindAutocomplete: function() {
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.updateProject();
+        }
+    },
+    bindEvents: function() {
         $('#leaderInput').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
+        $('#nameInput').bind('keydown', this.onKeydown);
     },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
-            {text: 'Update', onClick: this.updateNode}
+            {text: 'Update', onClick: this.updateProject}
         ];
         var leader;
         if(!this.props.leader) {
@@ -155,7 +169,7 @@ var ProjectEditButton = React.createClass({
             <div>
                 <div>
                     <TextField floatingLabelText="Name" defaultValue={this.props.name}
-                                   ref="nameInput" />
+                                   ref="nameInput" id="nameInput"/>
                 </div>
                 <div>
                     <TextField floatingLabelText="Leader"
@@ -169,7 +183,7 @@ var ProjectEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.name}
                     actions={editActions}
-                    onShow={this.bindAutocomplete}
+                    onShow={this.bindEvents}
                     ref="editDialog">
                     {edits}
                 </Dialog>

@@ -190,7 +190,7 @@ var UserAddButton = React.createClass({
                     title="Add new user"
                     actions={actions}
                     ref="editDialog" contentClassName="dropDownDiv"
-                    onShow={this.bindAutocomplete}>
+                    onShow={this.bindEvents}>
                     {edits}
                 </Dialog>
                 <Snackbar ref="snackbar" message={this.state.snackMsg} />
@@ -268,7 +268,7 @@ var UserEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.user.name}
                     actions={editActions}
-                    onShow={this.bindAutocomplete}
+                    onShow={this.bindEvents}
                     ref="editDialog" contentClassName="dropDownDiv">
                 {edits}
                 </Dialog>
@@ -286,7 +286,7 @@ var BatchAddProjectButton = React.createClass({
     getInitialState: function() {
         return {snackMsg: ''}
     },
-    addUser: function() {
+    addProjects: function() {
         var that = this;
         var appendRequests = [];
         this.props.ids.map(function(id){
@@ -321,7 +321,7 @@ var BatchAddProjectButton = React.createClass({
     render: function() {
         var actions = [
             {text: 'Cancel'},
-            {text: 'Add', onClick: this.addUser}
+            {text: 'Add', onClick: this.addProjects}
         ];
         var edits =
             <div>
@@ -335,7 +335,7 @@ var BatchAddProjectButton = React.createClass({
                     title="Add extra projects to these users:"
                     actions={actions}
                     ref="editDialog" contentClassName="dropDownDiv"
-                    onShow={this.bindAutocomplete}>
+                    onShow={this.bindEvents}>
                     {'Users: ' + this.props.names}
                     {edits}
                 </Dialog>

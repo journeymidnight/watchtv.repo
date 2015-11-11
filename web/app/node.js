@@ -62,6 +62,13 @@ var NodeList = React.createClass({
             utility.dataMapper.region, 1));
         $('#newIdc').autocomplete(createSingleAutocompleteObject('q?idc=',
             utility.dataMapper.idc, 1));
+        $('#newName, #newIP, #newDescription').bind('keydown', this.onKeydown);
+    },
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.handleCreateNewNode();
+        }
     },
     render: function() {
         var that = this;
@@ -75,10 +82,10 @@ var NodeList = React.createClass({
         });
         var addNewNodeRow =
             <tr className="add_node">
-                <td><TextField ref="newName" /></td>
-                <td><TextField ref="newIP" /></td>
+                <td><TextField ref="newName" id="newName"/></td>
+                <td><TextField ref="newIP" id="newIP"/></td>
                 <td><TextField ref="newTag" id="newTag"/></td>
-                <td><TextField ref="newDescription" /></td>
+                <td><TextField ref="newDescription" id="newDescription"/></td>
                 <td><TextField ref="newProject" id="newProject"/></td>
                 <td><TextField ref="newRegion" id="newRegion"/></td>
                 <td><TextField ref="newIdc" id="newIdc"/></td>
@@ -187,7 +194,7 @@ var NodeEditButton = React.createClass({
             }.bind(this)
         })
     },
-    bindAutocomplete: function() {
+    bindEvents: function() {
         $('#tagInput').autocomplete(createMultiAutocompleteObject('q?tag=',
             utility.dataMapper.tag));
         $('#projectInput').autocomplete(createSingleAutocompleteObject('q?project=',
@@ -196,6 +203,13 @@ var NodeEditButton = React.createClass({
             utility.dataMapper.region, 1));
         $('#idcInput').autocomplete(createSingleAutocompleteObject('q?idc=',
             utility.dataMapper.idc, 1));
+        $('#nameInput, #ipInput').bind('keydown', this.onKeydown);
+    },
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.updateNode();
+        }
     },
     render: function(){
         var editActions = [
@@ -207,10 +221,10 @@ var NodeEditButton = React.createClass({
         });
         var edits = <div>
             <TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
-                ref="nameInput" />
+                ref="nameInput" id="nameInput"/>
             <TextField floatingLabelText="IP Address"
                 defaultValue={this.props.nodeIps.join("  ")}
-                ref="ipInput" />
+                ref="ipInput" id="ipInput"/>
             <TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
                 ref="tagInput" id="tagInput"/>
             <TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
@@ -232,9 +246,9 @@ var NodeEditButton = React.createClass({
                 <Dialog
                     title={"Edit info for " + this.props.nodeName}
                     actions={editActions}
-                    onShow={this.bindAutocomplete}
+                    onShow={this.bindEvents}
                     ref="editDialog">
-                {edits}
+                    {edits}
                 </Dialog>
                 <Snackbar ref="snackbar" message={this.state.snackMsg} />
             </span>

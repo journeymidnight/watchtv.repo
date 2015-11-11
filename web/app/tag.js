@@ -45,8 +45,15 @@ var TagList = React.createClass({
             }.bind(this)
         })
     },
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.handleCreateNewTag();
+        }
+    },
     componentDidMount: function () {
         $('#newMonitorItems').autocomplete(createMultiAutocompleteObject('q?monitored='));
+        $('#newName').bind('keydown', this.onKeydown);
     },
     render: function() {
         var that = this;
@@ -59,7 +66,7 @@ var TagList = React.createClass({
         });
         var addNewTagRow =
             <tr className="add_node">
-                <td><TextField ref="newName" /></td>
+                <td><TextField ref="newName" id="newName"/></td>
                 <td><TextField ref="newMonitorItems" id="newMonitorItems"/></td>
                 <td><TextField ref="newAlarmRules" disabled={true} /></td>
                 <td><TextField ref="newReceiverGroups" disabled={true} /></td>
@@ -120,7 +127,7 @@ var TagEditButton = React.createClass({
     getInitialState: function(){
         return {snackMsg: ''}
     },
-    updateNode: function(){
+    updateTag: function(){
         $.ajax({
             type: "PUT",
             url: "tag/" + this.props.id,
@@ -141,19 +148,26 @@ var TagEditButton = React.createClass({
             }.bind(this)
         })
     },
-    bindAutocomplete: function () {
+    onKeydown: function(event) {
+        if(event.which === 13) {
+            event.preventDefault();
+            this.updateTag();
+        }
+    },
+    bindEvents: function () {
         $('#monitorItemsInput').autocomplete(createMultiAutocompleteObject('q?monitored='));
+        $('#nameInput').bind('keydown', this.onKeydown);
     },
     render: function(){
         var editActions = [
             {text: 'Cancel'},
-            {text: 'Update', onClick: this.updateNode}
+            {text: 'Update', onClick: this.updateTag}
         ];
         var edits =
             <div>
                 <div>
                 <TextField floatingLabelText="Name" defaultValue={this.props.name}
-                    ref="nameInput" />
+                    ref="nameInput" id="nameInput"/>
                 </div>
                 <div>
                 <TextField floatingLabelText="Monitored Items"
@@ -166,7 +180,7 @@ var TagEditButton = React.createClass({
                 <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
                 <Dialog
                     title={"Edit info for " + this.props.name}
-                    onShow={this.bindAutocomplete}
+                    onShow={this.bindEvents}
                     actions={editActions}
                     ref="editDialog">
             {edits}
