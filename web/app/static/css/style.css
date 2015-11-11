@@ -257,3 +257,7 @@ tr.disabled {opacity: .5;}
 	75%{opacity: 0;margin: 100px 0 0 100px; }
 	100%{}
 }
+/* jQuery autocomplete */
+.ui-autocomplete-loading {background:url('../images/loading.gif') no-repeat right center;
+	-webkit-background-size: 20px 20px;
+	background-size: 20px 20px;}
