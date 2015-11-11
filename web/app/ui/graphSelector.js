@@ -188,7 +188,20 @@ var GraphSelector = React.createClass({
                             key='measurements'
                        />);
         if(selected.measurement) {
-            // Second(measure) dropdown
+            // Second(device) dropdown
+            var device = this.state.measurements[selected.measurement].device;
+            if(device) {
+                device.map(function(d) {
+                    deviceItems.push({ payload: d, text: d });
+                });
+                deviceItems.sort(compare);
+                selectors.push(<DropDownMenu menuItems={deviceItems}
+                                             selectedIndex={getIndex(deviceItems, selected.device)}
+                                             onChange={this.onDeviceChange}
+                                             key='device'
+                />);
+            }
+            // Third(measure) dropdown
             this.state.measurements[selected.measurement].measure.map(function(m){
                 measureItems.push({ payload: m, text: m });
             });
@@ -198,19 +211,6 @@ var GraphSelector = React.createClass({
                                 onChange={this.onMeasureChange}
                                 key='measure'
                            />);
-            // Third(device) dropdown
-            var device = this.state.measurements[selected.measurement].device;
-            if(device) {
-                device.map(function(d) {
-                    deviceItems.push({ payload: d, text: d });
-                });
-                deviceItems.sort(compare);
-                selectors.push(<DropDownMenu menuItems={deviceItems}
-                                    selectedIndex={getIndex(deviceItems, selected.device)}
-                                    onChange={this.onDeviceChange}
-                                    key='device'
-                               />);
-            }
         }
 
         var metricItems = this.state.metrics.map(function(metric) {
