@@ -74,8 +74,7 @@ var graphEditor = React.createClass({
             // PUT action should be handled inside a graph
             var state = {
                 ips: [this.state.selectedIP],
-                metrics: this.state.metrics,
-                time: 43200 // 12h by default
+                metrics: this.state.metrics
             };
             this.props.onUpdate(state);
             this.refs.graphEditDialog.dismiss();
@@ -91,13 +90,12 @@ var graphEditor = React.createClass({
             type: 'POST',
             data: {
                 ips: [that.state.selectedIP],
-                metrics: that.state.metrics,
-                time: 43200 // 12h by default
+                metrics: that.state.metrics
             },
             success: function() {
                 // graph_id does not exist, edit is outside a graph,
                 // just let the container to refresh all graphs
-                that.props.onRefresh();
+                that.props.onRefresh(null,null,that.props.timePeriod);
             },
             error: function(xhr, status, error) {
                 if (xhr.status === 401) {

@@ -102,17 +102,20 @@ var GraphList = React.createClass({
         this.getBasics();
         this.getNodeGraphs();
     },
-    refreshGraph: function(fromTime, toTime){
-        if(fromTime != null && toTime != null) {
+    refreshGraph: function(fromTime, toTime, timePeriod){
+        if(fromTime != null && toTime != null) {//drag
             // scale graphs
             var timePeriod;
             timePeriod = [new Date(fromTime), new Date(toTime)];
             this.setState({timePeriod:timePeriod});
             return;
+        }else if(timePeriod!=null){//new graph
+            this.setState({timePeriod:timePeriod},this.getNodeGraphs());
+        }else{
+            this.getNodeGraphs();//delete
         }
-        this.getNodeGraphs();
     },
-    refreshTime: function(timePeriod){
+    refreshTime: function(timePeriod){//zoom out
         this.setState({timePeriod:timePeriod});
     },
     render: function(){
@@ -158,6 +161,7 @@ var GraphList = React.createClass({
                              measurements={this.state.measurements}
                              onRefresh={this.refreshGraph}
                              node_id={this.state.node_id}
+                             timePeriod={this.state.timePeriod}
                 />
             </div>
         );

@@ -24,14 +24,12 @@ var Utility = require('../utility.js');
 
 var dashboardGraphEditor = React.createClass({
     getInitialState: function () {
-        var ips = [], metrics = [], time = 43200; // 12h by default
+        var ips = [], metrics = [];
         if(this.props.initialIPs) ips = this.props.initialIPs;
         if(this.props.initialMetrics) metrics = this.props.initialMetrics;
-        if(this.props.initialTime) time = this.props.initialTime;
         return {
             ips: ips,
-            metrics: metrics,
-            time: time
+            metrics: metrics
         };
     },
     saveConfig: function () {
@@ -59,13 +57,12 @@ var dashboardGraphEditor = React.createClass({
             type: 'POST',
             data: {
                 ips: that.state.ips,
-                metrics: that.state.metrics,
-                time: that.state.time
+                metrics: that.state.metrics
             },
             success: function() {
                 // graph_id does not exist, edit is outside a graph,
                 // just let the container to refresh all graphs
-                that.props.onRefresh();
+                that.props.onRefresh(null,null,that.props.timePeriod);
             },
             error: function(xhr, status, error) {
                 if (xhr.status === 401) {
@@ -94,7 +91,7 @@ var dashboardGraphEditor = React.createClass({
             success: function() {
                 // graph_id does not exist, edit is outside a graph,
                 // just let the container to refresh all graphs
-                that.props.onRefresh();
+                that.props.onRefresh(null,null,that.props.timePeriod);
             },
             error: function(xhr, status, error) {
                 if (xhr.status === 401) {
@@ -104,9 +101,6 @@ var dashboardGraphEditor = React.createClass({
             }
         });
         this.refs.graphImportDialog.dismiss();
-    },
-    handleTimeChange: function (err, selectedIndex, menuItem) {
-        this.setState({time: menuItem.value});
     },
     handleIpChange: function (ips) {
         this.setState({ips: ips});
@@ -147,15 +141,6 @@ var dashboardGraphEditor = React.createClass({
             {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
         ];
 
-        var timeList = Utility.getTimeList();
-        var selectedTimeIndex = 0;
-        for(var i=0; i<timeList.length; i++) {
-            if(timeList[i].value === this.state.time) {
-                selectedTimeIndex = i;
-                break;
-            }
-        }
-
         var deleteButton;
         if(this.props.graph_id) { // inside a graph
             deleteButton =
@@ -195,9 +180,6 @@ var dashboardGraphEditor = React.createClass({
                             Please confirm to delete this graph.
                         </Dialog>
                         <div>
-                            <DropDownMenu selectedIndex={selectedTimeIndex}
-                                              menuItems={timeList} className="timeLists"
-                                              onChange={this.handleTimeChange} />
                             <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
                                           initialIPs={this.state.ips}
                             />

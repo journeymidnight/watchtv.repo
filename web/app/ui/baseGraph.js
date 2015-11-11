@@ -27,16 +27,20 @@ var Utility = require('../utility.js');
 
 var BaseGraph = React.createClass({
     getInitialState: function(){
+        var timePeriod = Utility.fitTimePeriod(43200); // 12h by default
+        if(this.props.timePeriod!=null){
+            timePeriod = this.props.timePeriod;
+        }
         return {
             data: [],
             ips: this.props.graph.ips,
             metrics: this.props.graph.metrics,
-            time: this.props.graph.time,
             title: this.props.graph.title,
+            timePeriod: timePeriod,
             windowWidth: $(window).width()
         };
     },
-    queryInfluxDB: function(queryString, ip, metric, metricIndex, newTimePeriod) {
+    queryInfluxDB: function(queryString, ip, metric, metricIndex) {
         $.ajax({
             url: '/influxdb/query?' + encodeURIComponent(queryString),
             dataType: 'json',
@@ -49,12 +53,7 @@ var BaseGraph = React.createClass({
                     metricIndex: metricIndex,
                     enabled: 1  // 1 for enabled, 0 for disabled. If shown on graph
                 };
-                // A workaround. Should reconsider the relationship between time and timePeriod
-                if(this.props.node_id) {
-                    this.setState({data: currdata});
-                } else {
-                    this.setState({data: currdata, timePeriod: newTimePeriod});
-                }
+                this.setState({data: currdata});
             }.bind(this)
         });
     },
@@ -62,10 +61,10 @@ var BaseGraph = React.createClass({
         var query = Utility.buildQuery(timePeriod, ip,
                                        metric[0], metric[1], metric[2]);
         if(query == null) { return; }
-        this.queryInfluxDB(query, ip, metric, metricIndex, timePeriod);
+        this.queryInfluxDB(query, ip, metric, metricIndex);
     },
     handleGraph: function(newTimePeriod){
-        var that = this, timePeriod = Utility.fitTimePeriod(this.state.time);
+        var that = this, timePeriod = this.state.timePeriod;
         if(newTimePeriod != null) timePeriod = newTimePeriod;
 
         this.state.ips.map(function(ip){
@@ -83,13 +82,11 @@ var BaseGraph = React.createClass({
         this.setState({
             data: [],
             ips: editorStates.ips,
-            metrics: editorStates.metrics,
-            time: editorStates.time
+            metrics: editorStates.metrics
         }, this.handleGraph);
         var graph = {
             ips: editorStates.ips,
-            metrics: editorStates.metrics,
-            time: editorStates.time
+            metrics: editorStates.metrics
         };
         $.ajax({
             url: '/graph/' + this.props.graph._id,
@@ -256,7 +253,6 @@ var BaseGraph = React.createClass({
         var shareContent = '[' + JSON.stringify({
             ips: this.state.ips,
             metrics: this.state.metrics,
-            time: this.state.time,
             title: this.state.title
         }) + ']';
         return (
@@ -292,7 +288,6 @@ var BaseGraph = React.createClass({
                     <this.props.graphEditor title="Edit" initialIPs={this.state.ips}
                                             ips={this.props.nodeIPs}
                                             initialMetrics={this.state.metrics}
-                                            initialTime={this.state.time}
                                             onUpdate={this.handleEditorUpdate}
                                             onRefresh={this.handleDeleteSelf}
                                             graph_id={this.props.graph._id}

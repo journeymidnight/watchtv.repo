@@ -33,15 +33,18 @@ var GraphList = React.createClass({
     componentDidMount: function () {
         this.getUserGraphs();
     },
-    refreshGraph: function (fromTime, toTime) {
+    refreshGraph: function (fromTime, toTime, timePeriod) {
         if(fromTime != null && toTime != null) {
             // scale graphs
             var timePeriod;
             timePeriod = [new Date(fromTime), new Date(toTime)];
             this.setState({timePeriod:timePeriod});
             return;
+        }else if(timePeriod!=null){//new graph
+            this.setState({timePeriod:timePeriod},this.getUserGraphs());
+        }else{
+            this.getUserGraphs();//delete
         }
-        this.getUserGraphs();
     },
     refreshTime: function(timePeriod){
         this.setState({timePeriod:timePeriod});
@@ -64,6 +67,7 @@ var GraphList = React.createClass({
                 </div>
                 <GraphEditor title="Add new dashboard"
                              onRefresh={this.refreshGraph}
+                             timePeriod={this.state.timePeriod}
                 />
             </div>
         );
