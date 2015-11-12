@@ -101,10 +101,10 @@ tr.disabled {opacity: .5;}
 .timeLists{float: right;margin-right: 255px;}
 /*content - single*/
 .zoomTime{position: fixed;z-index: 111;top: 0;right: 170px;color: #D7F4F6!important;font-size: 15px;line-height: 64px;min-width: 250px;cursor: pointer;}
-.zoomTime .zoom{display: block;float: left;margin: 0 10px;width: 80px;text-align: center;}
-.zoomTime .zoom:hover,.zoomTime .zoomInfo:hover,.zoomTime .zoomInfo.selected{line-height: 62px;font-weight: bold;border-bottom: 2px solid #fff;}
-.zoomTime .zoom + div{float: left;}
-.zoomTime .zoomInfo {width: inherit;padding-left: 20px;white-space: nowrap;min-width: 150px;}
+.zoomTime .zoom{display: block;margin: 0 10px;width: 80px;text-align: center;}
+.zoomTime .zoom:hover,.zoomTime .zoomInfo:hover,.zoomTime .zoomInfo.selected,.zoomTime .refreshInfo:hover,.zoomTime .refreshInfo.selected{line-height: 62px;font-weight: bold;border-bottom: 2px solid #fff;}
+.zoomTime > div{float: left;}
+.zoomTime .zoomInfo,.zoomTime .refreshInfo {width: inherit;padding-left: 20px;white-space: nowrap;min-width: 150px;}
 .zoomTime ul {display:none;clear: both;background-color: #262626;padding: 10px 0;border-radius: 3px;}
 .zoomTime li {padding-left:20px;line-height: 25px;}
 .zoomTime li:hover,.zoomTime li.selected {background-color: #3C3C3C;}

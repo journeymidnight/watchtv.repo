@@ -212,7 +212,7 @@ var BaseGraph = React.createClass({
                 $(".zoomTime .zoomInfo").html(
                     Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
                     Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
-                that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to);
+                that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to,null,'stopRefresh');
             }
         );
         // Toggle serie legend labels to show/hide corresponding serie line

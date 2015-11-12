@@ -102,7 +102,12 @@ var GraphList = React.createClass({
         this.getBasics();
         this.getNodeGraphs();
     },
-    refreshGraph: function(fromTime, toTime, timePeriod){
+    refreshGraph: function(fromTime, toTime, timePeriod,stopRefresh){
+        if(stopRefresh!=null){
+            this.setState({stopRefresh:true});
+        }else{
+            this.setState({stopRefresh:false});
+        }
         if(fromTime != null && toTime != null) {//drag
             // scale graphs
             var timePeriod;
@@ -116,7 +121,7 @@ var GraphList = React.createClass({
         }
     },
     refreshTime: function(timePeriod){//zoom out
-        this.setState({timePeriod:timePeriod});
+        this.setState({timePeriod:timePeriod,stopRefresh:false});
     },
     render: function(){
         var that = this;
@@ -143,7 +148,7 @@ var GraphList = React.createClass({
         });
         return (
             <div>
-                <Zoom onRefresh={this.refreshTime}/>
+                <Zoom onRefresh={this.refreshTime} stopRefresh={this.state.stopRefresh}/>
                 <div className="nodeInfo">
                     <span>IP:{this.state.node.ips}</span>
                     <span>Project:{this.state.node.project.name}</span>

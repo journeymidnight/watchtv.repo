@@ -33,7 +33,10 @@ var GraphList = React.createClass({
     componentDidMount: function () {
         this.getUserGraphs();
     },
-    refreshGraph: function (fromTime, toTime, timePeriod) {
+    refreshGraph: function (fromTime, toTime, timePeriod,stopRefresh) {
+        if(stopRefresh!=null){
+            this.setState({stopRefresh:true});
+        }
         if(fromTime != null && toTime != null) {
             // scale graphs
             var timePeriod;
@@ -47,7 +50,7 @@ var GraphList = React.createClass({
         }
     },
     refreshTime: function(timePeriod){
-        this.setState({timePeriod:timePeriod});
+        this.setState({timePeriod:timePeriod,stopRefresh:false});
     },
     render: function(){
         var _this = this;
@@ -61,7 +64,7 @@ var GraphList = React.createClass({
         });
         return (
             <div>
-                <Zoom onRefresh={this.refreshTime}/>
+                <Zoom onRefresh={this.refreshTime} stopRefresh={this.state.stopRefresh}/>
                 <div className="graphList">
                     {graphList}
                 </div>

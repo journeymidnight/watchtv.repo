@@ -305,8 +305,7 @@ var dataMapper = {
 };
 
 //根据当前graph时间段及刷新频率计算新的时间段
-var resetTimePeriod = function(time,refreshPeriod){
-    var oldPeriod = fitTimePeriod(time)
+var resetTimePeriod = function(oldPeriod,refreshPeriod){
     return [
         new Date(oldPeriod[0].getTime()+refreshPeriod),
         new Date(oldPeriod[1].getTime()+refreshPeriod),
