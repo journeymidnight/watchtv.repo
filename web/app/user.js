@@ -137,7 +137,7 @@ var UserAddButton = React.createClass({
     handleDropDownChange: function(err, selectedIndex, menuItem) {
         this.setState({roleStateDropDown: menuItem.text})
     },
-    bindAutocomplete: function() {
+    bindEvents: function() {
         $('#newNameInput').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
         $('#newProjectInput').autocomplete(createMultiAutocompleteObject('q?project=',
             utility.dataMapper.project));
@@ -231,7 +231,7 @@ var UserEditButton = React.createClass({
             }.bind(this)
         })
     },
-    bindAutocomplete: function() {
+    bindEvents: function() {
         $('#projectEditInput').autocomplete(createMultiAutocompleteObject('q?project=',
             utility.dataMapper.project));
     },
@@ -314,7 +314,7 @@ var BatchAddProjectButton = React.createClass({
              })
         });
     },
-    bindAutocomplete: function() {
+    bindEvents: function() {
         $('#projectBatchInput').autocomplete(createMultiAutocompleteObject('q?project=',
             utility.dataMapper.project));
     },

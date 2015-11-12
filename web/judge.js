@@ -75,8 +75,9 @@ var livenessCheckJobList = [];
 var livenessCheck = function() {
     db.Node.find({},
         function(err, nodes) {
-            if(err) {
+            if(err || nodes == null) {
                 logger('Error fetching nodes ', err);
+                return;
             }
             livenessCheckJobList.map(function(job){
                 clearInterval(job);

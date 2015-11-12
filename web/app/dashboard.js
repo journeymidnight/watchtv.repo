@@ -2,7 +2,6 @@ var React = require('react');
 
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationBar.js');
-var Utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
 var Zoom  = require('./ui/zoomGraph.js');
 var GraphEditor = require('./ui/dashboardGraphEditor.js');
