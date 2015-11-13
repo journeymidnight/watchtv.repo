@@ -56,11 +56,18 @@ var GraphList = React.createClass({
         var graphList = this.state.graphs.map(function(graph) {
             return <BaseGraph key={graph._id}
                               graph={graph}
+                              period={_this.state.timePeriod}
                               onRefresh={_this.refreshGraph}
-                              graphEditor={GraphEditor}
-                              timePeriod={_this.state.timePeriod}
+                              showShareDialog={_this.showShareDialog}
+                              showEditDialog={_this.showEditDialog}
                    />
         });
+        var shareAction = [{text: 'Close'}];
+        var shareContent = '[' + JSON.stringify({
+                ips: this.state.ips,
+                metrics: this.state.metrics,
+                title: this.state.title
+            }) + ']';
         return (
             <div>
                 <Zoom onRefresh={this.refreshTime} stopRefresh={this.state.stopRefresh}/>
@@ -71,6 +78,12 @@ var GraphList = React.createClass({
                              onRefresh={this.refreshGraph}
                              timePeriod={this.state.timePeriod}
                 />
+                <Dialog title="Copy the contents below to share this graph" actions={shareAction}
+                        autoDetectWindowHeight={true} autoScrollBodyContent={true}
+                        ref='shareDialog'>
+                    <TextField value={shareContent} style={{width: '90%'}}
+                               multiLine={true} />
+                </Dialog>
             </div>
         );
     }

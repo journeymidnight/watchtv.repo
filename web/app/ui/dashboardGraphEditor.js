@@ -29,7 +29,8 @@ var dashboardGraphEditor = React.createClass({
         if(this.props.initialMetrics) metrics = this.props.initialMetrics;
         return {
             ips: ips,
-            metrics: metrics
+            metrics: metrics,
+            snackMsg: ''
         };
     },
     saveConfig: function () {

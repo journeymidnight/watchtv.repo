@@ -1,6 +1,4 @@
 var React = require('react');
-var Dialog = require('material-ui/lib/dialog');
-var TextField = require('material-ui/lib/text-field');
 
 var unit = require('../unit.js');
 var Utility = require('../utility.js');
@@ -16,33 +14,24 @@ var Utility = require('../utility.js');
 
 // props:
 // graph: graph object described above. The graphs to draw are (graph.ips x graph.metrics)
-// node_id: mongodb id. Used to build URLs, could be null for Dashboard page, but not
-//                      for Single page.
-// nodeIPs: array of string. Used for single page to select from.
-// graphEditor: react component, could be dashboardGraphEditor or singleGraphEditor.
-//              Used to render the edit dialog.
-// onRefresh: callback function(fromTime, toTime).
-
-// measurements: pass through to graphEditor, then GraphSelector
+// period: [fromTime, toTime], fromTime and toTime are Date objects. The time interval to draw.
+// onRefresh: callback function(fromTime, toTime). Used to pass back dragged period.
+// showShareDialog: callback function(graph_id). Used to open share dialog.
+// showEditDialog: callback function(graph_id). Used to open edit dialog.
 
 var BaseGraph = React.createClass({
     getInitialState: function(){
-        var timePeriod = Utility.fitTimePeriod(43200); // 12h by default
-        if(this.props.timePeriod!=null){
-            timePeriod = this.props.timePeriod;
-        }
         return {
             data: [],
-            ips: this.props.graph.ips,
-            metrics: this.props.graph.metrics,
-            title: this.props.graph.title,
-            timePeriod: timePeriod,
-            windowWidth: $(window).width()
+            graphWidth: $('#' + this.props.graph._id).width()
         };
     },
-    queryInfluxDB: function(queryString, ip, metric, metricIndex) {
+    executeQuery: function(timePeriod, ip, metricIndex, metric) {
+        var query = Utility.buildQuery(timePeriod, ip,
+                                       metric[0], metric[1], metric[2]);
+        if(query == null) { return; }
         $.ajax({
-            url: '/influxdb/query?' + encodeURIComponent(queryString),
+            url: '/influxdb/query?' + encodeURIComponent(query),
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
@@ -57,18 +46,12 @@ var BaseGraph = React.createClass({
             }.bind(this)
         });
     },
-    executeQuery: function(timePeriod, ip, metricIndex, metric) {
-        var query = Utility.buildQuery(timePeriod, ip,
-                                       metric[0], metric[1], metric[2]);
-        if(query == null) { return; }
-        this.queryInfluxDB(query, ip, metric, metricIndex);
-    },
-    handleGraph: function(newTimePeriod){
-        var that = this, timePeriod = this.state.timePeriod;
-        if(newTimePeriod != null) timePeriod = newTimePeriod;
+    fetchGraphData: function(nextProps){
+        var that = this, props = this.props;
+        if(nextProps != null) props = nextProps;
 
-        this.state.ips.map(function(ip){
-            that.state.metrics.map(function(metric, metricIndex) {
+        props.graph.ips.map(function(ip){
+            props.graph.metrics.map(function(metric, metricIndex) {
                 that.executeQuery(
                     timePeriod,
                     Utility.dotted2underscoredIP(ip),
@@ -115,27 +98,31 @@ var BaseGraph = React.createClass({
         }
         return fitted_data;
     },
-    handleDeleteSelf: function () {
-        this.props.onRefresh();
-    },
     componentWillMount: function(){
-        this.handleGraph();
+        this.fetchGraphData();
+    },
+    componentWillReceiveProps:function(nextProps){
+        var fetch = function() {
+            this.fetchGraphData(nextProps);
+        };
+        this.setState({data:[]}, fetch);
     },
     componentDidMount: function () {
         var that = this;
 
-        // check and set the state of windowWidth so as to redraw the graphs
-        // when window width changes
-        var checkWindowWidth = function () {
-            var windowWidth = $(window).width();
+        // check and set the state of graphWidth so as to redraw the graphs
+        // when graph width changes
+        var checkGraphWidth = function () {
+            var graph = $('#' + that.props.graph._id);
+            var graphWidth = graph.width();
             return function () {
-                if(windowWidth !== $(window).width()) {
-                    windowWidth = $(window).width();
-                    that.setState({windowWidth: windowWidth});
+                if(graphWidth !== graph.width()) {
+                    graphWidth = graph.width();
+                    that.setState({graphWidth: graphWidth});
                 }
             };
         }();
-        setInterval(checkWindowWidth, 1200);
+        setInterval(checkGraphWidth, 1200);
 
         // For updating graph title
         $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
@@ -179,33 +166,33 @@ var BaseGraph = React.createClass({
             }
         }
 
-        var uniq_id = Utility.generateKeyForGraph(this.props.graph);
-        Utility.plotGraph('#graph' + uniq_id,
+        var graph = this.props.graph;
+        Utility.plotGraph('#graph' + graph._id,
             fitted_data,
             formatter
         );
         var that = this;
-        $('#graph' + uniq_id)
+        $('#graph' + graph._id)
             .unbind()
             .bind("plothover", function (event, pos, item) {
-                if (item) {
-                    var x = Utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
-                        y = Utility.numberFormatter(item.datapoint[1],
-                                null,unitSuffix[fitted_data[item.seriesIndex].metricIndex]),
-                        metric = fitted_data[item.seriesIndex].metric,
-                        ip = fitted_data[item.seriesIndex].ip,
-                        position = Utility.getElePosition(this);
-                    var left = item.pageX - position.left + 20,
-                        top = item.pageY - position.top + 20,
-                        obj = $('#tooltip' + uniq_id);
-                    obj.html(ip + '<br>' + metric.toString().replace(",,",",") + '<br>' + y + '<br>' + x );
-                    if((item.pageX + obj.width()) > ($("body").width()-30)){
-                        left -= (obj.width()+30);
-                    }
-                    obj.css({left:left,top:top}).show();
-                } else {
-                    $('#tooltip' + uniq_id).hide();
+                var tooltip = $('#tooltip' + graph._id);
+                if(!item) {
+                    tooltip.hide();
+                    return;
                 }
+                var x = Utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
+                    y = Utility.numberFormatter(item.datapoint[1],
+                            null, unitSuffix[fitted_data[item.seriesIndex].metricIndex]),
+                    metric = fitted_data[item.seriesIndex].metric,
+                    ip = fitted_data[item.seriesIndex].ip,
+                    position = Utility.getElePosition(this);
+                var left = item.pageX - position.left + 20,
+                    top = item.pageY - position.top + 20;
+                tooltip.html(ip + '<br>' + metric.toString().replace(",,",",") + '<br>' + y + '<br>' + x );
+                if((item.pageX + tooltip.width()) > ($("body").width()-30)){
+                    left -= (tooltip.width()+30);
+                }
+                tooltip.css({left:left,top:top}).show();
             })
             .bind("plotselected", function (event, ranges) {
                 var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
@@ -234,42 +221,26 @@ var BaseGraph = React.createClass({
                 }
         });
     },
-    componentWillReceiveProps:function(nextProps){
-        //graph drag & zoom out & refresh
-        if(nextProps.timePeriod!=null&&nextProps.timePeriod !== this.state.timePeriod) {
-            this.setState({data:[], timePeriod: nextProps.timePeriod},
-                this.handleGraph(nextProps.timePeriod));
-        }
+    showShareDialog: function() {
+        this.props.showShareDialog(this.props.graph._id);
     },
-    showShareDialog: function () {
-        this.refs.shareDialog.show();
+    showGraphEditDialog: function() {
+        this.props.showEditDialog(this.props.graph._id);
     },
     render: function(){
         var placeholderText = "Click Here to Edit Graph Name";
         if(this.state.title!=null&&this.state.title!="") placeholderText = this.state.title;
 
-        var uniq_id = Utility.generateKeyForGraph(this.props.graph);
-        var shareAction = [{text: 'Close'}];
-        var shareContent = '[' + JSON.stringify({
-            ips: this.state.ips,
-            metrics: this.state.metrics,
-            title: this.state.title
-        }) + ']';
+        var graph = this.props.graph;
         return (
-            <div id={this.props.graph._id}>
-                <Dialog title="Copy the contents below to share this graph" actions={shareAction}
-                        autoDetectWindowHeight={true} autoScrollBodyContent={true}
-                        ref='shareDialog'>
-                    <TextField value={shareContent} style={{width: '90%'}}
-                               multiLine={true} />
-                </Dialog>
+            <div id={graph._id}>
                 <div className="graph">
                     <input type="text" name="title" className="titleInput" placeholder={placeholderText}/>
                     <div className="loading"></div>
-                    <div id={'graph' + uniq_id}
+                    <div id={'graph' + graph._id}
                          style={{width: '100%', height: '145px',backgroundColor: "#1f1f1f",marginTop:'10px'}}>
                     </div>
-                    <div id={'tooltip' + uniq_id}
+                    <div id={'tooltip' + graph._id}
                         className = "tool"
                         style={{
                             position: 'absolute',
@@ -285,15 +256,11 @@ var BaseGraph = React.createClass({
                             <i className='fa fa-share fa-white'></i>
                         </div>
                     </div>
-                    <this.props.graphEditor title="Edit" initialIPs={this.state.ips}
-                                            ips={this.props.nodeIPs}
-                                            initialMetrics={this.state.metrics}
-                                            onUpdate={this.handleEditorUpdate}
-                                            onRefresh={this.handleDeleteSelf}
-                                            graph_id={this.props.graph._id}
-                                            node_id={this.props.node_id}
-                                            measurements={this.props.measurements}
-                    />
+                    <div className="btnParent">
+                        <div className="graphBtn" onClick={this.showGraphEditDialog}>
+                            <i className="fa fa-pencil fa-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         )

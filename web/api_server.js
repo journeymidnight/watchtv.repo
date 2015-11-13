@@ -106,7 +106,7 @@ var requireLeader = function (req, res, next) {
     if (req.user.role === 'Leader' || req.user.role === 'Root') {
         next();
     } else {
-        res.status(403).send('You must be Leader to perform this action');
+        res.status(403).send('You should be Leader to perform this action');
     }
 };
 
@@ -114,7 +114,7 @@ var requireRoot = function (req, res, next) {
     if (req.user.role === 'Root') {
         next();
     } else {
-        res.status(403).send('You must be Root to perform this action');
+        res.status(403).send('You should be Root to perform this action');
     }
 };
 
@@ -1649,15 +1649,6 @@ app.put('/graph/:graph_id', function(req, res) {
     // currently `graph` from client is in format {graph: graph}, so no need to reformat
     findByIdAndUpdate(res, graph_id, graph, 'Graph', db.Graph);
 });
-
-var deleteGraph = function(id, req, res){
-    db.Graph.findByIdAndRemove(id, function (err) {
-        if (err) {
-            res.status(500).send("Failed to execute delete");
-            logger(err);
-        }
-    })
-};
 
 app.get('/graph/:graph_id', function(req, res) {
     handleGetById(req, res, 'graph', db.Graph)

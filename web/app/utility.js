@@ -37,18 +37,18 @@ var get_measurements = function (data) {
     return measurements;
 };
 
-var pointPerGraph = 300; // should be configurable
+var pointsPerGraph = 300; // should be configurable
 
-var buildQuery = function(timePeriod, host, measurement, device, measure) {
+var buildQuery = function(period, host, measurement, device, measure) {
     // fromTime and toTime are all Date objects
     var fromTime, toTime;
-    if(timePeriod != null){
-        fromTime = timePeriod[0];
-        toTime = timePeriod[1];
+    if(period != null){
+        fromTime = period[0];
+        toTime = period[1];
     } else {
         return null;
     }
-    var groupByTime = Math.floor( (toTime - fromTime)/pointPerGraph/1000 );
+    var groupByTime = Math.floor( (toTime - fromTime)/pointsPerGraph/1000 );
     if (groupByTime < 10) { groupByTime = 10; }
 
     var query = 'SELECT MEAN(value) FROM ' + measurement +
