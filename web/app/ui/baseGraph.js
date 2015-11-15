@@ -1,7 +1,7 @@
 var React = require('react');
 
 var unit = require('../unit.js');
-var Utility = require('../utility.js');
+var utility = require('../utility.js');
 
 // The component to actually draw a graph
 
@@ -27,7 +27,7 @@ var BaseGraph = React.createClass({
         };
     },
     executeQuery: function(timePeriod, ip, metricIndex, metric) {
-        var query = Utility.buildQuery(timePeriod, ip,
+        var query = utility.buildQuery(timePeriod, ip,
                                        metric[0], metric[1], metric[2]);
         if(query == null) { return; }
         $.ajax({
@@ -36,7 +36,7 @@ var BaseGraph = React.createClass({
             success: function (data) {
                 var currdata = this.state.data;
                 currdata[currdata.length] = {
-                    data:Utility.get_value(data),
+                    data:utility.get_value(data),
                     ip:ip,
                     metric:metric,
                     metricIndex: metricIndex,
@@ -53,36 +53,12 @@ var BaseGraph = React.createClass({
         props.graph.ips.map(function(ip){
             props.graph.metrics.map(function(metric, metricIndex) {
                 that.executeQuery(
-                    timePeriod,
-                    Utility.dotted2underscoredIP(ip),
+                    that.props.period,
+                    utility.dotted2underscoredIP(ip),
                     metricIndex,
-                    Utility.splitMetric(metric).split(',')
+                    utility.splitMetric(metric).split(',')
                 );
             });
-        });
-    },
-    handleEditorUpdate: function(editorStates) {
-        this.setState({
-            data: [],
-            ips: editorStates.ips,
-            metrics: editorStates.metrics
-        }, this.handleGraph);
-        var graph = {
-            ips: editorStates.ips,
-            metrics: editorStates.metrics
-        };
-        $.ajax({
-            url: '/graph/' + this.props.graph._id,
-            type: 'PUT',
-            data: {graph: graph},
-            success: function () {
-            },
-            error: function (xhr, status, error) {
-                if (xhr.status === 401) {
-                    location.assign('/login.html');
-                }
-                console.log('Error updating user graph', xhr, status, error);
-            }
         });
     },
     getFittedData: function(){
@@ -90,7 +66,7 @@ var BaseGraph = React.createClass({
         for(var i = 0;i<this.state.data.length;i++){
             fitted_data[i] = {
                 data: this.state.data[i].enabled ?
-                    Utility.fitData(this.state.data[i].data) : [],
+                    utility.fitData(this.state.data[i].data) : [],
                 ip:this.state.data[i].ip,
                 metric:this.state.data[i].metric,
                 metricIndex:this.state.data[i].metricIndex
@@ -105,7 +81,19 @@ var BaseGraph = React.createClass({
         var fetch = function() {
             this.fetchGraphData(nextProps);
         };
-        this.setState({data:[]}, fetch);
+        var differentArray = function(a, b) {
+            if(a.length !== b.length) return true;
+
+            for(var i=0;i<a.length;i++) {
+                if(a[i] !== b[i]) return true;
+            }
+            return false;
+        };
+        if(differentArray(nextProps.period, this.props.period) ||
+            differentArray(nextProps.graph.ips, this.props.graph.ips) ||
+            differentArray(nextProps.graph.metrics, this.props.graph.metrics)) {
+            this.setState({data:[]}, fetch);
+        }
     },
     componentDidMount: function () {
         var that = this;
@@ -161,13 +149,13 @@ var BaseGraph = React.createClass({
                 formatter[formatter.length] = unit[u];
                 unitSuffix[unitSuffix.length] = u;
             } else {
-                formatter[formatter.length] = Utility.numberFormatter;
+                formatter[formatter.length] = utility.numberFormatter;
                 unitSuffix[unitSuffix.length] = "";
             }
         }
 
         var graph = this.props.graph;
-        Utility.plotGraph('#graph' + graph._id,
+        utility.plotGraph('#graph' + graph._id,
             fitted_data,
             formatter
         );
@@ -180,12 +168,12 @@ var BaseGraph = React.createClass({
                     tooltip.hide();
                     return;
                 }
-                var x = Utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
-                    y = Utility.numberFormatter(item.datapoint[1],
+                var x = utility.dateFormat(new Date(item.datapoint[0]),"yyyy-MM-dd hh:mm:ss"),
+                    y = utility.numberFormatter(item.datapoint[1],
                             null, unitSuffix[fitted_data[item.seriesIndex].metricIndex]),
                     metric = fitted_data[item.seriesIndex].metric,
                     ip = fitted_data[item.seriesIndex].ip,
-                    position = Utility.getElePosition(this);
+                    position = utility.getElePosition(this);
                 var left = item.pageX - position.left + 20,
                     top = item.pageY - position.top + 20;
                 tooltip.html(ip + '<br>' + metric.toString().replace(",,",",") + '<br>' + y + '<br>' + x );
@@ -197,9 +185,9 @@ var BaseGraph = React.createClass({
             .bind("plotselected", function (event, ranges) {
                 var timePeriod = [new Date(ranges.xaxis.from),new Date(ranges.xaxis.to)];
                 $(".zoomTime .zoomInfo").html(
-                    Utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
-                    Utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
-                that.props.onRefresh(ranges.xaxis.from,ranges.xaxis.to,null,'stopRefresh');
+                    utility.dateFormat(timePeriod[0],"MM-dd hh:mm:ss")+" to "+
+                    utility.dateFormat(timePeriod[1],"MM-dd hh:mm:ss"));
+                that.props.onRefresh(timePeriod, 'stopRefresh');
             }
         );
         // Toggle serie legend labels to show/hide corresponding serie line
@@ -228,10 +216,10 @@ var BaseGraph = React.createClass({
         this.props.showEditDialog(this.props.graph._id);
     },
     render: function(){
-        var placeholderText = "Click Here to Edit Graph Name";
-        if(this.state.title!=null&&this.state.title!="") placeholderText = this.state.title;
-
         var graph = this.props.graph;
+        var placeholderText = "Click Here to Edit Graph Name";
+        if(graph.title!=null&&graph.title!="") placeholderText = graph.title;
+
         return (
             <div id={graph._id}>
                 <div className="graph">

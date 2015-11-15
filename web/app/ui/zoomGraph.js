@@ -1,20 +1,19 @@
 var React = require('react');
 
-var Utility = require('../utility.js');
+var utility = require('../utility.js');
 
 var Zoom = React.createClass({
     getInitialState: function () {
         return {
             zoomTimeIndex: 3, //last 12h
             refreshTime:60000,//1 min
-            refreshTimePeriod:Utility.fitTimePeriod(43200),
-            currInterval:null//refresh interval
+            currentTimer: null // object returned from `setInterval`
         };
     },
     showDropDown:function(){
         $(".zoomTime ul").hide();
         $(".refreshInfo,.zoomInfo").removeClass("selected");
-        var obj = $(Utility.getEvent().target);
+        var obj = $(utility.getEvent().target);
         obj.next().toggle();
         obj.next().css('display')=="none"?
                 obj.removeClass("selected"):obj.addClass("selected");
@@ -26,7 +25,7 @@ var Zoom = React.createClass({
         this.resetTime(obj);
     },
     changeTimeList:function(){
-        var obj = Utility.getEvent().target;
+        var obj = utility.getEvent().target;
         this.resetTime($(obj));
     },
     resetTime:function(obj){
@@ -36,53 +35,49 @@ var Zoom = React.createClass({
         $(".zoomInfo + ul li,.zoomTime .zoomInfo,.zoomTime .refreshInfo").removeClass("selected");
         obj.addClass("selected");
         $(".zoomTime ul").hide();
-        this.setState({zoomTimeIndex:obj.index(),refreshTimePeriod:Utility.fitTimePeriod(value)});
-        this.props.onRefresh(Utility.fitTimePeriod(value));
+        this.setState({zoomTimeIndex: obj.index()});
+        this.props.onRefresh(utility.periodFromTimeLength(value));
         this.autoRefresh();
     },
     changeRefreshRate:function(){
-        var obj = $(Utility.getEvent().target);
+        var obj = $(utility.getEvent().target);
         $(".zoomTime .refreshInfo").html(obj.html());
         $(".refreshInfo + ul li,.zoomTime .refreshInfo").removeClass("selected");
         obj.addClass("selected");
         $(".refreshInfo + ul").hide();
-        this.setState({refreshTime:obj.val()},this.autoRefresh(obj.val()));
+        this.setState({refreshTime:obj.val()}, this.autoRefresh);
     },
-    autoRefresh:function(time){
+    autoRefresh:function(){
         var that = this, refreshTime = that.state.refreshTime;
-        if(time!=null) refreshTime = time;
+        clearInterval(this.state.currentTimer);
         if(refreshTime == 0){
-            clearInterval(this.state.currInterval);
             return;
         }
-        clearInterval(this.state.currInterval);
         var t = setInterval(function(){
-            var newPeriod = Utility.resetTimePeriod(that.state.refreshTimePeriod,refreshTime)
-            that.setState({refreshTimePeriod:newPeriod});
+            var newPeriod = utility.resetTimePeriod(that.props.period, refreshTime);
             that.props.onRefresh(newPeriod);
         }, refreshTime);
-        this.setState({currInterval:t});
+        this.setState({currentTimer: t});
     },
     componentWillMount:function(){
         $("body").bind("click",function(){
-            var event = Utility.getEvent();
+            var event = utility.getEvent();
             if($(event.target).parents(".zoomTime").size()==0){
                 $(".zoomTime ul").hide();
                 $(".zoomTime .zoomInfo,.zoomTime .refreshInfo").removeClass("selected");
             }
         });
     },
-    componentWillReceiveProps:function(nextProps){
+    stopRefresh: function() {
         //stop refresh after graph drag
-        if(nextProps.stopRefresh!=null&&nextProps.stopRefresh == true) {
-            clearInterval(this.state.currInterval);
-            $(".zoomTime .refreshInfo").html("No Refresh");
-            $(".refreshInfo + ul li,.zoomTime .refreshInfo").removeClass("selected");
-        }
+        clearInterval(this.state.currentTimer);
+        this.setState({refreshTime: 0});
+        $(".zoomTime .refreshInfo").html("No Refresh");
+        $(".refreshInfo + ul li,.zoomTime .refreshInfo").removeClass("selected");
     },
     render: function(){
         var that = this;
-        var timeList = Utility.getTimeList();
+        var timeList = utility.getTimeList();
         var zoomTimeList = timeList.map(function(subArr,index){
             if(index == 3)//last 12h
                 return <li className="selected" value={subArr.value} key={index} onClick={that.changeTimeList}>{subArr.text}</li>;

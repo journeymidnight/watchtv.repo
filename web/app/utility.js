@@ -63,7 +63,7 @@ var buildQuery = function(period, host, measurement, device, measure) {
 };
 
 // Generate a time period([fromTime, Now]) from length of time. time is in sec
-var fitTimePeriod = function(time) {
+var periodFromTimeLength = function(time) {
     var now = new Date();
     if(time === 0) return null;
     else return [new Date(now.getTime()-time*1000),now];
@@ -315,7 +315,7 @@ var Utility = {
     get_value: get_value,
     get_measurements: get_measurements,
     buildQuery: buildQuery,
-    fitTimePeriod: fitTimePeriod,
+    periodFromTimeLength: periodFromTimeLength,
     fitData: fitData,
     numberFormatter: numberFormatter,
     plotGraph: plotGraph,
