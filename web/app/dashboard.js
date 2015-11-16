@@ -37,22 +37,6 @@ var GraphList = React.createClass({
     componentDidMount: function () {
         this.getUserGraphs();
     },
-    refreshGraph: function (fromTime, toTime, timePeriod,stopRefresh) {
-        if(stopRefresh!=null){
-            this.setState({stopRefresh:true});
-        }
-        if(fromTime != null && toTime != null) {
-            // scale graphs
-            var timePeriod;
-            timePeriod = [new Date(fromTime), new Date(toTime)];
-            this.setState({timePeriod:timePeriod});
-            return;
-        }else if(timePeriod!=null){//new graph
-            this.setState({timePeriod:timePeriod},this.getUserGraphs());
-        }else{
-            this.getUserGraphs();//delete
-        }
-    },
     refreshGraphs: function() {
         this.getUserGraphs();
     },

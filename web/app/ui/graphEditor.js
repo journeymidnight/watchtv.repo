@@ -10,26 +10,25 @@ var GraphSelector = require('./graphSelector.js');
 // and a GraphSelector to pick metrics
 
 // Props:
-// title: string. Title of the edit dialog, NOT title of graph
 // ips: array of string.
-// initialIPs: string. Could be null.
-// initialMetrics: array of string. Could be null.
-// graph_id: mongodb object id. Used for DELETE action
 // node_id: mongodb object id. Used to build URLs
-// onRefresh: callback function(this.state). Called when all graphs on the dashboard should be
+// onRefresh: callback function(). Called when all graphs on the dashboard should be
 //              fetched again, for creating and deleting graphs.
-// onUpdate: callback function(this.state). Called when the this graph should be updated.
-
+// onUpdate: callback function(graph). Called when the this graph should be updated.
 // measurements: pass through to GraphSelector
+
+// Methods:
+// show(graph): if graph is null, this would be an "add" type dialog
 
 var graphEditor = React.createClass({
     getInitialState: function () {
-        var selectedIP = null, metrics = [];
-        if(this.props.initialIPs) selectedIP = this.props.initialIPs[0];
+        var metrics = [];
         if(this.props.initialMetrics) metrics = this.props.initialMetrics;
         return {
-            selectedIP: selectedIP,
-            metrics: metrics
+            graph_id: null,
+            selectedIP: null,
+            metrics: metrics,
+            type: 'edit' // type could be 'add' or 'edit'
         };
     },
     handleIpChange: function(err, selectedIndex, menuItem) {
@@ -43,7 +42,21 @@ var graphEditor = React.createClass({
             this.setState({selectedIP: nextProps.ips[0]});
         }
     },
-    showGraphEditDialog: function () {
+    show: function (graph) {
+        if(graph) {
+            this.setState({
+                graph_id: graph._id,
+                selectedIP: graph.ips[0],
+                metrics: graph.metrics,
+                type: 'edit'
+            });
+        } else {
+            this.setState({
+                graph_id: null,
+                metrics: [],
+                type: 'add'
+            });
+        }
         this.refs.graphEditDialog.show();
     },
     showDelDialog:function(){
@@ -52,7 +65,7 @@ var graphEditor = React.createClass({
     deleteGraph: function () {
         var that = this;
         $.ajax({
-            url: '/node/' + this.props.node_id + '/graph/' + this.props.graph_id,
+            url: '/node/' + this.props.node_id + '/graph/' + this.state.graph_id,
             type: 'DELETE',
             success: function() {
                 that.props.onRefresh();
@@ -69,60 +82,60 @@ var graphEditor = React.createClass({
     },
     saveConfig: function () {
         var that = this;
-        if(this.props.graph_id) {
-            // graph_id exists, so the edit is inside a graph
-            // PUT action should be handled inside a graph
-            var state = {
-                ips: [this.state.selectedIP],
-                metrics: this.state.metrics
-            };
-            this.props.onUpdate(state);
-            this.refs.graphEditDialog.dismiss();
-            return;
-        }
         if(that.state.metrics.length==0){
             that.setState({snackMsg: 'Metric field is required'});
             that.refs.snackbar.show();
             return;
         }
-        $.ajax({
-            url: '/node/' + this.props.node_id + '/graphs',
-            type: 'POST',
-            data: {
-                ips: [that.state.selectedIP],
-                metrics: that.state.metrics
-            },
-            success: function() {
-                // graph_id does not exist, edit is outside a graph,
-                // just let the container to refresh all graphs
-                that.props.onRefresh(null,null,that.props.timePeriod);
-            },
-            error: function(xhr, status, error) {
-                if (xhr.status === 401) {
-                    location.assign('/login.html');
+        var graphPayload = {
+            ips: [this.state.selectedIP],
+            metrics: this.state.metrics
+        };
+        if(this.state.type === 'edit') {
+            $.ajax({
+                url: '/graph/' + this.state.graph_id,
+                type: 'PUT',
+                data: {graph: graphPayload},
+                success: function () {
+                    graphPayload._id = that.state.graph_id;
+                    that.props.onUpdate(graphPayload);
+                },
+                error: function (xhr, status, error) {
+                    if (xhr.status === 401) {
+                        location.assign('/login.html');
+                    }
+                    console.log('Error updating user graph', xhr, status, error);
                 }
-                console.log('Error adding user graph', xhr, status, error);
-            }
-        });
+            });
+        } else { // type is "add"
+            $.ajax({
+                url: '/node/' + this.props.node_id + '/graphs',
+                type: 'POST',
+                data: graphPayload,
+                success: function() {
+                    that.props.onRefresh();
+                },
+                error: function(xhr, status, error) {
+                    if (xhr.status === 401) {
+                        location.assign('/login.html');
+                    }
+                    console.log('Error adding user graph', xhr, status, error);
+                }
+            });
+        }
         this.refs.graphEditDialog.dismiss();
     },
     render: function () {
         var that = this;
-        var graphEditAction = [
-            {text: 'Cancel'},
-            {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
-        ];
-
-        var deleteButton;
-        if(this.props.graph_id) { // inside a graph
+        var deleteButton = <div></div>;
+        var title = 'Add new graph';
+        if(this.state.type === 'edit') {
+            title = 'Edit graph';
             deleteButton =
                 <div className="delDialog">
                     <FlatButton label = "Delete" className="delBtn" onClick={this.showDelDialog} />
                 </div>
-        } else { // outside a graph
-            deleteButton = <div></div>;
         }
-
         var ipPicker;
         if(this.props.ips.length > 1) {
             var ipItems, selectedIpIndex = 0;
@@ -139,19 +152,15 @@ var graphEditor = React.createClass({
         } else { // only one IP available for this node, so no need to render the dropdown
             ipPicker = <div></div>;
         }
-        var btn;//add or edit
-        if(this.props.title.indexOf("Add")>=0){
-            btn = <i className="fa fa-plus fa-white"></i>;
-        }else{
-            btn = <i className="fa fa-pencil fa-white"></i>
-        }
         return (
             <div className="btnParent" >
-                <div className="graphBtn" onClick={this.showGraphEditDialog}>
-                    {btn}
-                </div>
-                <Dialog title={this.props.title} actions={graphEditAction} ref='graphEditDialog'
-                            contentClassName='scrollDialog' >
+                <Dialog title={title}
+                        actions={[
+                            {text: 'Cancel'},
+                            {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
+                        ]}
+                        ref='graphEditDialog'
+                        contentClassName='scrollDialog' >
                     {deleteButton}
                     <Dialog title="Delete confirmation"
                                 actions={[

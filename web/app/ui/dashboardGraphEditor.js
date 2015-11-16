@@ -15,7 +15,7 @@ var NodeSelector = require('./nodeSelector.js');
 // onUpdate: callback function(graph). Called when the this graph should be updated.
 
 // Methods:
-// show(graph): if graph is null, this would be a "add" type dialog.
+// show(graph): if graph is null, this would be an "add" type dialog.
 
 var dashboardGraphEditor = React.createClass({
     getInitialState: function () {
@@ -90,7 +90,7 @@ var dashboardGraphEditor = React.createClass({
                 ips: graph.ips,
                 metrics: graph.metrics,
                 type: 'edit'
-            })
+            });
         } else {
             this.setState({
                 _id: null,

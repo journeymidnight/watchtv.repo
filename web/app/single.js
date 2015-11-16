@@ -1,8 +1,10 @@
 var React = require('react');
+var Dialog = require('material-ui/lib/dialog');
+var TextField = require('material-ui/lib/text-field');
 
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationBar.js');
-var Utility = require('./utility.js');
+var utility = require('./utility.js');
 var BaseGraph  = require('./ui/baseGraph.js');
 var Zoom  = require('./ui/zoomGraph.js');
 var GraphEditor = require('./ui/graphEditor.js');
@@ -13,39 +15,39 @@ var GraphList = React.createClass({
         var url = window.location.href,
             node_id = url.split("?")[1].split("=")[1];
         return {
-            node_id: node_id,
             graphs: [],
             defaultGraphs: [],
-            ips: [],
             measurements: null,
-            timePeriod: null,
+            period: utility.periodFromTimeLength(43200), // last 12h by default
             node:{
+                _id: node_id,
+                ips: [],
                 project:{name:""},
                 idc:{name:""},
                 region:{name:""},
-                description:"",
+                description:""
             },//node info
-            refreshTimePeriod:[]//zoom out 以及 自动刷新后展示graph的新的时间段
+            shareContent: ''
         };
     },
     getBasics: function () {
         var that = this;
         $.ajax({
-            url: "/node/" + this.state.node_id,
+            url: "/node/" + this.state.node._id,
             type: "GET",
             success: function(data) {
                 var ips = data.ips;
-                that.setState({ips: ips,node:data});
+                that.setState({node: data});
 
                 for(var i = 0; i<ips.length; i++) {
-                    var hostIP = Utility.dotted2underscoredIP(ips[i]);
+                    var hostIP = utility.dotted2underscoredIP(ips[i]);
                     // Similar to graphSelector.js
                     $.ajax({
                         url: '/influxdb/query?' +
                             encodeURIComponent("SHOW SERIES WHERE host='" + hostIP + "'"),
                         dataType: 'json',
                         success: function (data) {
-                            var measurements = Utility.get_measurements(data);
+                            var measurements = utility.get_measurements(data);
                             if(!$.isEmptyObject(measurements)) {
                                 that.setState({measurements: measurements});
                             }
@@ -65,8 +67,7 @@ var GraphList = React.createClass({
                                 _id: graph._id,
                                 metrics: graph.metrics,
                                 title: graph.title,
-                                ips: ips,
-                                time: 43200  // 12h by default
+                                ips: ips
                             };
                         });
                         that.setState({defaultGraphs: graphs});
@@ -85,7 +86,7 @@ var GraphList = React.createClass({
     getNodeGraphs: function () {
         var that = this;
         $.ajax({
-            url: "/node/" + this.state.node_id + '/graphs',
+            url: "/node/" + this.state.node._id + '/graphs',
             type: "GET",
             success: function(data) {
                 that.setState({graphs: data});
@@ -102,59 +103,92 @@ var GraphList = React.createClass({
         this.getBasics();
         this.getNodeGraphs();
     },
-    refreshGraph: function(fromTime, toTime, timePeriod,stopRefresh){
-        if(stopRefresh!=null){
-            this.setState({stopRefresh:true});
-        }else{
-            this.setState({stopRefresh:false});
+    refreshGraphs: function() {
+        this.getNodeGraphs();
+    },
+    updateGraph: function(graph) {
+        var graphs = this.state.graphs;
+        for(var i=0;i<graphs.length;i++) {
+            if(graphs[i]._id === graph._id) {
+                graphs[i].ips = graph.ips;
+                graphs[i].metrics = graph.metrics;
+            }
         }
-        if(fromTime != null && toTime != null) {//drag
-            // scale graphs
-            var timePeriod;
-            timePeriod = [new Date(fromTime), new Date(toTime)];
-            this.setState({timePeriod:timePeriod});
-            return;
-        }else if(timePeriod!=null){//new graph
-            this.setState({timePeriod:timePeriod},this.getNodeGraphs());
-        }else{
-            this.getNodeGraphs();//delete
+        this.setState({graphs: graphs});
+    },
+    refreshTime: function(timePeriod, stopRefresh) {
+        if(stopRefresh) this.refs.zoom.stopRefresh();
+        this.setState({period:timePeriod});
+    },
+    showShareDialog: function(graphID) {
+        var graph = null;
+        for(var i=0;i<this.state.graphs.length;i++){
+            if(this.state.graphs[i]._id === graphID){
+                graph = this.state.graphs[i];
+                break;
+            }
+        }
+        if(graph) {
+            var shareContent = '[' + JSON.stringify({
+                    ips: graph.ips,
+                    metrics: graph.metrics,
+                    title: graph.title
+                }) + ']';
+            this.setState({shareContent: shareContent});
+            this.refs.shareDialog.show();
         }
     },
-    refreshTime: function(timePeriod){//zoom out
-        this.setState({timePeriod:timePeriod,stopRefresh:false});
+    showEditDialog: function(graphID) {
+        if(!graphID) {
+            this.refs.graphEditor.show();
+            return;
+        }
+        var graph = null;
+        for(var i=0;i<this.state.graphs.length;i++){
+            if(this.state.graphs[i]._id === graphID){
+                graph = this.state.graphs[i];
+                break;
+            }
+        }
+        this.refs.graphEditor.show(graph);
     },
     render: function(){
         var that = this;
         var defaultGraphList = that.state.defaultGraphs.map(function(graph) {
-            // default graphs are not editable by users
-            var dummyEditor = React.createClass({render: function () {return <div></div>}});
+            // same reason as in `dashboard.js`
+            var graphCopy = {
+                _id: graph._id,
+                title: graph.title,
+                ips: graph.ips.slice(),
+                metrics: graph.metrics.slice()
+            };
             return <BaseGraph key={graph._id}
-                              graph={graph} onRefresh={that.refreshGraph}
-                              node_id={that.state.node_id}
-                              graphEditor={dummyEditor}
-                              timePeriod={that.state.timePeriod}
+                              graph={graphCopy}
+                              period={that.state.period}
+                              onRefresh={that.refreshTime}
+                              showShareDialog={that.showShareDialog}
+                              // default graph cannot be edited
+                              showEditDialog={function() {}}
                    />;
         });
         var graphList = that.state.graphs.map(function(graph) {
+            var graphCopy = {
+                _id: graph._id,
+                title: graph.title,
+                ips: graph.ips.slice(),
+                metrics: graph.metrics.slice()
+            };
             return <BaseGraph key={graph._id}
-                              graph={graph} onRefresh={that.refreshGraph}
-                              node_id={that.state.node_id}
-                              nodeIPs={that.state.ips}
-                              measurements={that.state.measurements}
-                              graphEditor={GraphEditor}
-                              timePeriod={that.state.timePeriod}
-                              refreshTimePeriod={that.state.refreshTimePeriod}
+                              graph={graphCopy}
+                              period={that.state.period}
+                              onRefresh={that.refreshTime}
+                              showShareDialog={that.showShareDialog}
+                              showEditDialog={that.showEditDialog}
                    />;
         });
-        var shareAction = [{text: 'Close'}];
-        var shareContent = '[' + JSON.stringify({
-                ips: this.state.ips,
-                metrics: this.state.metrics,
-                title: this.state.title
-            }) + ']';
         return (
             <div>
-                <Zoom onRefresh={this.refreshTime} stopRefresh={this.state.stopRefresh}/>
+                <Zoom onRefresh={this.refreshTime} period={this.state.period} ref="zoom"/>
                 <div className="nodeInfo">
                     <span>IP:{this.state.node.ips}</span>
                     <span>Project:{this.state.node.project.name}</span>
@@ -166,20 +200,25 @@ var GraphList = React.createClass({
                     <div className="singleDefault">{defaultGraphList}</div>
                     {graphList}
                 </div>
-                <GraphEditor title="Add new graph"
-                             ips = {this.state.ips}
-                             needToQueryMeasurements={false}
+                <GraphEditor ips = {this.state.node.ips}
+                             node_id={this.state.node._id}
                              measurements={this.state.measurements}
-                             onRefresh={this.refreshGraph}
-                             node_id={this.state.node_id}
-                             timePeriod={this.state.timePeriod}
+                             onRefresh={this.refreshGraphs}
+                             onUpdate={this.updateGraph}
+                             ref="graphEditor"
                 />
-                <Dialog title="Copy the contents below to share this graph" actions={shareAction}
+                <Dialog title="Copy the contents below to share this graph"
+                        actions={[{text: 'Close'}]}
                         autoDetectWindowHeight={true} autoScrollBodyContent={true}
                         ref='shareDialog'>
-                    <TextField value={shareContent} style={{width: '90%'}}
+                    <TextField value={this.state.shareContent} style={{width: '90%'}}
                                multiLine={true} />
                 </Dialog>
+                <div className="btnParent" >
+                    <div className="graphBtn" onClick={this.showEditDialog}>
+                        <i className="fa fa-plus fa-white"></i>
+                    </div>
+                </div>
             </div>
         );
     }
