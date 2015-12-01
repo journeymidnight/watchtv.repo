@@ -10,10 +10,11 @@ var Zoom = React.createClass({
             currentTimer: null // object returned from `setInterval`
         };
     },
-    showDropDown:function(){
+    showDropDown:function(event){
         $(".zoomTime ul").hide();
         $(".refreshInfo,.zoomInfo").removeClass("selected");
-        var obj = $(utility.getEvent().target);
+        //var obj = $(utility.getEvent().target);
+        var obj = $(event.target);
         obj.next().toggle();
         obj.next().css('display')=="none"?
                 obj.removeClass("selected"):obj.addClass("selected");
@@ -24,8 +25,9 @@ var Zoom = React.createClass({
         var obj = $(".zoomInfo + ul li").eq(index);
         this.resetTime(obj);
     },
-    changeTimeList:function(){
-        var obj = utility.getEvent().target;
+    changeTimeList:function(event){
+        //var obj = utility.getEvent().target;
+        var obj = event.target;
         this.resetTime($(obj));
     },
     resetTime:function(obj){
@@ -39,8 +41,9 @@ var Zoom = React.createClass({
         this.props.onRefresh(utility.periodFromTimeLength(value));
         this.autoRefresh();
     },
-    changeRefreshRate:function(){
-        var obj = $(utility.getEvent().target);
+    changeRefreshRate:function(event){
+        //var obj = $(utility.getEvent().target);
+        var obj = $(event.target);
         $(".zoomTime .refreshInfo").html(obj.html());
         $(".refreshInfo + ul li,.zoomTime .refreshInfo").removeClass("selected");
         obj.addClass("selected");
@@ -60,8 +63,8 @@ var Zoom = React.createClass({
         this.setState({currentTimer: t});
     },
     componentWillMount:function(){
-        $("body").bind("click",function(){
-            var event = utility.getEvent();
+        $("body").bind("click",function(event){
+            //var event = utility.getEvent();
             if($(event.target).parents(".zoomTime").size()==0){
                 $(".zoomTime ul").hide();
                 $(".zoomTime .zoomInfo,.zoomTime .refreshInfo").removeClass("selected");
