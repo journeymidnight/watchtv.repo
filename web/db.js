@@ -33,6 +33,7 @@ var nodeSchema = new Schema({
         graphInfo: [graphInfo],
         // For judge module
         state: {type: String, enum: states},
+        judgeEnabled: Boolean,
         failedRules: [String]
     },
     {
