@@ -167,7 +167,7 @@ var checkRules = function(processes, tagBasedRules, metrics) {
 
         var p = child_process.fork('sandbox.js');
         p.on('message', function (message) {
-            if(message['alarm']) {
+            if(message['alarm'] != null) {
                 console.log('alarm', message);
             }
         });

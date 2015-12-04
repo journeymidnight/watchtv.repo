@@ -21,9 +21,10 @@ config.judge = {
     graphitePort: 2003,
     cachePeriodNumber: 3,
     tagListUpdateInterval: 60 * 1000, // 1min, in ms
-    tagBasedRulesCheckInterval: 10 * 1000, // 10s, in ms
-    NodeCheckInterval: 5 * 60 * 1000, // 5min, in ms
-    NodeListUpdateInterval: 60 * 60 * 1000 // 1h, in ms
+    tagBasedRulesCheckInterval: 10 * 1000, // 10s
+    sandboxTimeout: 30 * 1000, // 30s
+    NodeCheckInterval: 5 * 60 * 1000, // 5min
+    NodeListUpdateInterval: 60 * 60 * 1000 // 1h
 };
 
 config.log = {
