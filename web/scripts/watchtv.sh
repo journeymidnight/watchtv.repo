@@ -8,19 +8,20 @@ judge_lock=/var/lock/subsys/watchtv_judge
 api_path=/usr/lib/watchtv/api_server.js
 judge_path=/usr/lib/watchtv/judge.js
 crash_log=/var/log/watchtv/crash.log
+node_path=/usr/bin/node
 RETVAL=0
 
 start() {
     echo -n "Starting API server: "
-	daemon "nohup node $api_path < /dev/null >> $crash_log 2>&1 &"
+	daemon "nohup $node_path $api_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
-	ps -ef|grep "node $api_path"|grep -v grep|awk '{ print $2 }' > $api_pid
+	ps -ef|grep "$node_path $api_path"|grep -v grep|awk '{ print $2 }' > $api_pid
 	echo
         [ $RETVAL = 0 ] && touch ${api_lock}
     echo -n "Starting Judge: "
-	daemon "nohup node $judge_path < /dev/null >> $crash_log 2>&1 &"
+	daemon "nohup $node_path $judge_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
-	ps -ef|grep "node $judge_path"|grep -v grep|awk '{ print $2 }' > $judge_pid
+	ps -ef|grep "$node_path $judge_path"|grep -v grep|awk '{ print $2 }' > $judge_pid
 	echo
         [ $RETVAL = 0 ] && touch ${judge_lock}
 	return $RETVAL

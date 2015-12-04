@@ -2083,9 +2083,10 @@ app.get('/influxdb/query', function(req, res) {
         url: config.db.influxdbURL + '/query?' +
                 querystring.stringify(parameters),
         json: true,
-        timeout: 1000 // 1s
+        timeout: 10000 // 10s
     }, function(err, resp, body) {
         if(err) {
+            logger('InfluxDB connection error:', err);
             res.status(500).send('Error querying InfluxDB');
             return;
         }
