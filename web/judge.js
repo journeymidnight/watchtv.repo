@@ -33,7 +33,7 @@ var nodeLivenessCheckFactory = function(node) {
                         callback(null, false);
                         return;
                     }
-                    if(result.hello == 'diamond') {
+                    if(result.hello === 'diamond') {
                         callback(null, true);
                     } else {
                         callback(null, false);
@@ -141,7 +141,7 @@ var updateTagRules = function(tagBasedRules) {
             return;
         }
         tags.map(function (tag) {
-            //if(tag.alarmRules.length === 0) return;
+            if(tag.alarmRules.length === 0) return;
             db.Node.find({tags: {$in: [tag._id]}}, function(err, nodes) {
                 if(err) {
                     logger('Error fetching nodes:', err);
@@ -161,6 +161,18 @@ var updateTagRules = function(tagBasedRules) {
     });
 };
 
+var alarm = function (message) {
+    // TODO: alarm logic
+    console.log('ALARM:', message);
+};
+
+var handleEvaluationError = function (message) {
+    // TODO
+    console.log('ERROR:', message);
+};
+
+var pingPortProcess = child_process.fork('pingPort.js');
+
 var checkRules = function(processes, tagBasedRules, metrics) {
     for(var tag in tagBasedRules) {
         if(!tagBasedRules.hasOwnProperty(tag)) continue;
@@ -168,7 +180,13 @@ var checkRules = function(processes, tagBasedRules, metrics) {
         var p = child_process.fork('sandbox.js');
         p.on('message', function (message) {
             if(message['alarm'] != null) {
-                console.log('alarm', message);
+                alarm(message['alarm']);
+            } else if(message['syntaxError'] != null) {
+                handleEvaluationError(message['syntaxError']);
+            } else if(message['runtimeError'] != null) {
+                handleEvaluationError(message['runtimeError']);
+            } else if(message['pingPort'] != null) {
+                pingPortProcess.send({pingPort: message['pingPort']});
             }
         });
         // Send nodes array and user defined scripts to sandbox
@@ -177,11 +195,10 @@ var checkRules = function(processes, tagBasedRules, metrics) {
             var underscoredIP = ip.replace(/\./g, '_');
             if(metrics[underscoredIP]) {
                 node['metrics'] = metrics[underscoredIP];
-                return node;
+            } else {
+                node['metrics'] = {};
             }
-            return null;
-        }).filter(function(node) {
-            return node !== null;
+            return node;
         });
         p.send({nodes: nodes});
         p.send({rules: tagBasedRules[tag].rules});
@@ -217,6 +234,11 @@ var tagBasedRulesCheck = function() {
     updateTagRules(tagBasedRules);
     setInterval(updateTagRules.bind(null, tagBasedRules), config.judge.tagListUpdateInterval);
 
+    pingPortProcess.on('message', function (message) {
+        if(message['alarm'] != null) {
+            alarm(message['alarm']);
+        }
+    });
     var processes = {};
     setInterval(checkRules.bind(null, processes, tagBasedRules, metrics),
                 config.judge.tagBasedRulesCheckInterval);

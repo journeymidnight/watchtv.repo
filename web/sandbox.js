@@ -1,5 +1,4 @@
 var vm = require('vm');
-var net = require('net');
 
 var config = require('./config.js');
 
@@ -36,18 +35,37 @@ var min = function (list) {
     }, Infinity)
 };
 
-var pingPort = function (nodeID, portNumber, callback) {
-    var s = new net.Socket();
-    var timeout = setTimeout(function(){
-        s.destroy();
-        callback();
-    }, 1000);
-    s.connect({
-        host: nodes[nodeID].ip,
-        port: portNumber
-    }).on('connect', function() {
-        clearTimeout(timeout);
-    }).on('error', function() {return});
+// Check if measurement data are ready
+// e.g. ready(node.loadavg)
+var ready = function (measure) {
+    if(measure == null) return false;
+
+    if(measure.constructor === Array) {
+        for(var i = 0; i < measure.length; i++) {
+            if(measure[i] == undefined) return false;
+        }
+        return true;
+    } else if(measure.constructor === Object) {
+        var objectKeys = Object.keys(measure);
+        if(objectKeys.length === 0) return false; // `{}`, empty object
+        if(objectKeys.length === 1
+            && objectKeys[0] === 'id') return false; // `{id: xx}`, also "empty"
+        for(var m in measure) {
+            if(!measure.hasOwnProperty(m)) continue;
+            if(m === 'id') continue;  // for special case `id: xx`
+            if(ready(measure[m]) === false) return false;
+        }
+        return true;
+    }
+    return false;
+};
+
+var pingPort = function (nodeID, portNumber, alarmMessage) {
+    process.send({pingPort:{
+        ip: nodes[nodeID].ip,
+        port: portNumber,
+        alarmMessage: alarmMessage
+    }});
 };
 
 var sandbox = {
@@ -56,27 +74,35 @@ var sandbox = {
     avg: avg,
     max: max,
     min: min,
+    ready: ready,
     pingPort: pingPort
 };
 
 var evaluation = function () {
     if(alarmRules.length === 0 || nodes.length === 0) return;
 
-    console.log(alarmRules, nodes);
     sandbox.nodes = nodes.map(function(node, index) {
-        node.id = index;
-        return node.metrics;
+        var n = node.metrics;
+        n.id = index;
+        return n;
     });
+    console.log('nodes', sandbox.nodes);
     var context = new vm.createContext(sandbox);
     var scripts = alarmRules.map(function(rule){
-        return new vm.Script(rule);
+        try {
+            var script = new vm.Script(rule);
+        } catch (err) {
+            process.send({syntaxError: err.toString()});
+            process.exit(1);
+        }
+        return script;
     });
     try {
         scripts.map(function(script) {
             script.runInContext(context, {timeout: config.judge.sandboxTimeout});
         });
     } catch (err) {
-        process.send({error: err.toString()});
+        process.send({runtimeError: err.toString()});
     }
     process.exit(0);
 };
@@ -89,3 +115,8 @@ process.on('message', function (message) {
     }
     evaluation();
 });
+
+// Stop this sandbox anyway after 5min
+setTimeout(function() {
+    process.exit(0);
+}, 5 * 60 * 1000);
