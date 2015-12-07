@@ -9,6 +9,7 @@ process.on('message', function(message) {
         s.destroy();
         process.send({alarm: {
             ip: pingInfo.ip,
+            id: pingInfo.id,
             message: pingInfo.alarmMessage
         }})
     }, 1000);

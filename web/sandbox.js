@@ -7,6 +7,7 @@ var alarmRules = [], nodes = [];
 var alarm = function (nodeID, alarmMessage) {
     process.send({alarm: {
         ip: nodes[nodeID].ip,
+        id: nodes[nodeID].id,
         message: alarmMessage
     }})
 };
@@ -63,6 +64,7 @@ var ready = function (measure) {
 var pingPort = function (nodeID, portNumber, alarmMessage) {
     process.send({pingPort:{
         ip: nodes[nodeID].ip,
+        id: nodes[nodeID].id,
         port: portNumber,
         alarmMessage: alarmMessage
     }});
@@ -86,7 +88,6 @@ var evaluation = function () {
         n.id = index;
         return n;
     });
-    console.log('nodes', sandbox.nodes);
     var context = new vm.createContext(sandbox);
     var scripts = alarmRules.map(function(rule){
         try {

@@ -111,12 +111,13 @@ var processData = function(data, metrics) {
         var splited = metricEntry.split(' ');
         var measure = splited[0],
             value = Number(splited[1]),
+            // TODO: make use of timestamp
             timestamp = new Date(Number(splited[2] * 1000));
         var n = config.judge.cachePeriodNumber;
 
         measure.split('.').slice(1)  // ignore first part now since it's always `server`
                .reduce(function (previousValue, currentValue, currentIndex, array) {
-                   if(previousValue[currentValue] == undefined) {
+                   if(previousValue[currentValue] === undefined) {
                        if(currentIndex === array.length - 1) {
                            previousValue[currentValue] = new Array(n+1);
                            previousValue[currentValue][n] = 0; // point to next data slot
@@ -147,28 +148,71 @@ var updateTagRules = function(tagBasedRules) {
                     logger('Error fetching nodes:', err);
                     return;
                 }
-                var ips = [];
+                var ips = [], ids = [];
                 nodes.map(function(node) {
                     if(node.judgeEnabled === false) return;
                     ips = ips.concat(node.ips);
+                    ids = ids.concat(new Array(ips.length).fill(node._id)); //`fill` is an ES6 method
                 });
                 tagBasedRules[tag._id] = {
                     rules: tag.alarmRules,
-                    ips: ips
+                    ips: ips,
+                    ids: ids
                 };
             })
         })
     });
 };
 
-var alarm = function (message) {
-    // TODO: alarm logic
-    console.log('ALARM:', message);
+var alarmQueue = [];
+var emailProcess = child_process.fork('email.js');
+
+var alarm = function (alarm) {
+    alarmQueue.push(alarm);
+    logger('ALARM:', alarm.id, alarm.ip, alarm.message);
 };
 
 var handleEvaluationError = function (message) {
     // TODO
     console.log('ERROR:', message);
+};
+
+var alarmAggregation = function () {
+    var alarms = {};
+    alarmQueue.map(function(alarm) {
+        var newAlarm = {ip: alarm.ip, message: alarm.message};
+        if(alarms[alarm.id] != null) {
+            var exist = false;
+            for (var i = 0; i < alarms[alarm.id].length; i++) {
+                if(alarms[alarm.id][i].ip === newAlarm.ip
+                    && alarms[alarm.id][i].message === newAlarm.message) {
+                    exist = true;
+                    break;
+                }
+            }
+            if(!exist) {
+                alarms[alarm.id].push({ip: alarm.ip, message: alarm.message})
+            }
+        } else {
+            alarms[alarm.id] = [newAlarm];
+        }
+    });
+    alarmQueue = [];
+    for(var nodeID in alarms) {
+        if(!alarms.hasOwnProperty(nodeID)) continue;
+        db.Node.findById(nodeID, function (err, node) {
+            var content = node.name + ' ' + node.region.name + ' ' + node.idc.name +
+                          ' ' + node.project.name + '\n\n';
+            alarms[nodeID].map(function(alarm){
+                content += alarm.ip + ' ' + alarm.message + '\n'
+            });
+            emailProcess.send({
+                content: content,
+                to: 'zhangcan@letv.com',
+                subject: 'Alarm from ' + node.name
+            })
+        }).populate('region idc project', 'name');
+    }
 };
 
 var pingPortProcess = child_process.fork('pingPort.js');
@@ -190,16 +234,21 @@ var checkRules = function(processes, tagBasedRules, metrics) {
             }
         });
         // Send nodes array and user defined scripts to sandbox
-        var nodes = tagBasedRules[tag].ips.map(function(ip) {
-            var node = {ip: ip};
+        var nodes = [];
+        for(var i = 0; i < tagBasedRules[tag].ips.length; i++) {
+            var ip = tagBasedRules[tag].ips[i];
+            var node = {
+                ip: ip,
+                id: tagBasedRules[tag].ids[i]
+            };
             var underscoredIP = ip.replace(/\./g, '_');
             if(metrics[underscoredIP]) {
                 node['metrics'] = metrics[underscoredIP];
             } else {
                 node['metrics'] = {};
             }
-            return node;
-        });
+            nodes.push(node);
+        }
         p.send({nodes: nodes});
         p.send({rules: tagBasedRules[tag].rules});
         processes[p.pid] = tag;
@@ -242,6 +291,8 @@ var tagBasedRulesCheck = function() {
     var processes = {};
     setInterval(checkRules.bind(null, processes, tagBasedRules, metrics),
                 config.judge.tagBasedRulesCheckInterval);
+
+    setInterval(alarmAggregation, config.judge.tagBasedRulesCheckInterval * 2);
 };
 
 var checkList = [livenessCheckStarter, tagBasedRulesCheck];

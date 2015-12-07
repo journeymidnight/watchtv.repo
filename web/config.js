@@ -27,6 +27,10 @@ config.judge = {
     NodeListUpdateInterval: 60 * 60 * 1000 // 1h
 };
 
+config.email = {
+    server: '10.130.211.68'
+};
+
 config.log = {
     path: "/var/log/watchtv/watchtv.log"
 };
