@@ -2,13 +2,14 @@ var vm = require('vm');
 
 var config = require('./config.js');
 
-var alarmRules = [], nodes = [];
+var alarmRules = [], nodes = [], receivers = [];
 
 var alarm = function (nodeID, alarmMessage) {
     process.send({alarm: {
         ip: nodes[nodeID].ip,
         id: nodes[nodeID].id,
-        message: alarmMessage
+        message: alarmMessage,
+        receivers: receivers
     }})
 };
 
@@ -66,7 +67,8 @@ var pingPort = function (nodeID, portNumber, alarmMessage) {
         ip: nodes[nodeID].ip,
         id: nodes[nodeID].id,
         port: portNumber,
-        alarmMessage: alarmMessage
+        alarmMessage: alarmMessage,
+        receivers: receivers
     }});
 };
 
@@ -81,7 +83,9 @@ var sandbox = {
 };
 
 var evaluation = function () {
-    if(alarmRules.length === 0 || nodes.length === 0) return;
+    if(alarmRules.length === 0 ||
+        nodes.length === 0 ||
+        receivers.length === 0) return;
 
     sandbox.nodes = nodes.map(function(node, index) {
         var n = node.metrics;
@@ -113,6 +117,8 @@ process.on('message', function (message) {
         nodes = message['nodes'];
     } else if(message['rules']) {
         alarmRules = message['rules'];
+    } else if(message['receivers']) {
+        receivers = message['receivers'];
     }
     evaluation();
 });

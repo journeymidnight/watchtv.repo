@@ -23,6 +23,7 @@ config.judge = {
     tagListUpdateInterval: 60 * 1000, // 1min, in ms
     tagBasedRulesCheckInterval: 10 * 1000, // 10s
     sandboxTimeout: 30 * 1000, // 30s
+    sandboxProcessTimeOut: 60 * 1000, // 60s
     NodeCheckInterval: 5 * 60 * 1000, // 5min
     NodeListUpdateInterval: 60 * 60 * 1000 // 1h
 };

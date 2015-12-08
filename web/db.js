@@ -9,7 +9,7 @@ var tagSchema = new Schema({
         name: String,
         monitorItems: [String],
         alarmRules: [String],
-        alarmReceiverGroups: [String]
+        alarmReceivers: [String]
     },
     {
         collection: "Tag"
@@ -34,7 +34,7 @@ var nodeSchema = new Schema({
         // For judge module
         state: {type: String, enum: states},
         judgeEnabled: Boolean,
-        failedRules: [String]
+        alarmInformation: [String]
     },
     {
         collection: "Node"

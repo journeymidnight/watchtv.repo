@@ -156,6 +156,7 @@ var updateTagRules = function(tagBasedRules) {
                 });
                 tagBasedRules[tag._id] = {
                     rules: tag.alarmRules,
+                    receivers: tag.alarmReceivers,
                     ips: ips,
                     ids: ids
                 };
@@ -169,7 +170,7 @@ var emailProcess = child_process.fork('email.js');
 
 var alarm = function (alarm) {
     alarmQueue.push(alarm);
-    logger('ALARM:', alarm.id, alarm.ip, alarm.message);
+    logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
 };
 
 var handleEvaluationError = function (message) {
@@ -180,7 +181,7 @@ var handleEvaluationError = function (message) {
 var alarmAggregation = function () {
     var alarms = {};
     alarmQueue.map(function(alarm) {
-        var newAlarm = {ip: alarm.ip, message: alarm.message};
+        var newAlarm = {ip: alarm.ip, message: alarm.message, receivers: alarm.receivers};
         if(alarms[alarm.id] != null) {
             var exist = false;
             for (var i = 0; i < alarms[alarm.id].length; i++) {
@@ -191,7 +192,7 @@ var alarmAggregation = function () {
                 }
             }
             if(!exist) {
-                alarms[alarm.id].push({ip: alarm.ip, message: alarm.message})
+                alarms[alarm.id].push(newAlarm);
             }
         } else {
             alarms[alarm.id] = [newAlarm];
@@ -201,14 +202,21 @@ var alarmAggregation = function () {
     for(var nodeID in alarms) {
         if(!alarms.hasOwnProperty(nodeID)) continue;
         db.Node.findById(nodeID, function (err, node) {
-            var content = node.name + ' ' + node.region.name + ' ' + node.idc.name +
-                          ' ' + node.project.name + '\n\n';
+            var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
+                          ' IDC: ' + node.idc.name +
+                          ' Project: ' + node.project.name + '\n\n';
+            var receivers = [];
             alarms[nodeID].map(function(alarm){
-                content += alarm.ip + ' ' + alarm.message + '\n'
+                content += alarm.ip + ' ' + alarm.message + '\n';
+                alarm.receivers.map(function(receiver) {
+                    if(receivers.indexOf(receiver) === -1) {
+                        receivers.push(receiver);
+                    }
+                })
             });
             emailProcess.send({
                 content: content,
-                to: 'zhangcan@letv.com',
+                to: receivers.join(','),
                 subject: 'Alarm from ' + node.name
             })
         }).populate('region idc project', 'name');
@@ -251,8 +259,22 @@ var checkRules = function(processes, tagBasedRules, metrics) {
         }
         p.send({nodes: nodes});
         p.send({rules: tagBasedRules[tag].rules});
-        processes[p.pid] = tag;
+        p.send({receivers: tagBasedRules[tag].receivers});
+        processes[p.pid] = {
+            timestamp: new Date(),
+            process: p
+        };
     }
+};
+
+var cleanProcess = function (processes) {
+    var now = new Date();
+    Object.keys(processes).map(function(pid) {
+        if(now - processes[pid].timestamp > config.judge.sandboxProcessTimeOut) {
+            processes[pid].process.kill();
+            delete processes[pid];
+        }
+    })
 };
 
 var tagBasedRulesCheck = function() {
@@ -291,6 +313,7 @@ var tagBasedRulesCheck = function() {
     var processes = {};
     setInterval(checkRules.bind(null, processes, tagBasedRules, metrics),
                 config.judge.tagBasedRulesCheckInterval);
+    setInterval(cleanProcess.bind(null, processes), config.judge.sandboxProcessTimeOut);
 
     setInterval(alarmAggregation, config.judge.tagBasedRulesCheckInterval * 2);
 };
