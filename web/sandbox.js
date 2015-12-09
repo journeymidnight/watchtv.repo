@@ -4,10 +4,11 @@ var config = require('./config.js');
 
 var alarmRules = [], nodes = [], receivers = [];
 
-var alarm = function (nodeID, alarmMessage) {
+var alarm = function (nodeIndex, alarmMessage) {
     process.send({alarm: {
-        ip: nodes[nodeID].ip,
-        id: nodes[nodeID].id,
+        ip: nodes[nodeIndex].ip,
+        id: nodes[nodeIndex].id,
+        tagID: nodes[nodeIndex].tagID,
         message: alarmMessage,
         receivers: receivers
     }})
@@ -62,10 +63,11 @@ var ready = function (measure) {
     return false;
 };
 
-var pingPort = function (nodeID, portNumber, alarmMessage) {
+var pingPort = function (nodeIndex, portNumber, alarmMessage) {
     process.send({pingPort:{
-        ip: nodes[nodeID].ip,
-        id: nodes[nodeID].id,
+        ip: nodes[nodeIndex].ip,
+        id: nodes[nodeIndex].id,
+        tagID: nodes[nodeIndex].tagID,
         port: portNumber,
         alarmMessage: alarmMessage,
         receivers: receivers

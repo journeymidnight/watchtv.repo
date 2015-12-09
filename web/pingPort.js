@@ -10,6 +10,7 @@ process.on('message', function(message) {
         process.send({alarm: {
             ip: pingInfo.ip,
             id: pingInfo.id,
+            tagID: pingInfo.tagID,
             message: pingInfo.alarmMessage,
             receivers: pingInfo.receivers
         }})

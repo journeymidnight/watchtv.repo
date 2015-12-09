@@ -2,11 +2,59 @@ var async = require('async');
 var request = require('request');
 var net = require('net');
 var child_process = require('child_process');
+var dgram = require('dgram');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('Judge');
 
+// Maintain alarm information by nodeID in memory
+// alarmInformation[nodeID] = {
+//     name,
+//     alarms[alarmKey] = [{
+//         message,
+//         tagID,
+//         timestamp,
+//         ttl
+//     }, ... ]
+// }
+var alarmInformation = {};
+
+process.on('message', function(message) {
+    if(message['nodeAlarms'] != null) {
+        var nodeID = message['nodeAlarms'];
+        var alarms = {
+            nodeID: nodeID,
+            alarms: {}
+        };
+        if(alarmInformation[nodeID] != undefined) {
+            alarms.alarms = alarmInformation[nodeID].alarms;
+        }
+        process.send({nodeAlarms: alarms});
+    }
+});
+
+var AlarmNode = function(name) {
+    this.name = name;
+    this.alarms = {};
+};
+
+var Alarm = function(message, tagID, timestamp, ttl) {
+    this.message = message;
+    this.tagID = tagID;
+    this.timestamp = timestamp;
+    this.ttl = ttl;
+};
+
+var insertAlarm = function(nodeID, nodeName, alarmKey, message, tagID, timestamp, ttl) {
+    if(alarmInformation[nodeID] === undefined) {
+        alarmInformation[nodeID] = new AlarmNode(nodeName);
+    }
+    if(alarmInformation[nodeID].alarms[alarmKey] === undefined) {
+        alarmInformation[nodeID].alarms[alarmKey] = [];
+    }
+    alarmInformation[nodeID].alarms[alarmKey].push(new Alarm(message, tagID, timestamp, ttl));
+};
 
 var nodeLivenessCheckFactory = function(node) {
     return function() {
@@ -45,27 +93,11 @@ var nodeLivenessCheckFactory = function(node) {
                     return (previous || current);
                 }, false);
 
-                logger('State of', node.ips, ' ', state);
-                var update = {};
-                if(state) {
-                    update = {
-                        state: 'Good',
-                        failedRules: []
-                    }
-                } else {
-                    update = {
-                        state: 'Error',
-                        failedRules: ['Diamond does not respond']
-                    }
+                logger('Liveness of', node.ips, state);
+                if(state === false) {
+                    insertAlarm(node._id, node.name, 'diamond', 'Diamond does not respond',
+                        null, new Date(), config.judge.nodeLivenessCheckInterval * 3);
                 }
-
-                db.Node.findOneAndUpdate(
-                    { _id: node._id },
-                    { '$set': update},
-                    function(err, state) {
-                        if(err) {logger('Create/update state ', err)}
-                    }
-                )
             }
         )
     }
@@ -85,7 +117,7 @@ var livenessCheck = function() {
             livenessCheckJobList = [];
             nodes.map(function(node){
                 var job = setInterval(nodeLivenessCheckFactory(node),
-                                      config.judge.NodeCheckInterval);
+                                      config.judge.nodeLivenessCheckInterval);
                 livenessCheckJobList.push(job);
             })
         }
@@ -94,7 +126,7 @@ var livenessCheck = function() {
 
 var livenessCheckStarter = function() {
     livenessCheck();
-    setInterval(livenessCheck, config.judge.NodeListUpdateInterval);
+    setInterval(livenessCheck, config.judge.nodeListUpdateInterval);
 };
 
 // Convert metrics received from graphite protocol:
@@ -181,7 +213,12 @@ var handleEvaluationError = function (message) {
 var alarmAggregation = function () {
     var alarms = {};
     alarmQueue.map(function(alarm) {
-        var newAlarm = {ip: alarm.ip, message: alarm.message, receivers: alarm.receivers};
+        var newAlarm = {
+            ip: alarm.ip,
+            message: alarm.message,
+            receivers: alarm.receivers,
+            tagID: alarm.tagID
+        };
         if(alarms[alarm.id] != null) {
             var exist = false;
             for (var i = 0; i < alarms[alarm.id].length; i++) {
@@ -212,13 +249,15 @@ var alarmAggregation = function () {
                     if(receivers.indexOf(receiver) === -1) {
                         receivers.push(receiver);
                     }
-                })
+                });
+                insertAlarm(nodeID, node.name, alarm.ip, alarm.message, alarm.tagID, new Date(),
+                            config.judge.tagBasedRulesCheckInterval * 3);
             });
             emailProcess.send({
                 content: content,
                 to: receivers.join(','),
                 subject: 'Alarm from ' + node.name
-            })
+            });
         }).populate('region idc project', 'name');
     }
 };
@@ -247,7 +286,8 @@ var checkRules = function(processes, tagBasedRules, metrics) {
             var ip = tagBasedRules[tag].ips[i];
             var node = {
                 ip: ip,
-                id: tagBasedRules[tag].ids[i]
+                id: tagBasedRules[tag].ids[i],
+                tagID: tag
             };
             var underscoredIP = ip.replace(/\./g, '_');
             if(metrics[underscoredIP]) {
@@ -277,8 +317,14 @@ var cleanProcess = function (processes) {
     })
 };
 
+var forwardData = function (data, udpSender) {
+    udpSender.send(data, 0, data.length, config.judge.graphitePort,
+                    config.judge.sinkIP);
+};
+
 var tagBasedRulesCheck = function() {
     var metrics = {};
+    var udpSender = dgram.createSocket('udp4');
     var server = net.createServer(function(socket) {
         var dataBuffer = '';
         socket.on('data', function(data) {
@@ -291,6 +337,7 @@ var tagBasedRulesCheck = function() {
         });
         socket.on('line', function(data) {
             processData(data, metrics);
+            forwardData(data, udpSender);
         });
         socket.on('error', function(error) {
             logger('Socket error', error);
@@ -318,6 +365,42 @@ var tagBasedRulesCheck = function() {
     setInterval(alarmAggregation, config.judge.tagBasedRulesCheckInterval * 2);
 };
 
+var alarmInformationHandler = function () {
+    var now = new Date();
+    for(var nodeID in alarmInformation) {
+        if(!alarmInformation.hasOwnProperty(nodeID)) continue;
+
+        var alarmCount = 0;
+        var alarms = alarmInformation[nodeID].alarms;
+        for(var alarmKey in alarms) {
+            if(!alarms.hasOwnProperty(alarmKey)) continue;
+
+            alarms[alarmKey] = alarms[alarmKey].filter(function(alarm) {
+                if(now - alarm.timestamp > alarm.ttl) {
+                    return false;
+                } else {
+                    alarmCount += 1;
+                }
+          })
+        }
+        var update = {
+            state: 'Good'
+        };
+        if(alarmCount > 0) {
+            update.state = 'Error';
+        }
+        db.Node.findByIdAndUpdate(
+            {_id: nodeID},
+            {'$set': update},
+            function(err, state) {
+                if(err) {logger('Error update node state:', err)}
+            }
+        )
+    }
+};
+
+setInterval(alarmInformationHandler, 60 * 1000);
+
 var checkList = [livenessCheckStarter, tagBasedRulesCheck];
 
 logger('Judge started');
@@ -325,4 +408,3 @@ logger('Judge started');
 checkList.map(function(checker){
     checker();
 });
-

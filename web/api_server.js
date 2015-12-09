@@ -7,15 +7,25 @@ var bodyParser = require('body-parser');
 var validator = require('validator');
 var async = require('async');
 var request = require('request');
-var app = express();
 var session = require('client-sessions');
 var swig = require('swig');
 var url = require('url');
 var querystring = require('querystring');
+var child_process = require('child_process');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
+
+var judgeProcess = child_process.fork('judge.js');
+judgeProcess.on('message', function (message) {
+    if(message['nodeAlarms'] != null) {
+        var nodeID = message['nodeAlarms'].nodeID;
+        judgeProcess.emit(nodeID, message['nodeAlarms'].alarms);
+    }
+});
+
+var app = express();
 
 var userPopulateArgument = {
     path: "projects graphs",
@@ -717,6 +727,14 @@ app.get('/node/:node_id/ips', function(req, res) {
         }
         res.send(found);
     });
+});
+
+app.get('/node/:node_id/alarms', function(req, res) {
+    var node_id = req.params.node_id;
+    judgeProcess.once(node_id, function(message) {
+        res.send(message);
+    });
+    judgeProcess.send({nodeAlarms: node_id});
 });
 
 // Get graphs for specific node, for current user
