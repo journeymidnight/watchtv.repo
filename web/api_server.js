@@ -921,7 +921,7 @@ app.post('/tags', function (req, res) {
                 checkFunction: isArray
             },
             {
-                name: 'alarmReceiverGroups',
+                name: 'alarmReceivers',
                 defaultValue: [],
                 checkFunction: isArray
             }
@@ -938,7 +938,7 @@ app.put('/tag/:tag_id', function(req, res){
     var name = req.body.name,
         monitorItems = req.body.monitorItems,
         alarmRules = req.body.alarmRules,
-        alarmReceiverGroups = req.body.alarmReceiverGroups;
+        alarmReceivers = req.body.alarmReceivers;
     var update = {};
     if(name) update.name = name;
     if(monitorItems && monitorItems.constructor === Array) {
@@ -947,8 +947,8 @@ app.put('/tag/:tag_id', function(req, res){
     if(alarmRules && alarmRules.constructor === Array) {
         update.alarmRules = alarmRules
     }
-    if(alarmReceiverGroups && alarmReceiverGroups.constructor === Array) {
-        update.alarmReceiverGroups = alarmReceiverGroups
+    if(alarmReceivers && alarmReceivers.constructor === Array) {
+        update.alarmReceivers = alarmReceivers
     }
     db.Tag.findOneAndUpdate(
         { _id: tag_id },

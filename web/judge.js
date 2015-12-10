@@ -1,3 +1,5 @@
+"use strict";
+
 var async = require('async');
 var request = require('request');
 var net = require('net');
@@ -236,7 +238,7 @@ var alarmAggregation = function () {
         }
     });
     alarmQueue = [];
-    for(var nodeID in alarms) {
+    for(let nodeID in alarms) {
         if(!alarms.hasOwnProperty(nodeID)) continue;
         db.Node.findById(nodeID, function (err, node) {
             var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
