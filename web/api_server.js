@@ -22,6 +22,9 @@ judgeProcess.on('message', function (message) {
     if(message['nodeAlarms'] != null) {
         var nodeID = message['nodeAlarms'].nodeID;
         judgeProcess.emit(nodeID, message['nodeAlarms'].alarms);
+    } else if(message['tagErrors'] != null) {
+        var tagID = message['tagErrors'].tagID;
+        judgeProcess.emit(tagID, message['tagErrors'].errors);
     }
 });
 
@@ -931,6 +934,14 @@ app.post('/tags', function (req, res) {
 
 app.get('/tag/:tag_id', function(req, res){
     handleGetById(req, res, 'tag', db.Tag);
+});
+
+app.get('/tag/:tag_id/errors', function(req, res) {
+    var tag_id = req.params.tag_id;
+    judgeProcess.once(tag_id, function(message){
+        res.send(message);
+    });
+    judgeProcess.send({tagErrors: tag_id});
 });
 
 app.put('/tag/:tag_id', function(req, res){

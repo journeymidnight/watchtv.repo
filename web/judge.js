@@ -21,6 +21,13 @@ var logger = require('./logger.js').getLogger('Judge');
 //     }, ... ]
 // }
 var alarmInformation = {};
+// Maintain evaluation errors in memory
+// evaluationError[tagID] = [{
+//      timestamp,
+//      type,
+//      message
+//  }, ... ]
+var evaluationError = {};
 
 process.on('message', function(message) {
     if(message['nodeAlarms'] != null) {
@@ -33,6 +40,16 @@ process.on('message', function(message) {
             alarms.alarms = alarmInformation[nodeID].alarms;
         }
         process.send({nodeAlarms: alarms});
+    } else if(message['tagErrors'] != null) {
+        var tagID = message['tagErrors'];
+        var errors = {
+            tagID: tagID,
+            errors: {}
+        };
+        if(evaluationError[tagID] != undefined) {
+            errors.errors = evaluationError[tagID];
+        }
+        process.send({tagErrors: errors});
     }
 });
 
@@ -207,9 +224,15 @@ var alarm = function (alarm) {
     logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
 };
 
-var handleEvaluationError = function (message) {
-    // TODO
-    console.log('ERROR:', message);
+var insertEvaluationError = function (message, type) {
+    if(evaluationError[message.tagID] === undefined) {
+        evaluationError[message.tagID] = [];
+    }
+    evaluationError[message.tagID].push({
+        timestamp: new Date(),
+        type: type,
+        message: message.message
+    })
 };
 
 var alarmAggregation = function () {
@@ -275,9 +298,9 @@ var checkRules = function(processes, tagBasedRules, metrics) {
             if(message['alarm'] != null) {
                 alarm(message['alarm']);
             } else if(message['syntaxError'] != null) {
-                handleEvaluationError(message['syntaxError']);
+                insertEvaluationError(message['syntaxError'], 'syntaxError');
             } else if(message['runtimeError'] != null) {
-                handleEvaluationError(message['runtimeError']);
+                insertEvaluationError(message['runtimeError'], 'runtimeError');
             } else if(message['pingPort'] != null) {
                 pingPortProcess.send({pingPort: message['pingPort']});
             }
@@ -367,7 +390,7 @@ var tagBasedRulesCheck = function() {
     setInterval(alarmAggregation, config.judge.tagBasedRulesCheckInterval * 2);
 };
 
-var alarmInformationHandler = function () {
+var periodicChecker = function () {
     var now = new Date();
     for(var nodeID in alarmInformation) {
         if(!alarmInformation.hasOwnProperty(nodeID)) continue;
@@ -382,6 +405,7 @@ var alarmInformationHandler = function () {
                     return false;
                 } else {
                     alarmCount += 1;
+                    return true;
                 }
           })
         }
@@ -399,9 +423,16 @@ var alarmInformationHandler = function () {
             }
         )
     }
+    for(var tagID in evaluationError) {
+        if(!evaluationError.hasOwnProperty(tagID)) continue;
+
+        evaluationError[tagID] = evaluationError[tagID].filter(function (error) {
+            return now - error.timestamp < 60 * 1000;
+        })
+    }
 };
 
-setInterval(alarmInformationHandler, 60 * 1000);
+setInterval(periodicChecker, 60 * 1000);
 
 var checkList = [livenessCheckStarter, tagBasedRulesCheck];
 

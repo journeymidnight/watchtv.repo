@@ -99,7 +99,11 @@ var evaluation = function () {
         try {
             var script = new vm.Script(rule);
         } catch (err) {
-            process.send({syntaxError: err.toString()});
+            process.send({syntaxError: {
+                message: err.toString(),
+                // tagIDs inside a single sandbox are the same, kind of a hack
+                tagID: nodes[0].tagID
+            }});
             process.exit(1);
         }
         return script;
@@ -109,7 +113,10 @@ var evaluation = function () {
             script.runInContext(context, {timeout: config.judge.sandboxTimeout});
         });
     } catch (err) {
-        process.send({runtimeError: err.toString()});
+        process.send({runtimeError: {
+            message: err.toString(),
+            tagID: nodes[0].tagID
+        }});
     }
     process.exit(0);
 };
