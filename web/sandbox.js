@@ -84,12 +84,25 @@ var sandbox = {
     pingPort: pingPort
 };
 
+var removeMetricCount = function(metrics) {
+    for(var key in metrics) {
+        if(!metrics.hasOwnProperty(key)) continue;
+
+        if(metrics[key].constructor === Array) {
+            metrics[key] = metrics[key].slice(0, metrics[key].length-1);
+        } else {
+            removeMetricCount(metrics[key]);
+        }
+    }
+};
+
 var evaluation = function () {
     if(alarmRules.length === 0 ||
         nodes.length === 0 ||
         receivers.length === 0) return;
 
     sandbox.nodes = nodes.map(function(node, index) {
+        removeMetricCount(node.metrics);
         var n = node.metrics;
         n.id = index;
         return n;
