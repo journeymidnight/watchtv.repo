@@ -11,15 +11,26 @@ config.webServer = {
 
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
-    influxdbURL: "http://10.130.211.68:8086",
+    influxdbURL: "http://10.58.180.60:8086",
     influxdbUser: "root",
     influxdbPassword: "root",
     influxdbDatabase: "graphite"
 };
 
 config.judge = {
-    NodeCheckInterval: 5 * 60 * 1000, // 5min, in ms
-    NodeListUpdateInterval: 60 * 60 * 1000 // 1h, in ms
+    graphitePort: 2003,
+    sinkIP: '10.58.180.60',
+    cachePeriodNumber: 3,
+    tagListUpdateInterval: 60 * 1000, // 1min, in ms
+    tagBasedRulesCheckInterval: 30 * 1000, // 30s
+    sandboxTimeout: 30 * 1000, // 30s
+    sandboxProcessTimeOut: 60 * 1000, // 60s
+    nodeLivenessCheckInterval: 5 * 60 * 1000, // 5min
+    nodeListUpdateInterval: 60 * 60 * 1000 // 1h
+};
+
+config.email = {
+    server: '10.130.211.68'
 };
 
 config.log = {

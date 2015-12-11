@@ -7,15 +7,28 @@ var bodyParser = require('body-parser');
 var validator = require('validator');
 var async = require('async');
 var request = require('request');
-var app = express();
 var session = require('client-sessions');
 var swig = require('swig');
 var url = require('url');
 var querystring = require('querystring');
+var child_process = require('child_process');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
+
+var judgeProcess = child_process.fork('judge.js');
+judgeProcess.on('message', function (message) {
+    if(message['nodeAlarms'] != null) {
+        var nodeID = message['nodeAlarms'].nodeID;
+        judgeProcess.emit(nodeID, message['nodeAlarms'].alarms);
+    } else if(message['tagErrors'] != null) {
+        var tagID = message['tagErrors'].tagID;
+        judgeProcess.emit(tagID, message['tagErrors'].errors);
+    }
+});
+
+var app = express();
 
 var userPopulateArgument = {
     path: "projects graphs",
@@ -719,6 +732,14 @@ app.get('/node/:node_id/ips', function(req, res) {
     });
 });
 
+app.get('/node/:node_id/alarms', function(req, res) {
+    var node_id = req.params.node_id;
+    judgeProcess.once(node_id, function(message) {
+        res.send(message);
+    });
+    judgeProcess.send({nodeAlarms: node_id});
+});
+
 // Get graphs for specific node, for current user
 app.get('/node/:node_id/graphs', function (req, res) {
     var node_id = req.params.node_id,
@@ -903,7 +924,7 @@ app.post('/tags', function (req, res) {
                 checkFunction: isArray
             },
             {
-                name: 'alarmReceiverGroups',
+                name: 'alarmReceivers',
                 defaultValue: [],
                 checkFunction: isArray
             }
@@ -915,12 +936,20 @@ app.get('/tag/:tag_id', function(req, res){
     handleGetById(req, res, 'tag', db.Tag);
 });
 
+app.get('/tag/:tag_id/errors', function(req, res) {
+    var tag_id = req.params.tag_id;
+    judgeProcess.once(tag_id, function(message){
+        res.send(message);
+    });
+    judgeProcess.send({tagErrors: tag_id});
+});
+
 app.put('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
     var name = req.body.name,
         monitorItems = req.body.monitorItems,
         alarmRules = req.body.alarmRules,
-        alarmReceiverGroups = req.body.alarmReceiverGroups;
+        alarmReceivers = req.body.alarmReceivers;
     var update = {};
     if(name) update.name = name;
     if(monitorItems && monitorItems.constructor === Array) {
@@ -929,8 +958,8 @@ app.put('/tag/:tag_id', function(req, res){
     if(alarmRules && alarmRules.constructor === Array) {
         update.alarmRules = alarmRules
     }
-    if(alarmReceiverGroups && alarmReceiverGroups.constructor === Array) {
-        update.alarmReceiverGroups = alarmReceiverGroups
+    if(alarmReceivers && alarmReceivers.constructor === Array) {
+        update.alarmReceivers = alarmReceivers
     }
     db.Tag.findOneAndUpdate(
         { _id: tag_id },

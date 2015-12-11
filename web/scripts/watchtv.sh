@@ -1,44 +1,29 @@
 #!/bin/bash
 
 . /etc/rc.d/init.d/functions
-api_pid=/var/run/watchtv/api_server.pid
-judge_pid=/var/run/watchtv/judge.pid
-api_lock=/var/lock/subsys/watchtv_api
-judge_lock=/var/lock/subsys/watchtv_judge
-api_path=/usr/lib/watchtv/api_server.js
-judge_path=/usr/lib/watchtv/judge.js
+server_pid=/var/run/watchtv/api_server.pid
+server_lock=/var/lock/subsys/watchtv_api
+server_path=/usr/lib/watchtv/api_server.js
 crash_log=/var/log/watchtv/crash.log
 node_path=/usr/bin/node
 RETVAL=0
 
 start() {
-    echo -n "Starting API server: "
-	daemon "nohup $node_path $api_path < /dev/null >> $crash_log 2>&1 &"
+    echo -n "Starting WatchTV server: "
+	daemon "nohup $node_path $server_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
-	ps -ef|grep "$node_path $api_path"|grep -v grep|awk '{ print $2 }' > $api_pid
+	ps -ef|grep "$node_path $server_path"|grep -v grep|awk '{ print $2 }' > $server_pid
 	echo
-        [ $RETVAL = 0 ] && touch ${api_lock}
-    echo -n "Starting Judge: "
-	daemon "nohup $node_path $judge_path < /dev/null >> $crash_log 2>&1 &"
-	RETVAL=$?
-	ps -ef|grep "$node_path $judge_path"|grep -v grep|awk '{ print $2 }' > $judge_pid
-	echo
-        [ $RETVAL = 0 ] && touch ${judge_lock}
+        [ $RETVAL = 0 ] && touch ${server_lock}
 	return $RETVAL
 }
 
 stop() {
-	echo -n "Stopping API server: "
-	killproc -p ${api_pid} -d 10
+	echo -n "Stopping WatchTV server: "
+	killproc -p ${server_pid} -d 10
 	RETVAL=$?
 	echo
-	[ $RETVAL = 0 ] && rm -f ${api_lock} ${pidfile}
-
-	echo -n "Stopping judge: "
-	killproc -p ${judge_pid} -d 10
-	RETVAL=$?
-	echo
-	[ $RETVAL = 0 ] && rm -f ${judge_lock} ${pidfile}
+	[ $RETVAL = 0 ] && rm -f ${server_lock} ${server_pid}
 }
 
 case "$1" in
@@ -49,8 +34,7 @@ case "$1" in
 	stop
 	;;
   status)
-        status -p ${api_pid} -l ${api_lock} "API server"
-        status -p ${judge_pid} -l ${judge_lock} "Judge"
+        status -p ${server_pid} -l ${server_lock} "WatchTV server"
 	RETVAL=$?
 	;;
   restart)
