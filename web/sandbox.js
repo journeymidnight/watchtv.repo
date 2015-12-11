@@ -2,6 +2,8 @@ var vm = require('vm');
 
 var config = require('./config.js');
 
+process.title = 'node - WatchTV Sandbox';
+
 var alarmRules = [], nodes = [], receivers = [];
 
 var alarm = function (nodeIndex, alarmMessage) {
@@ -96,6 +98,43 @@ var removeMetricCount = function(metrics) {
     }
 };
 
+var evaluateUptime = function(nodes) {
+    nodes.map(function(node, index) {
+        if(!ready(node.uptime)) return;
+
+        var n = node.uptime.uptime_sec;
+        if(n[n.length - 1] < 60 * 15) {
+            alarm(index, 'Node seems to have been rebooted');
+        }
+    })
+};
+
+var evaluateDiskUsage = function(nodes) {
+    nodes.map(function(node, index) {
+        if(!ready(node.diskspace)) return;
+
+        var n = node['diskspace']['free_byte_percent'];
+        for(var disk in n) {
+            if(!n.hasOwnProperty(disk)) continue;
+
+            if(n[disk][0] < 10) {
+                alarm(index, 'Free space of ' + disk + ' < 10%');
+            }
+        }
+    })
+};
+
+var evaluateSwapUsage = function(nodes) {
+    nodes.map(function(node, index) {
+        if (!ready(node.memory)) return;
+
+        var n = node['memory'];
+        if(n['SwapFree_byte'][0] / n['SwapTotal_byte'][0] < 0.1) {
+            alarm(index, 'Free swap < 10%');
+        }
+    })
+};
+
 var evaluation = function () {
     if(alarmRules.length === 0 ||
         nodes.length === 0 ||
@@ -107,6 +146,13 @@ var evaluation = function () {
         n.id = index;
         return n;
     });
+
+    // Basic alarms
+    evaluateUptime(sandbox.nodes);
+    evaluateDiskUsage(sandbox.nodes);
+    evaluateSwapUsage(sandbox.nodes);
+
+    // Tag based alarms
     var context = new vm.createContext(sandbox);
     var scripts = alarmRules.map(function(rule){
         try {
@@ -147,5 +193,6 @@ process.on('message', function (message) {
 
 // Stop this sandbox anyway after 5min
 setTimeout(function() {
+    logger('Killing sandbox:', process.pid);
     process.exit(0);
 }, 5 * 60 * 1000);

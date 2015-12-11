@@ -29,6 +29,9 @@ var alarmInformation = {};
 //  }, ... ]
 var evaluationError = {};
 
+var alarmQueue = [];
+var emailProcess = child_process.fork('email.js');
+
 process.on('message', function(message) {
     if(message['nodeAlarms'] != null) {
         var nodeID = message['nodeAlarms'];
@@ -116,6 +119,7 @@ var nodeLivenessCheckFactory = function(node) {
                 if(state === false) {
                     insertAlarm(node._id, node.name, 'diamond', 'Diamond does not respond',
                         null, new Date(), config.judge.nodeLivenessCheckInterval * 3);
+                    // TODO: send alarm to leader of node's project
                 }
             }
         )
@@ -215,9 +219,6 @@ var updateTagRules = function(tagBasedRules) {
         })
     });
 };
-
-var alarmQueue = [];
-var emailProcess = child_process.fork('email.js');
 
 var alarm = function (alarm) {
     alarmQueue.push(alarm);

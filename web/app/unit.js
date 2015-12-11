@@ -32,6 +32,7 @@ var byte = formatFuncCreator(1024, [' B', ' KiB', ' MiB', ' GiB', ' TiB', ' PiB'
 var bps = formatFuncCreator(1024, [' Bps', ' KiBps', ' MiBps', ' GiBps', ' TiBps', ' PiBps',
                                    ' EiBps', ' ZiBps', ' YiBps']);
 var ms = formatFuncCreator(1000, [' ms', ' s']);
+var sec = formatFuncCreator(60, [' s', ' min', ' h']);
 
 var percent = function(val, axis) {
     var whole = val.toString().split('.')[0],
@@ -48,5 +49,6 @@ module.exports = {
     byte: byte,
     Bps: bps,
     percent: percent,
-    ms: ms
+    ms: ms,
+    sec: sec
 };
