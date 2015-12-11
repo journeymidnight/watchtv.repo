@@ -1,6 +1,7 @@
 var vm = require('vm');
 
 var config = require('./config.js');
+var logger = require('./logger.js').getLogger('Sandbox');
 
 process.title = 'node - WatchTV Sandbox';
 
