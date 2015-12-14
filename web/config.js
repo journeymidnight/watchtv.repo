@@ -20,6 +20,7 @@ config.db = {
 config.judge = {
     graphitePort: 2003,
     sinkIP: '10.58.180.60',
+    sinkPort: 2003,
     cachePeriodNumber: 3,
     tagListUpdateInterval: 60 * 1000, // 1min, in ms
     tagBasedRulesCheckInterval: 30 * 1000, // 30s

@@ -20,7 +20,8 @@ start() {
 
 stop() {
 	echo -n "Stopping WatchTV server: "
-	killproc -p ${server_pid} -d 10
+	groupid=`ps o pid,pgid|grep ${server_pid}|awk '{print $2}'`
+	kill -TERM -${groupid}
 	RETVAL=$?
 	echo
 	[ $RETVAL = 0 ] && rm -f ${server_lock} ${server_pid}

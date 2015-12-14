@@ -344,7 +344,7 @@ var cleanProcess = function (processes) {
 };
 
 var forwardData = function (data, udpSender) {
-    udpSender.send(data, 0, data.length, config.judge.graphitePort,
+    udpSender.send(data, 0, data.length, config.judge.sinkPort,
                     config.judge.sinkIP);
 };
 

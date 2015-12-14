@@ -50,5 +50,5 @@ module.exports = {
     Bps: bps,
     percent: percent,
     ms: ms,
-    sec: sec
+    Sec: sec
 };
