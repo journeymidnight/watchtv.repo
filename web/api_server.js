@@ -11,22 +11,10 @@ var session = require('client-sessions');
 var swig = require('swig');
 var url = require('url');
 var querystring = require('querystring');
-var child_process = require('child_process');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-
-var judgeProcess = child_process.fork('judge.js');
-judgeProcess.on('message', function (message) {
-    if(message['nodeAlarms'] != null) {
-        var nodeID = message['nodeAlarms'].nodeID;
-        judgeProcess.emit(nodeID, message['nodeAlarms'].alarms);
-    } else if(message['tagErrors'] != null) {
-        var tagID = message['tagErrors'].tagID;
-        judgeProcess.emit(tagID, message['tagErrors'].errors);
-    }
-});
 
 var app = express();
 

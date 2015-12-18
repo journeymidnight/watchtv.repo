@@ -1,7 +1,7 @@
 var email = require('emailjs/email');
 
-var config = require('./config.js');
-var logger = require('./logger.js').getLogger('Email');
+var config = require('../config.js');
+var logger = require('../logger.js').getLogger('Email');
 
 var server = email.server.connect({
     host: config.email.server,

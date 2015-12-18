@@ -21,13 +21,17 @@ config.judge = {
     graphitePort: 2003,
     sinkIP: '10.58.180.60',
     sinkPort: 2003,
-    cachePeriodNumber: 3,
-    tagListUpdateInterval: 60 * 1000, // 1min, in ms
-    tagBasedRulesCheckInterval: 30 * 1000, // 30s
-    sandboxTimeout: 30 * 1000, // 30s
-    sandboxProcessTimeOut: 60 * 1000, // 60s
+    ruleUpdateInterval: 60 * 1000 // 1min, in ms
+};
+
+config.sandbox = {
+    timeout: 10 * 1000 // 10s
+};
+
+config.periodicWorker = {
     nodeLivenessCheckInterval: 5 * 60 * 1000, // 5min
-    nodeListUpdateInterval: 60 * 60 * 1000 // 1h
+    nodeListUpdateInterval: 10 * 60 * 1000, // 10min
+    tagListUpdateInterval: 60 * 1000 // 1min
 };
 
 config.email = {
