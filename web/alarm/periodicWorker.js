@@ -10,6 +10,11 @@ var config = require('../config.js');
 var logger = require('../logger.js').getLogger('Periodic Worker');
 
 var pingPortProcess = child_process.fork('./pingPort.js');
+pingPortProcess.on('message', function (message) {
+    if(message['Event'] != undefined) {
+        process.send(message);
+    }
+});
 
 process.title = 'node - WatchTV - Periodic Worker';
 

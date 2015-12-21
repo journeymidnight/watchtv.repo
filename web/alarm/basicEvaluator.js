@@ -2,6 +2,7 @@
 
 var events = require('events');
 
+var cache = require('../cache.js');
 var config = require('../config.js');
 var logger = require('../logger.js').getLogger('Basic Evaluator');
 
@@ -16,39 +17,37 @@ process.on('message', function (message) {
     }
 });
 
-var evaluateUptime = function(nodes) {
-    nodes.map(function(node, index) {
-        if(!ready(node.uptime)) return;
-
-        var n = node.uptime.uptime_sec;
-        if(n[n.length - 1] < 60 * 15) {
-            alarm(index, 'Node seems to have been rebooted');
-        }
-    })
+var alarm = function (event, alarmMessage, alarmLevel) {
+    process.send({alarm: {
+        nodeID: event.nodeID,
+        timestamp: new Date(),
+        message: alarmMessage,
+        ttl: alarmLevel * 10 * 1000,
+        tagID: null,
+        level: alarmLevel
+    }})
 };
 
-var evaluateDiskUsage = function(nodes) {
-    nodes.map(function(node, index) {
-        if(!ready(node.diskspace)) return;
+emitter.on('uptime.uptime_Sec', function(event) {
+    if(event.payload < 60 * 15) {
+        alarm(event, 'Node seems to have been rebooted', 20);
+    }
+});
 
-        var n = node['diskspace']['free_byte_percent'];
-        for(var disk in n) {
-            if(!n.hasOwnProperty(disk)) continue;
+emitter.on('diskspace.free_byte_percent', function(event) {
+    if(event.payload < 10) {
+        alarm(event, 'Free space of ' + event.device + ' < 10%', 20);
+    }
+});
 
-            if(n[disk][0] < 10) {
-                alarm(index, 'Free space of ' + disk + ' < 10%');
-            }
-        }
-    })
-};
-
-var evaluateSwapUsage = function(nodes) {
-    nodes.map(function(node, index) {
-        if (!ready(node.memory)) return;
-
-        var n = node['memory'];
-        if(n['SwapFree_byte'][0] / n['SwapTotal_byte'][0] < 0.1) {
-            alarm(index, 'Free swap < 10%');
-        }
-    })
-};
+var swapTotal = new cache.Cache(10 * 60 * 1000);
+emitter.on('memory.SwapTotal_byte', function(event) {
+    swapTotal.put(event.nodeID, event.payload);
+});
+emitter.on('memory.SwapFree_byte', function(event) {
+    var swapTotal = swapTotal.get(event.nodeID);
+    if(swapTotal === null) return;
+    if(event.payload / swapTotal < 0.1) {
+        alarm(event, 'Free swap < 10%', 20);
+    }
+});

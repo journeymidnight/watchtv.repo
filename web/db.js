@@ -50,7 +50,6 @@ var alarmSchema = new Schema({
     timestamp: Date,
     message: String,
     ttl: Number,
-    persistent: Boolean,  // should this alarm go to alarmHistory when expires
     tag: {type: Schema.Types.ObjectId, ref: 'Tag'}
 },
     {
@@ -120,6 +119,7 @@ mongoose.connect(config.db.mongodbURL);
 module.exports = {
     Tag: Tag,
     Node: Node,
+    Alarm: Alarm,
     User: User,
     Graph: Graph,
     Region: Region,

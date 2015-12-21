@@ -50,13 +50,13 @@ periodicWorker.on('message', function(message) {
                     payload: event.payload
                 });
             });
-        } else { // event.ip is a string
+        } else { // event.ip is a string, a single IP
             emitEventToProcess(event);
         }
     }
 });
 
-var raiseAlarm = function(alarm) {
+var ring = function(alarm) {
     // Send alarm via email
     var fetchNode = new Promise(function(resolve, reject) {
         db.Node.findById(alarm.nodeID, function(err, node) {
@@ -87,21 +87,70 @@ var raiseAlarm = function(alarm) {
            .catch(function(error){
                logger('Raise alarm failed:', error);
            });
-    // TODO: save to mongodb
 };
 
+// Maintain alarm information by nodeID in memory
+// alarmInformation[nodeID] = [Alarm Object]
+var alarmInformation = {};
+
+var insertAlarm = function(alarm) {
+    // maintain in memory
+    if(alarmInformation[alarm.nodeID] == undefined) {
+        alarmInformation[alarm.nodeID] = [];
+    }
+    alarmInformation[alarm.nodeID].push(alarm);
+
+    // Save to mongodb
+    var createAlarm = new Promise(function(resolve, reject) {
+        db.Alarm.create({
+            timestamp: alarm.timestamp,
+            message: alarm.message,
+            ttl: alarm.ttl,
+            tag: alarm.tagID
+        }, function(err, created) {
+            if(err) return reject(err);
+            resolve(created);
+        })
+    });
+    createAlarm.then(function(createdAlarm) {
+        alarm.alarmID = createdAlarm._id;
+        var alarms = alarmInformation[alarm.nodeID].map(function(alarm) {
+            return alarm.alarmID;
+        });
+        db.Node.findByIdAndUpdate(createdAlarm.nodeID,
+            {$set: { alarms: alarms}},
+            function(err, node) {
+                if(err) {
+                    logger('Update node alarms failed:', err);
+                }
+            }
+        )
+    });
+};
+
+// TODO aggregation
 // alarmQueue[nodeID] = [Alarm]
-var alarmQueue = {};
+//var alarmQueue = {};
 
 var handleAlarmMessage = function (alarm) {
-    if(alarm.level < 30) {
-        if(alarmQueue[alarm.nodeID] == undefined) alarmQueue[alarm.nodeID] = [];
-        alarmQueue[alarm.nodeID].push(alarm);
-        return;
-    }
-    raiseAlarm(alarm);
+// TODO alarm level
+//    if(alarm.level < 30) {
+//        if(alarmQueue[alarm.nodeID] == undefined) alarmQueue[alarm.nodeID] = [];
+//        alarmQueue[alarm.nodeID].push(alarm);
+//        return;
+//    }
+    ring(alarm);
+    insertAlarm(alarm);
     logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
 };
+
+// Maintain evaluation errors in memory
+// evaluationError[tagID] = [{
+//      timestamp,
+//      type,
+//      message
+//  }, ... ]
+var evaluationError = {};
 
 var insertEvaluationError = function (message, type) {
     if(evaluationError[message.tagID] === undefined) {
@@ -171,7 +220,8 @@ var processData = function (data) {
             value = Number(splitted[1]),
             timestamp = new Date(Number(splitted[2]) * 1000);
         var ip = measure.split('.')[1].replace(/_/g, '.');
-        var eventName = measure.split('.').slice(2).join('.');
+        var eventName = measure.split('.').slice(2, 4).join('.');
+        var device = measure.split('.')[4];
 
         var node = ip2node.get(ip);
         if(node === null) return;
@@ -181,6 +231,7 @@ var processData = function (data) {
             ip: ip,
             timestamp: timestamp,
             ttl: 60 * 1000,
+            device: device,
             payload: value
         });
     })
@@ -217,7 +268,62 @@ var startGraphiteServer = function() {
     });
 };
 
+// TODO aggregation
+var aggregateAlarm = function() {
+    for(let nodeID in alarmQueue) {
+        if(!alarmQueue.hasOwnProperty((nodeID))) continue;
+
+    }
+};
+
+var flushToDB = function() {
+    var now = new Date();
+
+    // check if ttl expires and flush to alarmHistory
+    for(let nodeID in alarmInformation) {
+        if(!alarmInformation.hasOwnProperty(nodeID)) continue;
+        var expiredAlarmIds = [], currentAlarmIds = [], currentAlarms = [];
+        for(var i = 0; i < alarmInformation[nodeID].length; i++) {
+            var alarm = alarmInformation[nodeID][i];
+            if(now - alarm.timestamp < alarm.ttl) {
+                currentAlarms.push(alarm);
+                currentAlarmIds.push(alarm.alarmID);
+            } else {
+                expiredAlarmIds.push(alarm.alarmID)
+            }
+        }
+        alarmInformation[nodeID] = currentAlarms;
+        db.Node.findByIdAndUpdate(nodeID,
+            {
+                $push: {alarmHistory: expiredAlarmIds},
+                $set: {alarms: currentAlarmIds}
+            }, function(err, node) {
+                if(err) logger('Flush to node failed:', err);
+            }
+        )
+    }
+
+    // flush evaluation errors
+    for(let tagID in evaluationError) {
+        if(!evaluationError.hasOwnProperty(tagID)) continue;
+        evaluationError[tagID] = evaluationError[tagID].filter(function(errorEntry) {
+            return now - errorEntry.timestamp < 60 * 1000;
+        });
+        var errorStrings = evaluationError[tagID].map(function(errorEntry) {
+            return errorEntry.timestamp.toString() + ' ' + errorEntry.type + ': ' + errorEntry.message;
+        });
+        db.Tag.findByIdAndUpdate(
+            {_id: tagID},
+            {'$set': {evaluationErrors: errorStrings}},
+            function(err, tag) {
+                if(err) logger('Error update tag evaluation errors:', err);
+            }
+        )
+    }
+};
+
 logger('Judge started');
 updateRules();
 setInterval(updateRules, config.judge.ruleUpdateInterval);
 startGraphiteServer();
+setInterval(flushToDB, 60 * 1000);

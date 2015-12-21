@@ -22,5 +22,5 @@ process.on('message', function(message) {
     }).on('connect', function() {
         clearTimeout(timeout);
         s.destroy();
-    }).on('error', function() {return});
+    }).on('error', function() {});
 });
