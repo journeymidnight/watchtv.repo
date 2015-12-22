@@ -921,9 +921,14 @@ app.post('/tags', function (req, res) {
                 checkFunction: isArray
             },
             {
-                name: 'alarmRules',
-                defaultValue: [],
-                checkFunction: isArray
+                name: 'alarmRule',
+                defaultValue: '',
+                checkFunction: notUndefined
+            },
+            {
+                name: 'periodicJob',
+                defaultValue: '',
+                checkFunction: notUndefined
             },
             {
                 name: 'alarmReceivers',
@@ -953,16 +958,16 @@ app.put('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
     var name = req.body.name,
         monitorItems = req.body.monitorItems,
-        alarmRules = req.body.alarmRules,
+        periodicJob = req.body.periodicJob,
+        alarmRule = req.body.alarmRule,
         alarmReceivers = req.body.alarmReceivers;
     var update = {};
     if(name) update.name = name;
     if(monitorItems && monitorItems.constructor === Array) {
         update.monitorItems = monitorItems
     }
-    if(alarmRules && alarmRules.constructor === Array) {
-        update.alarmRules = alarmRules
-    }
+    if(periodicJob) update.periodicJob = periodicJob;
+    if(alarmRule) update.alarmRule = alarmRule;
     if(alarmReceivers && alarmReceivers.constructor === Array) {
         update.alarmReceivers = alarmReceivers
     }

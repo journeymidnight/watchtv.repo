@@ -19,7 +19,8 @@ var TagList = React.createClass({
     handleCreateNewTag: function() {
         var name = this.refs.newName.getValue().trim(),
             monItems = this.refs.newMonitorItems.getValue().trim().split(/[\s,]+/),
-            alarmRules = this.refs.newAlarmRules.getValue().trim(),
+            periodicJob = this.refs.newPeriodicJob.getValue().trim(),
+            alarmRule = this.refs.newAlarmRule.getValue().trim(),
             receivers = this.refs.newReceivers.getValue().trim().split(/[\s,]+/);
         $.ajax({
             type: 'POST',
@@ -27,7 +28,8 @@ var TagList = React.createClass({
             data: {
                 'name': name,
                 'monitorItems': monItems,
-                'alarmRules': [alarmRules],
+                'periodicJob': periodicJob,
+                'alarmRule': alarmRule,
                 'alarmReceivers': receivers
             },
             success: function(){
@@ -60,15 +62,16 @@ var TagList = React.createClass({
         var tagList = this.props.data.map(function(tag){
             return (
                 <TagEntry name={tag.name} id={tag._id} monitorItems={tag.monitorItems}
-                    alarmRules={tag.alarmRules} alarmReceivers={tag.alarmReceivers}
-                    onRefresh={that.props.onRefresh} />
+                    alarmRule={tag.alarmRule} alarmReceivers={tag.alarmReceivers}
+                    periodicJob={tag.periodicJob} onRefresh={that.props.onRefresh} />
             )
         });
         var addNewTagRow =
             <tr className="add_node">
-                <td><TextField ref="newName" id="newName"/></td>
-                <td><TextField ref="newMonitorItems" id="newMonitorItems"/></td>
-                <td><TextField ref="newAlarmRules"/></td>
+                <td><TextField ref="newName"/></td>
+                <td><TextField ref="newMonitorItems"/></td>
+                <td><TextField ref="newPeriodicJob"/></td>
+                <td><TextField ref="newAlarmRule"/></td>
                 <td><TextField ref="newReceivers"/></td>
                 <td>
                     <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewTag} title="Add"></i>
@@ -81,7 +84,8 @@ var TagList = React.createClass({
                         <tr>
                             <th>Name</th>
                             <th>Monitored Items</th>
-                            <th>Alarm Rules</th>
+                            <th>Periodic Job</th>
+                            <th>Alarm Rule</th>
                             <th>Alarm Receivers</th>
                             <th>Actions</th>
                         </tr>
@@ -105,12 +109,14 @@ var TagEntry = React.createClass({
             <tr>
                 <td key={this.props.id + 'name'}>{this.props.name}</td>
                 <td key={this.props.id + 'monItems'}>{this.props.monitorItems.join(', ')}</td>
-                <td key={this.props.id + 'alarmRules'}>{this.props.alarmRules}</td>
+                <td key={this.props.id + 'periodicJob'}>{this.props.periodicJob}</td>
+                <td key={this.props.id + 'alarmRule'}>{this.props.alarmRule}</td>
                 <td key={this.props.id + 'receivers'}>{this.props.alarmReceivers}</td>
                 <td key={this.props.id + 'actions'}>
                     <TagEditButton id={this.props.id} name={this.props.name}
                         monitorItems={this.props.monitorItems}
-                        alarmRules={this.props.alarmRules}
+                        periodicJob={this.props.periodicJob}
+                        alarmRule={this.props.alarmRule}
                         alarmReceivers={this.props.alarmReceivers}
                         onRefresh={this.props.onRefresh} />
                     <DeleteButton ids={[this.props.id]} name={this.props.name} url="tag"
@@ -136,8 +142,9 @@ var TagEditButton = React.createClass({
             data: {
                 name: this.refs.nameInput.getValue().trim(),
                 monitorItems: this.refs.monitorItemsInput.getValue().trim().split(/[\s,]+/),
-                alarmRules: [this.refs.alarmRules.getValue().trim()],
-                alarmReceivers: this.refs.alarmReceivers.getValue().trim().split(/[\s,]+/)
+                alarmRule: this.refs.alarmRule.getValue().trim(),
+                alarmReceivers: this.refs.alarmReceivers.getValue().trim().split(/[\s,]+/),
+                periodicJob: this.refs.periodicJob.getValue().trim()
             },
             success: function() {
                 this.refs.editDialog.dismiss();
@@ -178,10 +185,15 @@ var TagEditButton = React.createClass({
                 <TextField floatingLabelText="Alarm Receivers"
                     defaultValue={this.props.alarmReceivers.join(' ') || ''}
                     ref="alarmReceivers" />
-                <TextField floatingLabelText="Alarm Rules"
-                           defaultValue={this.props.alarmRules[0]}
+                <TextField floatingLabelText="Periodic Job"
+                           defaultValue={this.props.periodicJob || ''}
                            multiLine={true}
-                           ref="alarmRules" />
+                           ref="periodicJob" />
+                <TextField floatingLabelText="Alarm Rule"
+                           defaultValue={this.props.alarmRule || ''}
+                           multiLine={true}
+                           style={{width: '60%'}}
+                           ref="alarmRule" />
                 </div>
             </div>;
         return (
