@@ -26,7 +26,7 @@ var processes = {};
 //  nodeID: xxx
 // }
 // TTL is 2 * update interval
-// Controls which nodes to alarm.
+// Also controls which nodes to alarm.
 var ip2node = new cache.Cache(2 * config.judge.ruleUpdateInterval);
 
 var emitEventToProcess = function(event) {
@@ -137,19 +137,18 @@ var insertAlarm = function(alarm) {
 //var alarmQueue = {};
 
 var handleAlarmMessage = function (alarm) {
-// TODO alarm level
-//    if(alarm.level < 30) {
-//        if(alarmQueue[alarm.nodeID] == undefined) alarmQueue[alarm.nodeID] = [];
-//        alarmQueue[alarm.nodeID].push(alarm);
-//        return;
-//    }
-
     // Date type becomes string after pipe, so rebuild it
     alarm.timestamp = new Date(alarm.timestamp);
     ring(alarm);
     insertAlarm(alarm);
     logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
 };
+
+basicEvaluator.on('message', function(message) {
+    if(message['alarm'] != null) {
+        handleAlarmMessage(message.alarm);
+    }
+});
 
 // Maintain evaluation errors in memory
 // evaluationError[tagID] = [{
@@ -212,7 +211,6 @@ var updateRules = function() {
         }
         nodes.map(function (node) {
             if(node.judgeEnabled === false) return;
-            if(node.tags.length === 0) return;
             node.ips.map(function (ip) {
                 ip2node.put(ip, {
                     tags: node.tags,
@@ -304,7 +302,7 @@ var flushToDB = function() {
         }
         alarmInformation[nodeID] = currentAlarms;
         var state = 'Good';
-        if(currentAlarms.length != 0) state = 'Error';
+        if(currentAlarms.length !== 0) state = 'Error';
         db.Node.findByIdAndUpdate(nodeID,
             {
                 $push: {alarmHistory: {$each: expiredAlarmIds}},

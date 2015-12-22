@@ -104,6 +104,7 @@ var tagBasedJobList = {};
 var createSandbox = function(tag, nodes) {
     var sandbox = {};
     sandbox.pingPort = function(port, interval) {
+        interval = interval * 1000;
         nodes.map(function(node) {
             node.ips.map(function(ip) {
                 var ping = function () {

@@ -18,26 +18,25 @@ process.on('message', function (message) {
     }
 });
 
-var alarm = function (event, alarmMessage, alarmLevel) {
+var alarm = function (event, alarmMessage, ttl) {
     process.send({alarm: {
         nodeID: event.nodeID,
         timestamp: new Date(),
         message: alarmMessage,
-        ttl: alarmLevel * 10 * 1000,
-        tagID: null,
-        level: alarmLevel
+        ttl: ttl * 1000,
+        tagID: null
     }})
 };
 
 emitter.on('uptime.uptime_Sec', function(event) {
     if(event.payload < 60 * 15) {
-        alarm(event, 'Node seems to have been rebooted', 20);
+        alarm(event, 'Node seems to have been rebooted', 120);
     }
 });
 
 emitter.on('diskspace.free_byte_percent', function(event) {
     if(event.payload < 10) {
-        alarm(event, 'Free space of ' + event.device + ' < 10%', 20);
+        alarm(event, 'Free space of ' + event.device + ' < 10%', 120);
     }
 });
 
@@ -49,12 +48,12 @@ emitter.on('memory.SwapFree_byte', function(event) {
     var total = swapTotal.get(event.nodeID);
     if(total === null) return;
     if(event.payload / total < 0.1) {
-        alarm(event, 'Free swap < 10%', 20);
+        alarm(event, 'Free swap < 10%', 120);
     }
 });
 
 emitter.on('diamond.liveness', function(event) {
     if(event.payload === 'dead') {
-        alarm(event, 'Diamond is dead', 10);
+        alarm(event, 'Diamond is dead', 600);
     }
 });

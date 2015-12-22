@@ -12,14 +12,13 @@ process.title = 'node - WatchTV - Sandbox';
 var emitter = new events.EventEmitter();
 var tag = null;
 
-var alarm = function (event, alarmMessage, alarmLevel) {
+var alarm = function (event, alarmMessage, ttl) {
     process.send({alarm: {
         nodeID: event.nodeID,
         timestamp: new Date(),
         message: alarmMessage,
-        ttl: alarmLevel * 10 * 1000,
-        tagID: tag._id,
-        level: alarmLevel
+        ttl: ttl * 1000,
+        tagID: tag._id
     }})
 };
 
