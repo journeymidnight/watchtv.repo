@@ -3,6 +3,7 @@
 var events = require('events');
 var vm = require('vm');
 
+var cache = require('../cache.js');
 var config = require('../config.js');
 var logger = require('../logger.js').getLogger('Sandbox');
 
@@ -50,13 +51,25 @@ var min = function (list) {
     }, Infinity)
 };
 
+var sandboxCache = new cache.Cache(60 * 60 * 1000);
+
+var put = function(key, value, ttl) {
+    sandboxCache.put(key, value, ttl);
+};
+
+var get = function (key) {
+    return sandboxCache.get(key);
+};
+
 var sandbox = {
     alarm: alarm,
     on: on,
     sum: sum,
     avg: avg,
     max: max,
-    min: min
+    min: min,
+    put: put,
+    get: get
 };
 
 var evaluation = function () {
@@ -79,15 +92,16 @@ var evaluation = function () {
             message: 'Alarm Rule: ' + err.toString(),
             tagID: tag._id
         }});
+        process.exit(1);
     }
 };
 
 process.on('message', function (message) {
     if(message['event']) {
-        //console.log('EVENT', message.event);
+        // Date type becomes string after pipe, so rebuild it
+        message.event.timestamp = new Date(message.event.timestamp);
         emitter.emit(message.event.name, message.event);
     } else if(message['tag']) {
-        console.log('TAG', message.tag);
         tag = message.tag;
         evaluation();
     }

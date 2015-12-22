@@ -3,15 +3,16 @@
 var async = require('async');
 var request = require('request');
 var child_process = require('child_process');
+var path = require('path');
 var vm = require('vm');
 
 var db = require('../db.js');
 var config = require('../config.js');
 var logger = require('../logger.js').getLogger('Periodic Worker');
 
-var pingPortProcess = child_process.fork('./pingPort.js');
+var pingPortProcess = child_process.fork(path.join(__dirname, 'pingPort.js'));
 pingPortProcess.on('message', function (message) {
-    if(message['Event'] != undefined) {
+    if(message['event'] != undefined) {
         process.send(message);
     }
 });
@@ -158,6 +159,7 @@ var updateTagBasedPeriodicJobs = function() {
                         message: 'Periodic Job: ' + err.toString(),
                         tagID: tag._id
                     }});
+                    return;
                 }
                 try {
                     script.runInContext(context, {timeout: config.sandbox.timeout});

@@ -2,12 +2,14 @@ var net = require('net');
 
 var config = require('../config.js');
 
+process.title = 'node - WatchTV - Ping Port Worker';
+
 process.on('message', function(message) {
     var pingInfo = message['pingPort'];
     var s = new net.Socket();
     var timeout = setTimeout(function(){
         s.destroy();
-        process.send({Event: {
+        process.send({event: {
             name: 'pingPort',
             nodeID: pingInfo.nodeID,
             ip: pingInfo.ip,

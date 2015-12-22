@@ -12,7 +12,8 @@ var emitter = new events.EventEmitter();
 
 process.on('message', function (message) {
     if(message['event']) {
-        console.log('EVENT', message.event);
+        // Date type becomes string after pipe, so rebuild it
+        message.event.timestamp = new Date(message.event.timestamp);
         emitter.emit(message.event.name, message.event);
     }
 });
@@ -45,9 +46,15 @@ emitter.on('memory.SwapTotal_byte', function(event) {
     swapTotal.put(event.nodeID, event.payload);
 });
 emitter.on('memory.SwapFree_byte', function(event) {
-    var swapTotal = swapTotal.get(event.nodeID);
-    if(swapTotal === null) return;
-    if(event.payload / swapTotal < 0.1) {
+    var total = swapTotal.get(event.nodeID);
+    if(total === null) return;
+    if(event.payload / total < 0.1) {
         alarm(event, 'Free swap < 10%', 20);
+    }
+});
+
+emitter.on('diamond.liveness', function(event) {
+    if(event.payload === 'dead') {
+        alarm(event, 'Diamond is dead', 10);
     }
 });

@@ -722,10 +722,24 @@ app.get('/node/:node_id/ips', function(req, res) {
 
 app.get('/node/:node_id/alarms', function(req, res) {
     var node_id = req.params.node_id;
-    judgeProcess.once(node_id, function(message) {
-        res.send(message);
-    });
-    judgeProcess.send({nodeAlarms: node_id});
+    db.Node.findById(node_id, function(err, node) {
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        res.send(node.alarms);
+    }).populate('alarms', 'timestamp message');
+});
+
+app.get('/node/:node_id/alarm-history', function(req, res) {
+    var node_id = req.params.node_id;
+    db.Node.findById(node_id, function(err, node) {
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        res.send(node.alarmHistory);
+    }).populate('alarmHistory', 'timestamp message');
 });
 
 // Get graphs for specific node, for current user
@@ -926,10 +940,13 @@ app.get('/tag/:tag_id', function(req, res){
 
 app.get('/tag/:tag_id/errors', function(req, res) {
     var tag_id = req.params.tag_id;
-    judgeProcess.once(tag_id, function(message){
-        res.send(message);
-    });
-    judgeProcess.send({tagErrors: tag_id});
+    db.Tag.findById(tag_id, function(err, tag) {
+        if(err) {
+            res.status(500).send('Error fetching tag');
+            return;
+        }
+        res.send(tag.evaluationErrors);
+    })
 });
 
 app.put('/tag/:tag_id', function(req, res){

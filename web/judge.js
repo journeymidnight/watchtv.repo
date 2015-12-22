@@ -3,18 +3,21 @@
 var net = require('net');
 var child_process = require('child_process');
 var dgram = require('dgram');
+var path = require('path');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('Judge');
 var cache = require('./cache.js');
 
-var emailProcess = child_process.fork('./alarm/email.js');
-var periodicWorker = child_process.fork('./alarm/periodicWorker.js');
-var basicEvaluator = child_process.fork('./alarm/basicEvaluator.js');
+process.title = 'node - WatchTV - Judge';
+
+var emailProcess = child_process.fork(path.join(__dirname, 'alarm', 'email.js'));
+var periodicWorker = child_process.fork(path.join(__dirname, 'alarm', 'periodicWorker.js'));
+var basicEvaluator = child_process.fork(path.join(__dirname, 'alarm', 'basicEvaluator.js'));
 
 // tagID -> {
-//  tagHash,
+//  alarmRule,
 //  process
 // }
 var processes = {};
@@ -75,12 +78,13 @@ var ring = function(alarm) {
                var node = values[0],
                    tag = values[1];
                var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
-                   ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\n\n';
+                   ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\n';
+               content += 'IP(s): ' + node.ips.join(',') + '\n';
                content += 'Time: ' + alarm.timestamp.toString() + '\n';
                content += alarm.message + '\n';
                emailProcess.send({
                    content: content,
-                   to: tag.receivers.join(','),
+                   to: tag.alarmReceivers.join(','),
                    subject: 'Alarm from ' + node.name
                });
            })
@@ -139,6 +143,9 @@ var handleAlarmMessage = function (alarm) {
 //        alarmQueue[alarm.nodeID].push(alarm);
 //        return;
 //    }
+
+    // Date type becomes string after pipe, so rebuild it
+    alarm.timestamp = new Date(alarm.timestamp);
     ring(alarm);
     insertAlarm(alarm);
     logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
@@ -152,13 +159,13 @@ var handleAlarmMessage = function (alarm) {
 //  }, ... ]
 var evaluationError = {};
 
-var insertEvaluationError = function (message, type) {
+var insertEvaluationError = function (message) {
     if(evaluationError[message.tagID] === undefined) {
         evaluationError[message.tagID] = [];
     }
     evaluationError[message.tagID].push({
         timestamp: new Date(),
-        type: type,
+        type: message.type,
         message: message.message
     })
 };
@@ -173,14 +180,14 @@ var updateRules = function() {
             if(tag.alarmRule == undefined
                 || tag.alarmRule === '') return;
             if(processes[tag._id] != undefined) {
-                if (processes[tag._id].tagHash === JSON.stringify(tag)) {
+                if (processes[tag._id].alarmRule === tag.alarmRule) {
                     return;
                 } else {
                     processes[tag._id].process.kill();
                     delete processes[tag._id];
                 }
             }
-            var p = child_process.fork('./alarm/sandbox.js');
+            var p = child_process.fork(path.join(__dirname, 'alarm', 'sandbox.js'));
             p.on('message', function (message) {
                 if(message['alarm'] != null) {
                     handleAlarmMessage(message['alarm']);
@@ -188,9 +195,12 @@ var updateRules = function() {
                     insertEvaluationError(message['error']);
                 }
             });
+            p.on('exit', function (code, signal) {
+                processes[tag._id] = undefined;
+            });
             p.send({tag: tag});
             processes[tag._id] = {
-                tagHash: JSON.stringify(tag),
+                alarmRule: tag.alarmRule,
                 process: p
             }
         })
@@ -293,10 +303,12 @@ var flushToDB = function() {
             }
         }
         alarmInformation[nodeID] = currentAlarms;
+        var state = 'Good';
+        if(currentAlarms.length != 0) state = 'Error';
         db.Node.findByIdAndUpdate(nodeID,
             {
-                $push: {alarmHistory: expiredAlarmIds},
-                $set: {alarms: currentAlarmIds}
+                $push: {alarmHistory: {$each: expiredAlarmIds}},
+                $set: {alarms: currentAlarmIds, state: state}
             }, function(err, node) {
                 if(err) logger('Flush to node failed:', err);
             }
