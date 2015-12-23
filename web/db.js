@@ -8,7 +8,9 @@ var Schema = mongoose.Schema,
 var tagSchema = new Schema({
         name: String,
         monitorItems: [String],
-        alarmRules: [String],
+        alarmRule: String,  // js code running in sandbox
+        evaluationErrors: [String],
+        periodicJob: String, // js code running in sandbox
         alarmReceivers: [String]
     },
     {
@@ -33,6 +35,8 @@ var nodeSchema = new Schema({
         graphInfo: [graphInfo],
         // For judge module
         state: {type: String, enum: states},
+        alarms: [{type: Schema.Types.ObjectId, ref: 'Alarm'}],
+        alarmHistory: [{type: Schema.Types.ObjectId, ref: 'Alarm'}],
         judgeEnabled: Boolean
     },
     {
@@ -42,6 +46,17 @@ var nodeSchema = new Schema({
 // `Node` represents a monitored system, a machine for example.
 var Node = mongoose.model('Node', nodeSchema);
 
+var alarmSchema = new Schema({
+    timestamp: Date,
+    message: String,
+    ttl: Number,
+    tag: {type: Schema.Types.ObjectId, ref: 'Tag'}
+},
+    {
+        collection: 'Alarm'
+    }
+);
+var Alarm = mongoose.model('Alarm', alarmSchema);
 
 var roles = ['Root', 'Leader', 'User'];
 var userSchema = new Schema({
@@ -104,6 +119,7 @@ mongoose.connect(config.db.mongodbURL);
 module.exports = {
     Tag: Tag,
     Node: Node,
+    Alarm: Alarm,
     User: User,
     Graph: Graph,
     Region: Region,

@@ -11,22 +11,10 @@ var session = require('client-sessions');
 var swig = require('swig');
 var url = require('url');
 var querystring = require('querystring');
-var child_process = require('child_process');
 
 var db = require('./db.js');
 var config = require('./config.js');
 var logger = require('./logger.js').getLogger('API');
-
-var judgeProcess = child_process.fork('judge.js');
-judgeProcess.on('message', function (message) {
-    if(message['nodeAlarms'] != null) {
-        var nodeID = message['nodeAlarms'].nodeID;
-        judgeProcess.emit(nodeID, message['nodeAlarms'].alarms);
-    } else if(message['tagErrors'] != null) {
-        var tagID = message['tagErrors'].tagID;
-        judgeProcess.emit(tagID, message['tagErrors'].errors);
-    }
-});
 
 var app = express();
 
@@ -734,10 +722,24 @@ app.get('/node/:node_id/ips', function(req, res) {
 
 app.get('/node/:node_id/alarms', function(req, res) {
     var node_id = req.params.node_id;
-    judgeProcess.once(node_id, function(message) {
-        res.send(message);
-    });
-    judgeProcess.send({nodeAlarms: node_id});
+    db.Node.findById(node_id, function(err, node) {
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        res.send(node.alarms);
+    }).populate('alarms', 'timestamp message');
+});
+
+app.get('/node/:node_id/alarm-history', function(req, res) {
+    var node_id = req.params.node_id;
+    db.Node.findById(node_id, function(err, node) {
+        if(err) {
+            res.status(500).send('Error fetching node');
+            return;
+        }
+        res.send(node.alarmHistory);
+    }).populate('alarmHistory', 'timestamp message');
 });
 
 // Get graphs for specific node, for current user
@@ -919,9 +921,14 @@ app.post('/tags', function (req, res) {
                 checkFunction: isArray
             },
             {
-                name: 'alarmRules',
-                defaultValue: [],
-                checkFunction: isArray
+                name: 'alarmRule',
+                defaultValue: '',
+                checkFunction: notUndefined
+            },
+            {
+                name: 'periodicJob',
+                defaultValue: '',
+                checkFunction: notUndefined
             },
             {
                 name: 'alarmReceivers',
@@ -938,26 +945,29 @@ app.get('/tag/:tag_id', function(req, res){
 
 app.get('/tag/:tag_id/errors', function(req, res) {
     var tag_id = req.params.tag_id;
-    judgeProcess.once(tag_id, function(message){
-        res.send(message);
-    });
-    judgeProcess.send({tagErrors: tag_id});
+    db.Tag.findById(tag_id, function(err, tag) {
+        if(err) {
+            res.status(500).send('Error fetching tag');
+            return;
+        }
+        res.send(tag.evaluationErrors);
+    })
 });
 
 app.put('/tag/:tag_id', function(req, res){
     var tag_id = req.params.tag_id;
     var name = req.body.name,
         monitorItems = req.body.monitorItems,
-        alarmRules = req.body.alarmRules,
+        periodicJob = req.body.periodicJob,
+        alarmRule = req.body.alarmRule,
         alarmReceivers = req.body.alarmReceivers;
     var update = {};
     if(name) update.name = name;
     if(monitorItems && monitorItems.constructor === Array) {
         update.monitorItems = monitorItems
     }
-    if(alarmRules && alarmRules.constructor === Array) {
-        update.alarmRules = alarmRules
-    }
+    if(periodicJob) update.periodicJob = periodicJob;
+    if(alarmRule) update.alarmRule = alarmRule;
     if(alarmReceivers && alarmReceivers.constructor === Array) {
         update.alarmReceivers = alarmReceivers
     }

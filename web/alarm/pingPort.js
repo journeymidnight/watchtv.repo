@@ -1,18 +1,21 @@
 var net = require('net');
 
-var config = require('./config.js');
+var config = require('../config.js');
+
+process.title = 'node - WatchTV - Ping Port Worker';
 
 process.on('message', function(message) {
     var pingInfo = message['pingPort'];
     var s = new net.Socket();
     var timeout = setTimeout(function(){
         s.destroy();
-        process.send({alarm: {
+        process.send({event: {
+            name: 'pingPort',
+            nodeID: pingInfo.nodeID,
             ip: pingInfo.ip,
-            id: pingInfo.id,
-            tagID: pingInfo.tagID,
-            message: pingInfo.alarmMessage,
-            receivers: pingInfo.receivers
+            timestamp: new Date(),
+            ttl: 2 * pingInfo.interval,
+            payload: 'failed'
         }})
     }, 1000);
     s.connect({
@@ -21,5 +24,5 @@ process.on('message', function(message) {
     }).on('connect', function() {
         clearTimeout(timeout);
         s.destroy();
-    }).on('error', function() {return});
+    }).on('error', function() {});
 });

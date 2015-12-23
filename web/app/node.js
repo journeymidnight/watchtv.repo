@@ -152,6 +152,7 @@ var NodeEntry = React.createClass({
                         nodeIps={this.props.ips} description={this.props.description}
                         state={this.props.state}
                     />
+                    <NodeAlarmButton nodeId={this.props.id} />
                     <DeleteButton ids={[this.props.id]} onRefresh={this.props.onRefresh}
                         name={this.props.name} url="node" />
                 </td>
@@ -278,6 +279,49 @@ var NodeInfoButton = React.createClass({
                 </span>
             );
         }
+    }
+});
+
+var NodeAlarmButton = React.createClass({
+    getInitialState: function() {
+        return {alarms: ''};
+    },
+    getAlarms: function() {
+        var that = this;
+        $.ajax({
+            type: 'GET',
+            url: 'node/' + this.props.nodeId + '/alarms',
+            success: function(data) {
+                var alarms = [];
+                data.map(function(alarm) {
+                    alarms.push((new Date(alarm.timestamp)).toString() + ' ' + alarm.message);
+                });
+                that.setState({alarms: alarms.join('\n')});
+            },
+            error: function(xhr, status, error) {
+                if(xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                console.log('Error fetching alarms', xhr, status, error);
+            }
+        })
+    },
+    showInfo: function() {
+        this.refs.alarmDialog.show();
+    },
+    render: function() {
+        return (
+            <span>
+                <i className="fa fa-bell fa-bg" onClick={this.showInfo} title="Alarms"></i>
+                <Dialog
+                    title={"Alarms"}
+                    actions={[{text: 'Dismiss'}]}
+                    onShow={this.getAlarms}
+                    ref="alarmDialog">
+                    <TextField value={this.state.alarms} style={{width: '90%'}}
+                               multiLine={true} />
+                </Dialog>
+            </span>)
     }
 });
 
