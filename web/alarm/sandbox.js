@@ -11,6 +11,28 @@ process.title = 'node - WatchTV - Sandbox';
 
 var emitter = new events.EventEmitter();
 var tag = null;
+var eventHandlers = [];
+
+var EventHandler = function(eventName, checkFunction) {
+    this.eventName = eventName;
+    this.checkFunction = checkFunction;
+    this.interval = null;
+    this.times = null;
+    this.message = null;
+    var that = this;
+    this.overPast = function(interval) {
+        that.interval = interval; // in sec
+        return that;
+    };
+    this.forMoreThan = function(nTimes) {
+        that.times = nTimes;
+        return that;
+    };
+    this.withMessage = function(message) {
+        that.message = message;
+        return that;
+    };
+};
 
 var alarm = function (event, alarmMessage, ttl) {
     process.send({alarm: {
@@ -22,8 +44,14 @@ var alarm = function (event, alarmMessage, ttl) {
     }})
 };
 
-var on = function (event, callback) {
-    emitter.on(event, callback);
+var on = function (eventName, callback) {
+    emitter.on(eventName, callback);
+};
+
+var check = function(eventName, checkFunction) {
+    var eventHandler = new EventHandler(eventName, checkFunction);
+    eventHandlers.push(eventHandler);
+    return eventHandler;
 };
 
 var sum = function (list) {
@@ -63,6 +91,7 @@ var get = function (key) {
 var sandbox = {
     alarm: alarm,
     on: on,
+    check: check,
     sum: sum,
     avg: avg,
     max: max,
@@ -93,6 +122,39 @@ var evaluation = function () {
         }});
         process.exit(1);
     }
+    eventHandlers.map(function(eventHandler) {
+        if(eventHandler.interval === null || eventHandler.times === null
+            || eventHandler.message === null) {
+            return;
+        }
+        emitter.on(eventHandler.eventName, function(event) {
+            try {
+                var checkResult = eventHandler.checkFunction(event);
+            } catch (err) {
+                process.send({error: {
+                    type: 'runtimeError',
+                    message: 'Alarm Rule: ' + err.toString(),
+                    tagID: tag._id
+                }});
+                return;
+            }
+            if(checkResult === true) {
+                var past = get(event.nodeID + eventHandler.eventName);
+                var timestamps = [];
+                if(past !== null) {
+                    var now = new Date();
+                    timestamps = past.filter(function(pastTimestamp) {
+                        return now - pastTimestamp < eventHandler.interval * 1000;
+                    });
+                    if(timestamps.length + 1 >= eventHandler.times) {
+                        alarm(event, eventHandler.message, eventHandler.interval);
+                    }
+                }
+                timestamps.push(event.timestamp);
+                put(event.nodeID + eventHandler.eventName, timestamps);
+            }
+        })
+    });
 };
 
 process.on('message', function (message) {
