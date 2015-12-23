@@ -67,16 +67,29 @@ var ring = function(alarm) {
             resolve(node);
         }).populate('region idc project', 'name');
     });
-    var fetchTag = new Promise(function(resolve, reject){
-        db.Tag.findById(alarm.tagID, function(err, tag) {
-            if(err) return reject(err);
-            resolve(tag);
-        })
-    });
-    Promise.all([fetchNode, fetchTag])
+    var fetchReceivers;
+    if(alarm.tagID != null) {
+        fetchReceivers = new Promise(function(resolve, reject){
+            db.Tag.findById(alarm.tagID, function(err, tag) {
+                if(err) return reject(err);
+                resolve(tag.alarmReceivers.join(','));
+            })
+        });
+    } else {
+        fetchReceivers = new Promise(function(resovle, reject) {
+            db.Node.findById(alarm.nodeID, function(err, node) {
+                if(err) return reject(err);
+                db.Project.findById(node.project, function(err, project) {
+                    if(err) return reject(err);
+                    resovle(project.leader.name + '@letv.com');
+                }).populate('leader', 'name');
+            })
+        });
+    }
+    Promise.all([fetchNode, fetchReceivers])
            .then(function(values){
                var node = values[0],
-                   tag = values[1];
+                   receivers = values[1];
                var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
                    ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\n';
                content += 'IP(s): ' + node.ips.join(',') + '\n';
@@ -84,7 +97,7 @@ var ring = function(alarm) {
                content += alarm.message + '\n';
                emailProcess.send({
                    content: content,
-                   to: tag.alarmReceivers.join(','),
+                   to: receivers,
                    subject: 'Alarm from ' + node.name
                });
            })
