@@ -19,7 +19,7 @@ start() {
 	echo
         [ $RETVAL = 0 ] && touch ${server_lock}
     echo -n "Starting Judge: "
-	daemon "nohup node $judge_path < /dev/null >> $crash_log 2>&1 &"
+	daemon "nohup $node_path $judge_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
 	ps -ef|grep "node $judge_path"|grep -v grep|awk '{ print $2 }' > $judge_pid
 	echo
@@ -35,7 +35,8 @@ stop() {
 	[ $RETVAL = 0 ] && rm -f ${server_lock} ${server_pid}
 
     echo -n "Stopping judge: "
-	groupid=`ps xao pid,pgid|grep ${judge_pid}|awk '{print $2}'`
+    pid=`cat ${judge_pid}`
+	groupid=`ps xao pid,pgid|grep ${pid}|awk '{print $2}'`
 	kill -TERM -${groupid}
 	RETVAL=$?
 	echo
