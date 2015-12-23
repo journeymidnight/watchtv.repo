@@ -53,7 +53,7 @@ var min = function (list) {
 var sandboxCache = new cache.Cache(60 * 60 * 1000);
 
 var put = function(key, value, ttl) {
-    sandboxCache.put(key, value, ttl);
+    sandboxCache.put(key, value, 1000 * ttl);
 };
 
 var get = function (key) {
