@@ -156,7 +156,7 @@ var handleAlarmMessage = function (alarm) {
     alarm.timestamp = new Date(alarm.timestamp);
     ring(alarm);
     insertAlarm(alarm);
-    logger('ALARM:', alarm.id, alarm.ip, alarm.message, alarm.receivers);
+    logger('ALARM:', 'node:', alarm.nodeID, 'tag:', alarm.tagID, alarm.timestamp, alarm.message);
 };
 
 basicEvaluator.on('message', function(message) {

@@ -2,6 +2,7 @@ var React = require('react');
 var Table = require('react-bootstrap/lib/Table');
 var Badge = require('react-bootstrap/lib//Badge');
 var TextField = require('material-ui/lib/text-field');
+var Toggle = require('material-ui/lib/toggle');
 var Snackbar = require('material-ui/lib/snackbar');
 var Dialog = require('material-ui/lib/dialog');
 var AppCanvas = require('material-ui/lib/app-canvas');
@@ -73,10 +74,13 @@ var NodeList = React.createClass({
     render: function() {
         var that = this;
         var nodeList = this.props.data.map(function(node){
+            var judgeEnabled = true;
+            if(node.judgeEnabled === false) judgeEnabled = false;
             return(
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     region={node.region} idc={node.idc} project={node.project}
                     id={node._id} description={node.description} state={node.state}
+                    judgeEnabled={judgeEnabled}
                     onRefresh={that.props.onRefresh} />
             )
         });
@@ -147,6 +151,7 @@ var NodeEntry = React.createClass({
                         nodeProject={this.props.project}
                         onRefresh={this.props.onRefresh}
                         nodeDescription={this.props.description}
+                        judgeEnabled={this.props.judgeEnabled}
                     />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} description={this.props.description}
@@ -180,7 +185,8 @@ var NodeEditButton = React.createClass({
                 "tags": this.refs.tagInput.getValue().trim().split(/[\s,]+/),
                 "region": this.refs.regionInput.getValue().trim(),
                 "idc": this.refs.idcInput.getValue().trim(),
-                "project": this.refs.projectInput.getValue().trim()
+                "project": this.refs.projectInput.getValue().trim(),
+                "judgeEnabled": this.refs.alarmToggle.isToggled()
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
@@ -221,6 +227,10 @@ var NodeEditButton = React.createClass({
             return t.name;
         });
         var edits = <div>
+            <Toggle label="Enable Alarm"
+                    ref="alarmToggle"
+                    style={{width: '35%'}}
+                    defaultToggled={this.props.judgeEnabled} />
             <TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
                 ref="nameInput" id="nameInput"/>
             <TextField floatingLabelText="IP Address"

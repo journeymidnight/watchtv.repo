@@ -566,7 +566,8 @@ var modifyNode = function(node_id, req, res) {
         tags = valueWithDefault(req.body.tags, null),
         region = req.body.region,
         idc = req.body.idc,
-        project = req.body.project;
+        project = req.body.project,
+        judgeEnabled = req.body.judgeEnabled !== 'false';
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
@@ -582,6 +583,7 @@ var modifyNode = function(node_id, req, res) {
         res.status(400).send('Invalid tag format');
         return;
     }
+    update.judgeEnabled = judgeEnabled;
 
     async.parallel([  // expand region, idc, project to corresponding documents
             function (callback) {
