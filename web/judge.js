@@ -59,7 +59,13 @@ periodicWorker.on('message', function(message) {
     }
 });
 
+var ringThrottle = new cache.Cache(config.judge.alarmThrottleSpan);
+
 var ring = function(alarm) {
+    if(ringThrottle.get(alarm.nodeID + alarm.message) !== null) return;
+
+    ringThrottle.put(alarm.nodeID + alarm.message, 1); // value is dummy
+
     // Send alarm via email
     var fetchNode = new Promise(function(resolve, reject) {
         db.Node.findById(alarm.nodeID, function(err, node) {
@@ -144,10 +150,6 @@ var insertAlarm = function(alarm) {
         )
     });
 };
-
-// TODO aggregation
-// alarmQueue[nodeID] = [Alarm]
-//var alarmQueue = {};
 
 var handleAlarmMessage = function (alarm) {
     // Date type becomes string after pipe, so rebuild it
@@ -287,14 +289,6 @@ var startGraphiteServer = function() {
     server.on('error', function(error) {
         logger('Server error', error);
     });
-};
-
-// TODO aggregation
-var aggregateAlarm = function() {
-    for(let nodeID in alarmQueue) {
-        if(!alarmQueue.hasOwnProperty((nodeID))) continue;
-
-    }
 };
 
 var flushToDB = function() {

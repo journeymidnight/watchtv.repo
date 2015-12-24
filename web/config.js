@@ -21,7 +21,8 @@ config.judge = {
     graphitePort: 2003,
     sinkIP: '10.58.180.60',
     sinkPort: 2003,
-    ruleUpdateInterval: 60 * 1000 // 1min, in ms
+    ruleUpdateInterval: 60 * 1000, // 1min, in ms
+    alarmThrottleSpan: 10 * 60 * 1000 // 10min
 };
 
 config.sandbox = {
