@@ -45,7 +45,31 @@ var alarm = function (event, alarmMessage, ttl) {
 };
 
 var on = function (eventName, callback) {
-    emitter.on(eventName, callback);
+    if(eventName.constructor === Array) {
+        var buffers = new Array(eventName.length - 1);
+        for (let i = 0; i < eventName.length - 1; i++) {
+            buffers[i] = {};
+            emitter.on(eventName[i], function(event) {
+                buffers[i][event.nodeID] = event;
+            });
+        }
+        emitter.on(eventName[eventName.length - 1], function(event) {
+            var events = [];
+            var now = new Date();
+            for (let i = 0; i < eventName.length - 1; i++) {
+                if(buffers[i][event.nodeID] &&
+                    now - buffers[i][event.nodeID].timestamp < 5*60*1000) {
+                    events.push(buffers[i][event.nodeID]);
+                } else {
+                    return;
+                }
+            }
+            events.push(event);
+            callback(events);
+        });
+    } else {
+        emitter.on(eventName, callback);
+    }
 };
 
 var check = function(eventName, checkFunction) {
