@@ -242,9 +242,14 @@ var processData = function (data) {
         var measure = splitted[0],
             value = Number(splitted[1]),
             timestamp = new Date(Number(splitted[2]) * 1000);
-        var ip = measure.split('.')[1].replace(/_/g, '.');
-        var eventName = measure.split('.').slice(2, 4).join('.');
-        var device = measure.split('.')[4];
+        try {
+            var ip = measure.split('.')[1].replace(/_/g, '.');
+            var eventName = measure.split('.').slice(2, 4).join('.');
+            var device = measure.split('.')[4];
+        } catch (err) {
+            logger('Error parse metric entry', metricEntry, err);
+            return;
+        }
 
         var node = ip2node.get(ip);
         if(node === null) return;

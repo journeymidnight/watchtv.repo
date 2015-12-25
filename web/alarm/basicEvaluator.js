@@ -40,18 +40,6 @@ emitter.on('diskspace.free_byte_percent', function(event) {
     }
 });
 
-var swapTotal = new cache.Cache(10 * 60 * 1000);
-emitter.on('memory.SwapTotal_byte', function(event) {
-    swapTotal.put(event.nodeID, event.payload);
-});
-emitter.on('memory.SwapFree_byte', function(event) {
-    var total = swapTotal.get(event.nodeID);
-    if(total === null) return;
-    if(event.payload / total < 0.1) {
-        alarm(event, 'Free swap < 10%', 120);
-    }
-});
-
 emitter.on('diamond.liveness', function(event) {
     if(event.payload === 'dead') {
         alarm(event, 'Diamond is dead', 600);
