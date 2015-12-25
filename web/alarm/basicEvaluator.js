@@ -45,3 +45,47 @@ emitter.on('diamond.liveness', function(event) {
         alarm(event, 'Diamond is dead', 600);
     }
 });
+
+var cpus = {};
+emitter.on('cpu.iowait_percent', function(event) {
+    // maintain CPU count for load average evaluation
+    if(cpus[event.nodeID] == undefined) {
+        cpus[event.nodeID] = [];
+    }
+    if(cpus[event.nodeID].indexOf(event.device) === -1) {
+        cpus[event.nodeID].push(event.device);
+    }
+    // evaluate IO wait metrics
+    if(event.device === 'total' && event.payload > 50) {
+        alarm(event, 'IO wait > 50%', 120);
+    }
+});
+
+emitter.on('loadavg.15', function(event) {
+    var cpuCount = 5;
+    if(cpus[event.nodeID] && cpus[event.nodeID].length - 1 > 5) {
+        cpuCount = cpus[event.nodeID].length - 1; // minus 1 for `total` device
+    }
+    if(event.payload >= cpuCount) {
+        alarm(event, 'Load average is greater than total CPU number', 120);
+    }
+});
+
+emitter.on('iostat.util_percent', function(event) {
+    if(event.payload > 80) {
+        alarm(event, 'IO utility percent for ' + event.device + ' > 80%', 120);
+    }
+});
+
+var memoryTotal = {};
+emitter.on('memory.MemTotal_byte', function(event) {
+    memoryTotal[event.nodeID] = event.payload;
+});
+
+var _512M = 512 * 1024 * 1024;
+emitter.on('memory.Cached_byte', function(event) {
+    if(memoryTotal[event.nodeID] &&
+        memoryTotal[event.nodeID] - event.payload < _512M ) {
+        alarm(event, 'memoryTotal - memoryCached < 512M');
+    }
+});
