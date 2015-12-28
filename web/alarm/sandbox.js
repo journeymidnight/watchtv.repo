@@ -45,31 +45,31 @@ var alarm = function (event, alarmMessage, ttl) {
 };
 
 var on = function (eventName, callback) {
-    if(eventName.constructor === Array) {
-        var buffers = new Array(eventName.length - 1);
-        for (let i = 0; i < eventName.length - 1; i++) {
-            buffers[i] = {};
-            emitter.on(eventName[i], function(event) {
-                buffers[i][event.nodeID] = event;
-            });
-        }
-        emitter.on(eventName[eventName.length - 1], function(event) {
-            var events = [];
-            var now = new Date();
-            for (let i = 0; i < eventName.length - 1; i++) {
-                if(buffers[i][event.nodeID] &&
-                    now - buffers[i][event.nodeID].timestamp < 5*60*1000) {
-                    events.push(buffers[i][event.nodeID]);
-                } else {
-                    return;
-                }
-            }
-            events.push(event);
-            callback(events);
+    emitter.on(eventName, callback);
+};
+
+var onMulti = function (eventNames, callback) {
+    var buffers = new Array(eventNames.length - 1);
+    for (let i = 0; i < eventNames.length - 1; i++) {
+        buffers[i] = {};
+        emitter.on(eventNames[i], function(event) {
+            buffers[i][event.nodeID] = event;
         });
-    } else {
-        emitter.on(eventName, callback);
     }
+    emitter.on(eventNames[eventNames.length - 1], function(event) {
+        var events = [];
+        var now = new Date();
+        for (let i = 0; i < eventNames.length - 1; i++) {
+            if(buffers[i][event.nodeID] &&
+                now - buffers[i][event.nodeID].timestamp < 5*60*1000) {
+                events.push(buffers[i][event.nodeID]);
+            } else {
+                return;
+            }
+        }
+        events.push(event);
+        callback(events);
+    });
 };
 
 var check = function(eventName, checkFunction) {
@@ -115,6 +115,7 @@ var get = function (key) {
 var sandbox = {
     alarm: alarm,
     on: on,
+    onMulti: onMulti,
     check: check,
     sum: sum,
     avg: avg,
