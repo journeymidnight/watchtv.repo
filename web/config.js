@@ -22,7 +22,7 @@ config.judge = {
     sinkIP: '10.58.180.60',
     sinkPort: 2003,
     ruleUpdateInterval: 60 * 1000, // 1min, in ms
-    alarmThrottleSpan: 10 * 60 * 1000 // 10min
+    alarmThrottleSpan: 60 * 60 * 1000 // 60min
 };
 
 config.sandbox = {

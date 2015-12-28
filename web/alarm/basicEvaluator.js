@@ -71,8 +71,23 @@ emitter.on('loadavg.15', function(event) {
     }
 });
 
+// io[nodeID][device] = [event5minAgo, ..., latestEvent]
+var io = {};
+var _5min = 5 * 60 * 1000;
 emitter.on('iostat.util_percent', function(event) {
-    if(event.payload > 80) {
+    if(io[event.nodeID] == null) io[event.nodeID] = {};
+    if(io[event.nodeID][event.device] == null) io[event.nodeID][event.device] = [];
+    io[event.nodeID][event.device].push(event);
+    var now = new Date();
+    io[event.nodeID][event.device] = io[event.nodeID][event.device].filter(function(event) {
+        return now - event.timestamp < _5min;
+    });
+
+    if(io[event.nodeID][event.device].length < 3) return;
+
+    if(io[event.nodeID][event.device].every(function(event) {
+            return event.payload > 80;
+        })) {
         alarm(event, 'IO utility percent for ' + event.device + ' > 80%', 120);
     }
 });
