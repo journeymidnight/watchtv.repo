@@ -97,10 +97,10 @@ var ring = function(alarm) {
                var node = values[0],
                    receivers = values[1];
                var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
-                   ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\n';
-               content += 'IP(s): ' + node.ips.join(',') + '\n';
-               content += 'Time: ' + alarm.timestamp.toString() + '\n';
-               content += alarm.message + '\n';
+                   ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\r\n';
+               content += 'IP(s): ' + node.ips.join(',') + '\r\n';
+               content += 'Time: ' + alarm.timestamp.toString() + '\r\n';
+               content += alarm.message + '\r\n';
                emailProcess.send({
                    content: content,
                    to: receivers,
