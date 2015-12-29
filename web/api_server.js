@@ -567,7 +567,8 @@ var modifyNode = function(node_id, req, res) {
         region = req.body.region,
         idc = req.body.idc,
         project = req.body.project,
-        judgeEnabled = req.body.judgeEnabled !== 'false';
+        judgeEnabled = req.body.judgeEnabled !== 'false',
+        ignoredAlarms = req.body.ignoredAlarms;
     var update = {};
     if (ips) {
         ips = ips.filter(isIPandPort);
@@ -584,6 +585,7 @@ var modifyNode = function(node_id, req, res) {
         return;
     }
     update.judgeEnabled = judgeEnabled;
+    update.ignoredAlarms = ignoredAlarms;
 
     async.parallel([  // expand region, idc, project to corresponding documents
             function (callback) {

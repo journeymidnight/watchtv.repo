@@ -13,9 +13,10 @@ var emitter = new events.EventEmitter();
 var tag = null;
 var eventHandlers = [];
 
-var EventHandler = function(eventName, checkFunction) {
+var EventHandler = function(eventName, checkFunction, alarmName) {
     this.eventName = eventName;
     this.checkFunction = checkFunction;
+    this.alarmName = alarmName;
     this.interval = null;
     this.times = null;
     this.message = null;
@@ -34,8 +35,9 @@ var EventHandler = function(eventName, checkFunction) {
     };
 };
 
-var alarm = function (event, alarmMessage, ttl) {
+var alarm = function (event, alarmMessage, ttl, alarmName) {
     process.send({alarm: {
+        name: alarmName,
         nodeID: event.nodeID,
         timestamp: new Date(),
         message: alarmMessage,
@@ -72,8 +74,8 @@ var onMulti = function (eventNames, callback) {
     });
 };
 
-var check = function(eventName, checkFunction) {
-    var eventHandler = new EventHandler(eventName, checkFunction);
+var check = function(eventName, checkFunction, alarmName) {
+    var eventHandler = new EventHandler(eventName, checkFunction, alarmName);
     eventHandlers.push(eventHandler);
     return eventHandler;
 };
@@ -172,7 +174,8 @@ var evaluation = function () {
                         return now - pastTimestamp < eventHandler.interval * 1000;
                     });
                     if(timestamps.length + 1 >= eventHandler.times) {
-                        alarm(event, eventHandler.message, eventHandler.interval);
+                        alarm(event, eventHandler.message, eventHandler.interval,
+                            eventHandler.alarmName);
                     }
                 }
                 timestamps.push(event.timestamp);

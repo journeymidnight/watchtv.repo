@@ -18,8 +18,9 @@ process.on('message', function (message) {
     }
 });
 
-var alarm = function (event, alarmMessage, ttl) {
+var alarm = function (event, alarmMessage, ttl, alarmName) {
     process.send({alarm: {
+        name: alarmName,
         nodeID: event.nodeID,
         timestamp: new Date(),
         message: alarmMessage,
@@ -30,19 +31,20 @@ var alarm = function (event, alarmMessage, ttl) {
 
 emitter.on('uptime.uptime_Sec', function(event) {
     if(event.payload < 60 * 15) {
-        alarm(event, 'Node seems to have been rebooted', 120);
+        alarm(event, 'Node seems to have been rebooted', 120, 'rebooted');
     }
 });
 
 emitter.on('diskspace.free_byte_percent', function(event) {
     if(event.payload < 10) {
-        alarm(event, 'Free space of ' + event.device + ' < 10%', 120);
+        alarm(event, 'Free space of ' + event.device + ' < 10%', 120,
+            'lowFreeDiskSpace.' + event.device);
     }
 });
 
 emitter.on('diamond.liveness', function(event) {
     if(event.payload === 'dead') {
-        alarm(event, 'Diamond is dead', 600);
+        alarm(event, 'Diamond is dead', 600, 'deadDiamond');
     }
 });
 
@@ -57,7 +59,7 @@ emitter.on('cpu.iowait_percent', function(event) {
     }
     // evaluate IO wait metrics
     if(event.device === 'total' && event.payload > 50) {
-        alarm(event, 'IO wait > 50%', 120);
+        alarm(event, 'IO wait > 50%', 120, 'highIOWait');
     }
 });
 
@@ -67,7 +69,7 @@ emitter.on('loadavg.15', function(event) {
         cpuCount = cpus[event.nodeID].length - 1; // minus 1 for `total` device
     }
     if(event.payload >= cpuCount) {
-        alarm(event, 'Load average is greater than total CPU number', 120);
+        alarm(event, 'Load average is greater than total CPU number', 120, 'highLoad');
     }
 });
 
@@ -88,7 +90,8 @@ emitter.on('iostat.util_percent', function(event) {
     if(io[event.nodeID][event.device].every(function(event) {
             return event.payload > 80;
         })) {
-        alarm(event, 'IO utility percent for ' + event.device + ' > 80%', 120);
+        alarm(event, 'IO utility percent for ' + event.device + ' > 80%', 120,
+            'highIOUtility.' + event.device);
     }
 });
 
@@ -101,6 +104,6 @@ var _512M = 512 * 1024 * 1024;
 emitter.on('memory.Cached_byte', function(event) {
     if(memoryTotal[event.nodeID] &&
         memoryTotal[event.nodeID] - event.payload < _512M ) {
-        alarm(event, 'memoryTotal - memoryCached < 512M');
+        alarm(event, 'memoryTotal - memoryCached < 512M', 120, 'lowMemory');
     }
 });

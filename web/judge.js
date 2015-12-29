@@ -61,18 +61,7 @@ periodicWorker.on('message', function(message) {
 
 var ringThrottle = new cache.Cache(config.judge.alarmThrottleSpan);
 
-var ring = function(alarm) {
-    if(ringThrottle.get(alarm.nodeID + alarm.message) !== null) return;
-
-    ringThrottle.put(alarm.nodeID + alarm.message, 1); // value is dummy
-
-    // Send alarm via email
-    var fetchNode = new Promise(function(resolve, reject) {
-        db.Node.findById(alarm.nodeID, function(err, node) {
-            if(err) return reject(err);
-            resolve(node);
-        }).populate('region idc project', 'name');
-    });
+var ring = function(alarm, node) {
     var fetchReceivers;
     if(alarm.tagID != null) {
         fetchReceivers = new Promise(function(resolve, reject){
@@ -92,10 +81,7 @@ var ring = function(alarm) {
             })
         });
     }
-    Promise.all([fetchNode, fetchReceivers])
-           .then(function(values){
-               var node = values[0],
-                   receivers = values[1];
+    fetchReceivers.then(function(receivers) {
                var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
                    ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\r\n';
                content += 'IP(s): ' + node.ips.join(',') + '\r\n';
@@ -154,9 +140,27 @@ var insertAlarm = function(alarm) {
 var handleAlarmMessage = function (alarm) {
     // Date type becomes string after pipe, so rebuild it
     alarm.timestamp = new Date(alarm.timestamp);
-    ring(alarm);
-    insertAlarm(alarm);
-    logger('ALARM:', 'node:', alarm.nodeID, 'tag:', alarm.tagID, alarm.timestamp, alarm.message);
+
+    db.Node.findById(alarm.nodeID, function(err, node) {
+        if(err) {
+            logger('Error fetching node', alarm.nodeID);
+            return;
+        }
+        if(node.ignoredAlarms && alarm.name) {
+            for(let i = 0; i < node.ignoredAlarms.length; i++) {
+                // ignoredAlarms could be <name>.<device> or <name>
+                if(alarm.name.indexOf(node.ignoredAlarms[i]) !== -1) {
+                    return;
+                }
+            }
+        }
+        if(ringThrottle.get(alarm.nodeID + alarm.message) !== null) return;
+        ringThrottle.put(alarm.nodeID + alarm.message, 1); // value is dummy
+
+        ring(alarm, node);
+        insertAlarm(alarm);
+        logger('ALARM:', 'node:', alarm.nodeID, 'tag:', alarm.tagID, alarm.timestamp, alarm.message);
+    }).populate('region idc project', 'name');
 };
 
 basicEvaluator.on('message', function(message) {

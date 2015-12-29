@@ -80,7 +80,7 @@ var NodeList = React.createClass({
                 <NodeEntry name={node.name} ips={node.ips} tags={node.tags} key={node._id}
                     region={node.region} idc={node.idc} project={node.project}
                     id={node._id} description={node.description} state={node.state}
-                    judgeEnabled={judgeEnabled}
+                    judgeEnabled={judgeEnabled} ignoredAlarms={node.ignoredAlarms || []}
                     onRefresh={that.props.onRefresh} />
             )
         });
@@ -152,6 +152,7 @@ var NodeEntry = React.createClass({
                         onRefresh={this.props.onRefresh}
                         nodeDescription={this.props.description}
                         judgeEnabled={this.props.judgeEnabled}
+                        ignoredAlarms={this.props.ignoredAlarms}
                     />
                     <NodeInfoButton nodeId={this.props.id} nodeName={this.props.name}
                         nodeIps={this.props.ips} description={this.props.description}
@@ -186,7 +187,8 @@ var NodeEditButton = React.createClass({
                 "region": this.refs.regionInput.getValue().trim(),
                 "idc": this.refs.idcInput.getValue().trim(),
                 "project": this.refs.projectInput.getValue().trim(),
-                "judgeEnabled": this.refs.alarmToggle.isToggled()
+                "judgeEnabled": this.refs.alarmToggle.isToggled(),
+                "ignoredAlarms": this.refs.ignoredAlarmsInput.getValue().trim().split(/[\s,]+/)
             },
             success: function(data) {
                 this.refs.editDialog.dismiss();
@@ -244,6 +246,9 @@ var NodeEditButton = React.createClass({
                 ref="regionInput" id="regionInput"/>
             <TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
                 ref="idcInput" id="idcInput"/>
+            <TextField floatingLabelText="Ignored Alarms"
+                       defaultValue={this.props.ignoredAlarms.join(' ')}
+                       ref="ignoredAlarmsInput"/>
                 <div>
                     <TextField floatingLabelText="Description"
                         defaultValue={this.props.nodeDescription}

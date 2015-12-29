@@ -37,7 +37,8 @@ var nodeSchema = new Schema({
         state: {type: String, enum: states},
         alarms: [{type: Schema.Types.ObjectId, ref: 'Alarm'}],
         alarmHistory: [{type: Schema.Types.ObjectId, ref: 'Alarm'}],
-        judgeEnabled: Boolean
+        judgeEnabled: Boolean,
+        ignoredAlarms: [String]
     },
     {
         collection: "Node"
