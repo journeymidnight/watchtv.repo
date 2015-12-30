@@ -585,6 +585,9 @@ var modifyNode = function(node_id, req, res) {
         return;
     }
     update.judgeEnabled = judgeEnabled;
+    if(ignoredAlarms && ignoredAlarms.length === 1 && ignoredAlarms[0] === '') {
+        ignoredAlarms = [];
+    }
     update.ignoredAlarms = ignoredAlarms;
 
     async.parallel([  // expand region, idc, project to corresponding documents
