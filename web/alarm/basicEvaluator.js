@@ -31,7 +31,7 @@ var alarm = function (event, alarmMessage, ttl, alarmName) {
 
 emitter.on('uptime.uptime_Sec', function(event) {
     if(event.payload < 60 * 15) {
-        alarm(event, 'Node seems to have been rebooted', 120, 'rebooted');
+        alarm(event, 'Node seems to have been rebooted', 600, 'rebooted');
     }
 });
 
@@ -48,7 +48,10 @@ emitter.on('diamond.liveness', function(event) {
     }
 });
 
+var _5min = 5 * 60 * 1000;
+
 var cpus = {};
+var iowait = {};
 emitter.on('cpu.iowait_percent', function(event) {
     // maintain CPU count for load average evaluation
     if(cpus[event.nodeID] == undefined) {
@@ -58,7 +61,17 @@ emitter.on('cpu.iowait_percent', function(event) {
         cpus[event.nodeID].push(event.device);
     }
     // evaluate IO wait metrics
-    if(event.device === 'total' && event.payload > 50) {
+    if(event.device !== 'total') return;
+    if(iowait[event.nodeID] == null) iowait[event.nodeID] = [];
+    iowait[event.nodeID].push(event);
+    var now = new Date();
+    iowait[event.nodeID] = iowait[event.nodeID].filter(function(event) {
+        return now - event.timestamp < _5min;
+    });
+    if(iowait.length < 3) return;
+    if(iowait[event.nodeID].every(function(event) {
+            return event.payload > 50;
+        })) {
         alarm(event, 'IO wait > 50%', 120, 'highIOWait');
     }
 });
@@ -75,7 +88,6 @@ emitter.on('loadavg.15', function(event) {
 
 // io[nodeID][device] = [event5minAgo, ..., latestEvent]
 var io = {};
-var _5min = 5 * 60 * 1000;
 emitter.on('iostat.util_percent', function(event) {
     if(io[event.nodeID] == null) io[event.nodeID] = {};
     if(io[event.nodeID][event.device] == null) io[event.nodeID][event.device] = [];
