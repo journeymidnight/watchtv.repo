@@ -59,43 +59,69 @@ periodicWorker.on('message', function(message) {
     }
 });
 
-var ringThrottle = new cache.Cache(config.judge.alarmThrottleSpan);
+// alarmQueue[nodeID][tagID] = [alarm object], used to aggregate messages
+var alarmQueue = {};
+// nodes[nodeID] = node
+var nodes = {};
+var queueAlarm = function(alarm, node) {
+    if(alarmQueue[alarm.nodeID] == null) alarmQueue[alarm.nodeID] = {};
+    if(alarmQueue[alarm.nodeID][alarm.tagID] == null) alarmQueue[alarm.nodeID][alarm.tagID] = [];
+    alarmQueue[alarm.nodeID][alarm.tagID].push(alarm);
+    nodes[alarm.nodeID] = node;
+};
 
-var ring = function(alarm, node) {
-    var fetchReceivers;
-    if(alarm.tagID != null) {
-        fetchReceivers = new Promise(function(resolve, reject){
-            db.Tag.findById(alarm.tagID, function(err, tag) {
-                if(err) return reject(err);
-                resolve(tag.alarmReceivers.join(','));
-            })
-        });
-    } else {
-        fetchReceivers = new Promise(function(resovle, reject) {
-            db.Node.findById(alarm.nodeID, function(err, node) {
-                if(err) return reject(err);
-                db.Project.findById(node.project, function(err, project) {
-                    if(err) return reject(err);
-                    resovle(project.leader.name + '@letv.com');
-                }).populate('leader', 'name');
-            })
-        });
+var ring = function() {
+    for(let nodeID in alarmQueue) {
+        if(!alarmQueue.hasOwnProperty(nodeID)) continue;
+
+        let nodeAlarms = alarmQueue[nodeID];
+        let node = nodes[nodeID];
+
+        for(let tagID in nodeAlarms) {
+            if(!nodeAlarms.hasOwnProperty(tagID)) continue;
+            if(nodeAlarms[tagID].length === 0) continue;
+
+            var fetchReceivers;
+            if(tagID !== 'null') {
+                fetchReceivers = new Promise(function(resolve, reject) {
+                    db.Tag.findById(tagID, function(err, tag) {
+                        if(err) return reject(err);
+                        resolve(tag.alarmReceivers.join(','));
+                    })
+                });
+            } else {
+                fetchReceivers = new Promise(function(resovle, reject) {
+                    db.Node.findById(nodeID, function(err, node) {
+                        if(err) return reject(err);
+                        db.Project.findById(node.project, function(err, project) {
+                            if(err) return reject(err);
+                            resovle(project.leader.name + '@letv.com');
+                        }).populate('leader', 'name');
+                    })
+                });
+            }
+
+            let content = 'Name: ' + node.name + ' Region: ' + node.region.name +
+                ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\r\n';
+            content += 'IP(s): ' + node.ips.join(',') + '\r\n';
+            nodeAlarms[tagID].map(function(alarm) {
+                content += 'Time: ' + alarm.timestamp.toString() + '\r\n';
+                content += alarm.message + '\r\n';
+            });
+            nodeAlarms[tagID] = [];
+
+            fetchReceivers.then(function(receivers) {
+                    emailProcess.send({
+                        content: content,
+                        to: receivers,
+                        subject: 'Alarm from ' + node.name
+                    });
+                })
+                .catch(function(error){
+                    logger('Raise alarm failed:', error);
+                });
+        }
     }
-    fetchReceivers.then(function(receivers) {
-               var content = 'Name: ' + node.name + ' Region: ' + node.region.name +
-                   ' IDC: ' + node.idc.name + ' Project: ' + node.project.name + '\r\n';
-               content += 'IP(s): ' + node.ips.join(',') + '\r\n';
-               content += 'Time: ' + alarm.timestamp.toString() + '\r\n';
-               content += alarm.message + '\r\n';
-               emailProcess.send({
-                   content: content,
-                   to: receivers,
-                   subject: 'Alarm from ' + node.name
-               });
-           })
-           .catch(function(error){
-               logger('Raise alarm failed:', error);
-           });
 };
 
 // Maintain alarm information by nodeID in memory
@@ -137,6 +163,7 @@ var insertAlarm = function(alarm) {
     });
 };
 
+var alarmThrottle = new cache.Cache(config.judge.alarmThrottleSpan);
 var handleAlarmMessage = function (alarm) {
     // Date type becomes string after pipe, so rebuild it
     alarm.timestamp = new Date(alarm.timestamp);
@@ -154,10 +181,10 @@ var handleAlarmMessage = function (alarm) {
                 }
             }
         }
-        if(ringThrottle.get(alarm.nodeID + alarm.message) !== null) return;
-        ringThrottle.put(alarm.nodeID + alarm.message, 1); // value is dummy
+        if(alarmThrottle.get(alarm.nodeID + alarm.message) !== null) return;
+        alarmThrottle.put(alarm.nodeID + alarm.message, 1); // value is dummy
 
-        ring(alarm, node);
+        queueAlarm(alarm, node);
         insertAlarm(alarm);
         logger('ALARM:', 'node:', alarm.nodeID, 'tag:', alarm.tagID, alarm.timestamp, alarm.message);
     }).populate('region idc project', 'name');
@@ -353,3 +380,4 @@ updateRules();
 setInterval(updateRules, config.judge.ruleUpdateInterval);
 startGraphiteServer();
 setInterval(flushToDB, 60 * 1000);
+setInterval(ring, 60 * 1000);
