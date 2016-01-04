@@ -1,24 +1,19 @@
 
 var formatFuncCreator = function(factor, units) {
     return function(val, axis) {
-        var original = val;
         var whole, decimal;
         var unitIndex = 0;
+        var unitCount = units.length;
         while(true) {
             whole = val.toString().split('.')[0];
             decimal = val.toString().split('.')[1];
 
-            if(whole.length > 3) {
+            if(whole.length > 3 && unitIndex+1 < unitCount) {
                 val = val / factor;
                 unitIndex += 1;
             } else { break;}
         }
-
-        if(units[unitIndex]) {
-            var suffix = units[unitIndex];
-        } else {
-            return original + units[0];
-        }
+        var suffix = units[unitIndex];
 
         if(decimal) {
             return whole + '.' + decimal.slice(0,2) + suffix;  // keep only 2 decimals

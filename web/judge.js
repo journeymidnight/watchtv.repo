@@ -375,7 +375,20 @@ var flushToDB = function() {
     }
 };
 
+var ignoreOldAlarms = function() {
+    db.Node.update({}, {
+        state: 'Good',
+        alarms: []
+    }, {multi: true}, function(err, raw) {
+        if(err) {
+            logger('Error updating database', err);
+            process.exit(-1);
+        }
+    })
+};
+
 logger('Judge started');
+ignoreOldAlarms();
 updateRules();
 setInterval(updateRules, config.judge.ruleUpdateInterval);
 startGraphiteServer();
