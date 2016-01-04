@@ -100,9 +100,9 @@ emitter.on('iostat.util_percent', function(event) {
     if(io[event.nodeID][event.device].length < 3) return;
 
     if(io[event.nodeID][event.device].every(function(event) {
-            return event.payload > 80;
+            return event.payload > 90;
         })) {
-        alarm(event, 'IO utility percent for ' + event.device + ' > 80%', 120,
+        alarm(event, 'IO utility percent for ' + event.device + ' > 90%', 120,
             'highIOUtility.' + event.device);
     }
 });
