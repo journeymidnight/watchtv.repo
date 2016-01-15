@@ -543,7 +543,8 @@ app.post('/nodes', function(req, res) {
                         tags: tags,
                         region: region_doc,
                         idc: idc_doc,
-                        project: project_doc
+                        project: project_doc,
+                        state: 'Good'
                     }, 'Node', db.Node);
                     if (monitorItems.length !== 0) {
                         nodeCommander(ips, monitorItems, []);
