@@ -2140,3 +2140,44 @@ app.get('/influxdb/query', function(req, res) {
         res.send(body);
     })
 });
+
+var fetchMetadata = require('./backend/' + config.db.timeSeriesBackend + '.js').fetchMetadata;
+// /timeseries/meta?ip=xxx
+// return metadata for specific IP, for measurement selectors
+app.get('/timeseries/meta', function(req, res) {
+    if(req.query.ip == undefined) {
+        res.status(400).send('IP address is required in query parameter');
+        return;
+    }
+    fetchMetadata(req.query.ip, function(err, data) {
+        if(err) {
+            res.status(500).send('Error querying metadata');
+            return;
+        }
+        res.send(data);
+    });
+});
+
+var fetchMetric = require('./backend/' + config.db.timeSeriesBackend + '.js').fetchMetric;
+// /timeseries/metric?from=xxx&to=xxx&ip=xxx&measurement=xxx&device=xxx&measure=xxx
+app.get('/timeseries/metric', function(req, res) {
+    var fromTime = req.query.from,
+        toTime = req.query.to,
+        ip = req.query.ip,
+        measurement = req.query.measurement,
+        device = req.query.device,
+        measure = req.query.measure;
+    if(fromTime == undefined || ip == undefined || measurement == undefined ||
+        measure == undefined) {
+        res.status(400).send('from, ip, measurement, measure are required');
+        return;
+    }
+    if(toTime == undefined) toTime = Date.now();
+    fetchMetric(fromTime, toTime, ip, measurement, device, measure, function(err, data) {
+        if(err) {
+            res.status(500).send('Error querying metrics');
+            return;
+        }
+        res.send(data);
+    });
+});

@@ -27,18 +27,23 @@ var BaseGraph = React.createClass({
         };
     },
     executeQuery: function(timePeriod, ip, metricIndex, metric) {
-        var query = utility.buildQuery(timePeriod, ip,
-                                       metric[0], metric[1], metric[2]);
-        if(query == null) { return; }
+        var queryParameters = {
+            from: timePeriod[0],
+            to: timePeriod[1],
+            ip: ip,
+            measurement: metric[0],
+            device: metric[1],
+            measure: metric[2]
+        };
         $.ajax({
-            url: '/influxdb/query?' + encodeURIComponent(query),
+            url: '/timeseries/metric?' + $.param(queryParameters),
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
                 currdata[currdata.length] = {
-                    data:utility.get_value(data),
-                    ip:ip,
-                    metric:metric,
+                    data: data,
+                    ip: ip,
+                    metric: metric,
                     metricIndex: metricIndex,
                     enabled: 1  // 1 for enabled, 0 for disabled. If shown on graph
                 };

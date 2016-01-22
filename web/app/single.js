@@ -40,20 +40,18 @@ var GraphList = React.createClass({
                 that.setState({node: data});
 
                 for(var i = 0; i<ips.length; i++) {
-                    var hostIP = utility.dotted2underscoredIP(ips[i]);
                     // Similar to graphSelector.js
                     $.ajax({
-                        url: '/influxdb/query?' +
-                            encodeURIComponent("SHOW SERIES WHERE host='" + hostIP + "'"),
+                        url: '/timeseries/meta?ip=' + ips[i],
                         dataType: 'json',
                         success: function (data) {
-                            var measurements = utility.get_measurements(data);
-                            if(!$.isEmptyObject(measurements)) {
-                                that.setState({measurements: measurements});
+                            if(!$.isEmptyObject(data)) {
+                                that.setState({measurements: data});
                             }
                         },
                         error: function (xhr, status, err) {
-                            console.error('Error init measurements structure', status, err.toString());
+                            console.error('Error initialize measurements structure',
+                                status, err.toString());
                         }
                     });
                 }
