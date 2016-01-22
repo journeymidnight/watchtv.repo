@@ -11,16 +11,18 @@ config.webServer = {
 
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
-    influxdbURL: "http://10.58.180.60:8086",
+    timeSeriesBackend: "opentsdb",  // influxdb or opentsdb
+    opentsdbURL: "http://10.140.80.10:4242",
+    influxdbURL: "http://10.58.180.151:8086",
     influxdbUser: "root",
     influxdbPassword: "root",
     influxdbDatabase: "graphite"
 };
 
 config.judge = {
-    graphitePort: 2003,
-    sinkIP: '10.58.180.60',
-    sinkPort: 2003,
+    graphitePort: 2004,
+    sinkIP: '10.140.80.108',
+    sinkPort: 4242,
     ruleUpdateInterval: 60 * 1000, // 1min, in ms
     alarmThrottleSpan: 3 * 60 * 60 * 1000 // 3h
 };
