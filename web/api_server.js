@@ -2175,7 +2175,7 @@ app.get('/timeseries/metric', function(req, res) {
     if(toTime == undefined) toTime = Date.now();
     fetchMetric(fromTime, toTime, ip, measurement, device, measure, function(err, data) {
         if(err) {
-            res.status(500).send('Error querying metrics');
+            res.status(500).send('Error querying metrics ' + err);
             return;
         }
         res.send(data);

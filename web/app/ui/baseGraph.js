@@ -28,8 +28,8 @@ var BaseGraph = React.createClass({
     },
     executeQuery: function(timePeriod, ip, metricIndex, metric) {
         var queryParameters = {
-            from: timePeriod[0],
-            to: timePeriod[1],
+            from: timePeriod[0].getTime(),
+            to: timePeriod[1].getTime(),
             ip: ip,
             measurement: metric[0],
             device: metric[1],
@@ -70,8 +70,7 @@ var BaseGraph = React.createClass({
         var fitted_data=[];
         for(var i = 0;i<this.state.data.length;i++){
             fitted_data[i] = {
-                data: this.state.data[i].enabled ?
-                    utility.fitData(this.state.data[i].data) : [],
+                data: this.state.data[i].enabled ? this.state.data[i].data : [],
                 ip:this.state.data[i].ip,
                 metric:this.state.data[i].metric,
                 metricIndex:this.state.data[i].metricIndex

@@ -108,6 +108,42 @@ var get_value = function (ret) {
     return _.flatten(ret.results[0].series[0].values);
 };
 
+var fitData = function(data) {
+    // convert [time, data, time, data ...]
+    // to [ [time, data], [time, data], ...]
+    var fitted_data = [];
+    for (var i = 0; i < data.length; i+=2){
+        var d = [Date.parse(data[i]) , data[i+1]];
+        fitted_data.push(d);
+    }
+    if(fitted_data.length < 2) {  // len=0 would cause null value,
+        // 1 would cause divide by 0
+        return fitted_data;
+    }
+    // do linear fitting to eliminate null values
+    var last_i = null,
+        timeSpan = fitted_data[fitted_data.length-1][0] - fitted_data[0][0],
+    // don't do fitting if more than 10min data are lost
+        thresholdPointNumber = Math.floor((10 * 60 * 1000 * fitted_data.length) / timeSpan);
+    for (i = 0; i < fitted_data.length; i += 1) {
+        if(fitted_data[i][1]) {
+            if (last_i) {
+                if(i - last_i > thresholdPointNumber) {
+                    last_i = i;
+                    continue;
+                }
+                for(var j = last_i + 1; j < i; j += 1) {
+                    var y1 = fitted_data[last_i][1];
+                    var y2 = fitted_data[i][1];
+                    fitted_data[j][1] = y1 + (y2 - y1) * (j - last_i) / (i - last_i);
+                }
+            }
+            last_i = i;
+        }
+    }
+    return fitted_data;
+};
+
 var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, callback) {
     fromTime = new Date(fromTime);
     toTime = new Date(toTime);
@@ -118,7 +154,7 @@ var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, c
             callback(err);
             return;
         }
-        callback(null, get_value(body));
+        callback(null, fitData(get_value(body)));
     });
 };
 

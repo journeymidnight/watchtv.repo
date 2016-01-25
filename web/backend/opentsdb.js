@@ -1,4 +1,5 @@
 var net = require('net');
+var request = require('request');
 
 var config = require('../config.js');
 var logger = require('../logger.js').getLogger('OpenTSDB');
@@ -47,8 +48,106 @@ var forwardData = function(data, sender) {
     })
 };
 
+var fetch = function(url, callback) {
+    request({
+        url: url,
+        json: true,
+        timeout: 5000 // 5s
+    }, function(err, resp, body) {
+        if(err) {
+            logger('OpenTSDB connection error:', err);
+            callback(err);
+            return;
+        }
+        callback(null, body);
+    })
+};
+
+var get_measurements = function (data) {
+    var measurements = {};
+    data.results.map(function(r) {
+        var metrics = r.metric.split('.');
+        var device = r.tags.device;
+        if(!measurements[metrics[0]]) {
+            measurements[metrics[0]] = {};
+            measurements[metrics[0]]['measure'] = {};
+            if(device) {
+                measurements[metrics[0]]['device'] = {};
+            }
+        }
+        measurements[metrics[0]]['measure'][metrics[1]] = 1;
+        if(device) {
+            measurements[metrics[0]]['device'][device] = 1;
+        }
+    });
+    for(var m in measurements) {
+        if(!measurements.hasOwnProperty(m)) continue;
+        measurements[m]['measure'] = Object.keys(measurements[m]['measure']);
+        if(measurements[m]['device']) {
+            measurements[m]['device'] = Object.keys(measurements[m]['device']);
+        }
+    }
+    return measurements;
+};
+
+var fetchMetadata = function(ip, callback) {
+    var url = config.db.opentsdbURL + '/api/search/lookup?use_meta=true&limit=10000&m={ip=' +
+            ip + '}';  // `limit` should be big enough since we need ALL the tag and device names
+    fetch(url, function(err, body) {
+        if(err) {
+            callback(err);
+            return;
+        }
+        callback(null, get_measurements(body));
+    })
+};
+
+var pointsPerGraph = 300;
+
+var buildQuery = function(fromTime, toTime, ip, measurement, device, measure) {
+    var downSampleInterval = Math.floor((toTime - fromTime)/pointsPerGraph/1000);
+    var query = 'start=' + fromTime + '&end=' + toTime +
+            '&downsample=' + downSampleInterval + 's-avg' +
+            '&m=avg:' + measurement + '.' + measure;
+    query += '{ip=' + ip;
+    if(device) {
+        query += ',device=' + device;
+    }
+    query += '}';
+    return query;
+};
+
+var get_value = function(res) {
+    var ret = [];
+    if(res.length === 0 || !res[0].dps) {
+        return [];
+    }
+    var dps = res[0].dps;
+    for(var t in dps) {
+        ret.push([Number(t), dps[t]]);
+    }
+    return ret;
+};
+
+var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, callback) {
+    var url = config.db.opentsdbURL + '/api/query?' +
+                buildQuery(fromTime, toTime, ip, measurement, device, measure);
+    fetch(url, function(err, body) {
+        if(err) {
+            callback(err);
+            return;
+        }
+        if(body.error) {
+            callback(body.error.message);
+            return;
+        }
+        callback(null, get_value(body));
+    })
+};
 
 module.exports = {
     createSender: createSender,
-    forwardData: forwardData
+    forwardData: forwardData,
+    fetchMetadata: fetchMetadata,
+    fetchMetric: fetchMetric
 };
