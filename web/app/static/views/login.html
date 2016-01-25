@@ -8,7 +8,7 @@
 <script src="static/js/jquery-2.1.4.min.js"></script>
 <script type="text/javascript">
 $(function(){
-	$("#userSubmit").bind('click',submitForm);
+    $("#userSubmit").bind('click',submitForm);
     document.onkeydown=function(event){ 
         var e = event ? event :(window.event ? window.event : null);
         if(e.keyCode==13){
@@ -45,34 +45,21 @@ $(function(){
 </script>
 </head>
 <body class="login_body">
-<div class="main_login">
-    <div class ="login_div">
-        <div class="login_form">
-            <form id="loginForm">
-                <div class = "login_info">
-                    <input type="text" id="user" name="userName" class="login_input" placeholder="User"/>
-                </div>
-                <div class = "login_info">
-                    <input type="password" id="pwd" name="password" class="login_input" placeholder="Password"/>
-                </div>
-                <div id="loginErr_msg" class="errorMessage"></div>
-                <div class = "login_btn">
-                    <span class="buttoncss" id="userSubmit">Login</span>
-                </div>
-            </form>
-        </div>
+    <div class ="login_div" id="login_div"></div>
+    <div class="login_form">
+        <div class="logo">WatchTV</div>
+        <form id="loginForm">
+            <div class = "login_info">
+                <input type="text" id="user" name="userName" class="login_input" placeholder="User"/>
+            </div>
+            <div class = "login_info">
+                <input type="password" id="pwd" name="password" class="login_input" placeholder="Password"/>
+            </div>
+            <div id="loginErr_msg" class="errorMessage"></div>
+            <div class = "login_btn">
+                <span class="submit" id="userSubmit">LOG IN</span>
+            </div>
+        </form>
     </div>
-    <div class = "c3">
-        <div class="meteor0"><img class="png" src="static/images/icon_meteor0.png"></div>
-        <div class="meteor1"><img class="png" src="static/images/icon_meteor1.png"></div>
-        <div class="meteor2"><img class="png" src="static/images/icon_meteor2.png"></div>
-        <div class="meteor3"><img class="png" src="static/images/icon_meteor3.png"></div>
-        <div class="star0"><img class="png" src="static/images/icon_star0.png"></div>
-        <div class="star1"><img class="png" src="static/images/icon_star1.png"></div>
-        <div class="star2"><img class="png" src="static/images/icon_star2.png"></div>
-        <div class="star3"><img class="png" src="static/images/icon_star2.png"></div>
-        <div class="star4"><img class="png" src="static/images/icon_star2.png"></div>
-    </div>
-</div>
 </body>
 </html>
