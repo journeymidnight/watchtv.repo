@@ -12,7 +12,7 @@ config.webServer = {
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
     timeSeriesBackend: "opentsdb",  // influxdb or opentsdb
-    opentsdbURL: "http://10.140.80.10:4242",
+    opentsdbURL: "http://10.140.80.108:4242",
     influxdbURL: "http://10.58.180.151:8086",
     influxdbUser: "root",
     influxdbPassword: "root",

@@ -6,6 +6,11 @@ var _ = require('underscore');
 var config = require('../config.js');
 var logger = require('../logger.js').getLogger('InfluxDB');
 
+/*
+    Note that InfluxDB support is considered untested and might be broken in future iterations.
+    Use it at your own risk.
+*/
+
 var createSender = function() {
     return dgram.createSocket('udp4');
 };
@@ -83,7 +88,7 @@ var fetchMetadata = function(ip, callback) {
     });
 };
 
-var pointsPerGraph = 300;
+var pointsPerGraph = 200;
 
 var buildQuery = function(fromTime, toTime, host, measurement, device, measure) {
     // fromTime and toTime are all Date objects

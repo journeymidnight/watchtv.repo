@@ -59,7 +59,7 @@ var BaseGraph = React.createClass({
             props.graph.metrics.map(function(metric, metricIndex) {
                 that.executeQuery(
                     that.props.period,
-                    utility.dotted2underscoredIP(ip),
+                    ip,
                     metricIndex,
                     utility.splitMetric(metric).split(',')
                 );

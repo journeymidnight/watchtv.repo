@@ -102,13 +102,12 @@ var fetchMetadata = function(ip, callback) {
     })
 };
 
-var pointsPerGraph = 300;
+var pointsPerGraph = 200;
 
 var buildQuery = function(fromTime, toTime, ip, measurement, device, measure) {
     var downSampleInterval = Math.floor((toTime - fromTime)/pointsPerGraph/1000);
     var query = 'start=' + fromTime + '&end=' + toTime +
-            '&downsample=' + downSampleInterval + 's-avg' +
-            '&m=avg:' + measurement + '.' + measure;
+            '&m=avg:' + downSampleInterval + 's-avg:' + measurement + '.' + measure;
     query += '{ip=' + ip;
     if(device) {
         query += ',device=' + device;
@@ -124,7 +123,7 @@ var get_value = function(res) {
     }
     var dps = res[0].dps;
     for(var t in dps) {
-        ret.push([Number(t), dps[t]]);
+        ret.push([1000 * Number(t), dps[t]]);
     }
     return ret;
 };
