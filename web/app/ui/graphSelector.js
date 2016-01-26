@@ -6,7 +6,6 @@ var List = require('material-ui/lib/lists/list');
 var ListItem = require('material-ui/lib/lists/list-item');
 
 var mixins = require('../mixins.js');
-var Utility = require('../utility.js');
 
 // Includes a couple of dropdown menus to select measurements
 
@@ -64,19 +63,16 @@ var GraphSelector = React.createClass({
             that.setState({measurements: {}});
             return;
         }
-        var ip = ips[0].replace(/\./g, '_');
         $.ajax({
-            url: '/influxdb/query?' +
-                encodeURIComponent("SHOW SERIES WHERE host='" + ip + "'"),
+            url: '/timeseries/meta?ip=' + ips[0],
             dataType: 'json',
             success: function (data) {
-                var measurements = Utility.get_measurements(data);
-                if(!$.isEmptyObject(measurements)) {
-                    that.setState({measurements: measurements});
+                if(!$.isEmptyObject(data)) {
+                    that.setState({measurements: data});
                 }
             },
             error: function (xhr, status, err) {
-                console.error('Init measurements structure ', status, err.toString());
+                console.error('Error initialize measurements structure ', status, err.toString());
             }
         });
     },

@@ -27,18 +27,23 @@ var BaseGraph = React.createClass({
         };
     },
     executeQuery: function(timePeriod, ip, metricIndex, metric) {
-        var query = utility.buildQuery(timePeriod, ip,
-                                       metric[0], metric[1], metric[2]);
-        if(query == null) { return; }
+        var queryParameters = {
+            from: timePeriod[0].getTime(),
+            to: timePeriod[1].getTime(),
+            ip: ip,
+            measurement: metric[0],
+            device: metric[1],
+            measure: metric[2]
+        };
         $.ajax({
-            url: '/influxdb/query?' + encodeURIComponent(query),
+            url: '/timeseries/metric?' + $.param(queryParameters),
             dataType: 'json',
             success: function (data) {
                 var currdata = this.state.data;
                 currdata[currdata.length] = {
-                    data:utility.get_value(data),
-                    ip:ip,
-                    metric:metric,
+                    data: data,
+                    ip: ip,
+                    metric: metric,
                     metricIndex: metricIndex,
                     enabled: 1  // 1 for enabled, 0 for disabled. If shown on graph
                 };
@@ -54,7 +59,7 @@ var BaseGraph = React.createClass({
             props.graph.metrics.map(function(metric, metricIndex) {
                 that.executeQuery(
                     that.props.period,
-                    utility.dotted2underscoredIP(ip),
+                    ip,
                     metricIndex,
                     utility.splitMetric(metric).split(',')
                 );
@@ -65,8 +70,7 @@ var BaseGraph = React.createClass({
         var fitted_data=[];
         for(var i = 0;i<this.state.data.length;i++){
             fitted_data[i] = {
-                data: this.state.data[i].enabled ?
-                    utility.fitData(this.state.data[i].data) : [],
+                data: this.state.data[i].enabled ? this.state.data[i].data : [],
                 ip:this.state.data[i].ip,
                 metric:this.state.data[i].metric,
                 metricIndex:this.state.data[i].metricIndex

@@ -296,13 +296,11 @@ var processData = function (data) {
     })
 };
 
-var forwardData = function (data, udpSender) {
-    udpSender.send(data, 0, data.length,
-            config.judge.sinkPort, config.judge.sinkIP);
-};
+var forwardData = require('./backend/' + config.db.timeSeriesBackend + '.js').forwardData;
+var createSender = require('./backend/' + config.db.timeSeriesBackend + '.js').createSender;
 
 var startGraphiteServer = function() {
-    var udpSender = dgram.createSocket('udp4');
+    var udpSender = createSender();
     var server = net.createServer(function(socket) {
         var dataBuffer = '';
         socket.on('data', function(data) {
