@@ -2141,43 +2141,92 @@ app.get('/influxdb/query', function(req, res) {
     })
 });
 
-var fetchMetadata = require('./backend/' + config.db.timeSeriesBackend + '.js').fetchMetadata;
-// /timeseries/meta?ip=xxx
-// return metadata for specific IP, for measurement selectors
-app.get('/timeseries/meta', function(req, res) {
-    if(req.query.ip == undefined) {
-        res.status(400).send('IP address is required in query parameter');
-        return;
+var getIPFromNode = function(node) {
+    if(node.metricIdentifier) {
+        return node.metricIdentifier;
     }
-    fetchMetadata(req.query.ip, function(err, data) {
+    return node.ips[0];
+};
+
+var fetchMetadata = require('./backend/' + config.db.timeSeriesBackend + '.js').fetchMetadata;
+
+var fetchMetadataWrapper = function(res, ip, tsdbUrl) {
+    fetchMetadata(ip, function(err, data) {
         if(err) {
             res.status(500).send('Error querying metadata');
             return;
         }
         res.send(data);
-    });
+    }, tsdbUrl);
+};
+
+// /timeseries/meta?ip=xxx
+// /timeseries/meta?node=xxx
+// return metadata for specific node, for measurement selectors
+app.get('/timeseries/meta', function(req, res) {
+    if(req.query.ip == undefined && req.query.node == undefined) {
+        res.status(400).send('At least one of IP/nodeID should be specified in query parameter');
+        return;
+    }
+    var ip = req.query.ip;
+    if(ip) {
+        fetchMetadataWrapper(res, ip);
+    } else {
+        db.Node.findById(req.query.node, function(err, node) {
+            if(err) {
+                logger('Error fetching node', err);
+                return;
+            }
+            ip = getIPFromNode(node);
+            fetchMetadataWrapper(res, ip, node.tsdbUrl);
+        })
+    }
 });
 
 var fetchMetric = require('./backend/' + config.db.timeSeriesBackend + '.js').fetchMetric;
-// /timeseries/metric?from=xxx&to=xxx&ip=xxx&measurement=xxx&device=xxx&measure=xxx
-app.get('/timeseries/metric', function(req, res) {
-    var fromTime = req.query.from,
-        toTime = req.query.to,
-        ip = req.query.ip,
-        measurement = req.query.measurement,
-        device = req.query.device,
-        measure = req.query.measure;
-    if(fromTime == undefined || ip == undefined || measurement == undefined ||
-        measure == undefined) {
-        res.status(400).send('from, ip, measurement, measure are required');
-        return;
-    }
-    if(toTime == undefined) toTime = Date.now();
+
+var fetchMetricWrapper = function(res, fromTime, toTime, ip, measurement, device, measure,
+                                  tsdbUrl) {
     fetchMetric(fromTime, toTime, ip, measurement, device, measure, function(err, data) {
         if(err) {
             res.status(500).send('Error querying metrics ' + err);
             return;
         }
         res.send(data);
-    });
+    }, tsdbUrl);
+};
+
+// /timeseries/metric?from=xxx&to=xxx&ip=xxx&measurement=xxx&device=xxx&measure=xxx
+// /timeseries/metric?from=xxx&to=xxx&node=xxx&measurement=xxx&device=xxx&measure=xxx
+app.get('/timeseries/metric', function(req, res) {
+    var fromTime = req.query.from,
+        toTime = req.query.to,
+        ip = req.query.ip,
+        node = req.query.node,
+        measurement = req.query.measurement,
+        device = req.query.device,
+        measure = req.query.measure;
+    if(fromTime == undefined || measurement == undefined || measure == undefined) {
+        res.status(400).send('from, measurement, measure are required');
+        return;
+    }
+    if(ip == undefined && node == undefined) {
+        res.status(400).send('At least one of IP/nodeID should be specified in query parameter');
+        return;
+    }
+    if(toTime == undefined) toTime = Date.now();
+
+    if(ip) {
+        fetchMetricWrapper(res, fromTime, toTime, ip, measurement, device, measure);
+    } else {
+        db.Node.findById(node, function(err, n) {
+            if(err) {
+                logger('Error fetching node', err);
+                return;
+            }
+            ip = getIPFromNode(n);
+            fetchMetricWrapper(res, fromTime, toTime, ip, measurement, device, measure,
+                n.tsdbUrl);
+        })
+    }
 });

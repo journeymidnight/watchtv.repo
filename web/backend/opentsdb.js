@@ -90,8 +90,9 @@ var get_measurements = function (data) {
     return measurements;
 };
 
-var fetchMetadata = function(ip, callback) {
-    var url = config.db.opentsdbURL + '/api/search/lookup?use_meta=true&limit=10000&m={ip=' +
+var fetchMetadata = function(ip, callback, tsdbUrl) {
+    tsdbUrl = tsdbUrl || config.db.opentsdbURL;
+    var url = tsdbUrl + '/api/search/lookup?use_meta=true&limit=10000&m={ip=' +
             ip + '}';  // `limit` should be big enough since we need ALL the tag and device names
     fetch(url, function(err, body) {
         if(err) {
@@ -128,8 +129,9 @@ var get_value = function(res) {
     return ret;
 };
 
-var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, callback) {
-    var url = config.db.opentsdbURL + '/api/query?' +
+var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, callback, tsdbUrl) {
+    tsdbUrl = tsdbUrl || config.db.opentsdbURL;
+    var url = tsdbUrl + '/api/query?' +
                 buildQuery(fromTime, toTime, ip, measurement, device, measure);
     fetch(url, function(err, body) {
         if(err) {
