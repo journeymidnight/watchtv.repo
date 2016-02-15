@@ -33,6 +33,8 @@ var nodeSchema = new Schema({
         idc: {type: Schema.Types.ObjectId, ref: 'Idc'},
         project: {type: Schema.Types.ObjectId, ref: 'Project'},
         graphInfo: [graphInfo],
+        metricIdentifier: String,
+        tsdbUrl: String,
         // For judge module
         state: {type: String, enum: states},
         alarms: [{type: Schema.Types.ObjectId, ref: 'Alarm'}],
