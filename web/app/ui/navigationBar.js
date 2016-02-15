@@ -105,6 +105,12 @@ var NavigationBar = React.createClass({
         $(".fa-nav").parent().off().click(function(){
             window.location.href = $(this).find(".fa-nav").attr("data-url");
         });
+
+        // set column number properly
+        if(this.state.user.graphColumnNumber) {
+            var percent = 100 / this.state.user.graphColumnNumber;
+            $('.graphList > div, .singleDefault > div').css('width', percent + '%');
+        }
     },
     render: function() {
         var header = (
