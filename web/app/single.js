@@ -36,25 +36,28 @@ var GraphList = React.createClass({
             url: "/node/" + this.state.node._id,
             type: "GET",
             success: function(data) {
-                var ips = data.ips;
+                var ips = [];
+                if(data.metricIdentifier) {
+                    ips = [data.metricIdentifier];
+                } else {
+                    ips = data.ips;
+                }
                 that.setState({node: data});
 
-                for(var i = 0; i<ips.length; i++) {
-                    // Similar to graphSelector.js
-                    $.ajax({
-                        url: '/timeseries/meta?ip=' + ips[i],
-                        dataType: 'json',
-                        success: function (data) {
-                            if(!$.isEmptyObject(data)) {
-                                that.setState({measurements: data});
-                            }
-                        },
-                        error: function (xhr, status, err) {
-                            console.error('Error initialize measurements structure',
-                                status, err.toString());
+                // Similar to graphSelector.js
+                $.ajax({
+                    url: '/timeseries/meta?node=' + that.state.node._id,
+                    dataType: 'json',
+                    success: function (data) {
+                        if(!$.isEmptyObject(data)) {
+                            that.setState({measurements: data});
                         }
-                    });
-                }
+                    },
+                    error: function (xhr, status, err) {
+                        console.error('Error initialize measurements structure',
+                            status, err.toString());
+                    }
+                });
 
                 $.ajax({
                     url: '/graphs/default',
@@ -198,7 +201,8 @@ var GraphList = React.createClass({
                     <div className="singleDefault">{defaultGraphList}</div>
                     {graphList}
                 </div>
-                <GraphEditor ips = {this.state.node.ips}
+                <GraphEditor ips = {this.state.node.metricIdentifier ?
+                                        [this.state.node.metricIdentifier] : this.state.node.ips}
                              node_id={this.state.node._id}
                              measurements={this.state.measurements}
                              onRefresh={this.refreshGraphs}

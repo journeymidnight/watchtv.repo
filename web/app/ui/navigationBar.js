@@ -110,6 +110,7 @@ var NavigationBar = React.createClass({
         if(this.state.user.graphColumnNumber) {
             var percent = 100 / this.state.user.graphColumnNumber;
             $('.graphList > div, .singleDefault > div').css('width', percent + '%');
+            $('.singleDefault').css('width', '100%');
         }
     },
     render: function() {
