@@ -124,24 +124,24 @@ var NavigationBar = React.createClass({
             name = this.state.user.showName + '(' + name + ')';
         }
         var menuItems = [
-            {text: 'Node',icon:<i className="fa fa-nav fa-sitemap" data-url="/"></i>},
-            {text: 'Tag',icon:<i className="fa fa-nav fa-tag" data-url="/tag.html"></i>},
-            {text: 'Dashboard',icon:<i className="fa fa-nav fa-signal" data-url="/dashboard.html"></i>}
+            {text: __('Node'),icon:<i className="fa fa-nav fa-sitemap" data-url="/"></i>},
+            {text: __('Tag'),icon:<i className="fa fa-nav fa-tag" data-url="/tag.html"></i>},
+            {text: __('Dashboard'),icon:<i className="fa fa-nav fa-signal" data-url="/dashboard.html"></i>}
         ];
         if(this.state.user.role === 'Root' || this.state.user.role === 'Leader') {
-            menuItems.push({text: 'User',icon:<i className="fa fa-nav fa-user" data-url="/user.html"></i>});
+            menuItems.push({text: __('User'),icon:<i className="fa fa-nav fa-user" data-url="/user.html"></i>});
         }
         if(this.state.user.role === 'Root') {
-            menuItems.push({payload:'/project.html', text: 'Project',icon:<i className="fa fa-nav fa-joomla" data-url="/project.html"></i>})
+            menuItems.push({payload:'/project.html', text: __('Project'),icon:<i className="fa fa-nav fa-joomla" data-url="/project.html"></i>})
         }
 
         var preferenceActions = [
-            {text: 'Cancel'},
-            {text: 'Update', onClick: this.updatePreference}
+            {text: __('Cancel')},
+            {text: __('Update'), onClick: this.updatePreference}
         ];
         var preferenceEdits = [];
         var dropdownItems = [
-            {payload: 2, text: 'Graph column number'},
+            {payload: 2, text: __('Graph column number')},
             {payload: 1, text: '1'},
             {payload: 2, text: '2'},
             {payload: 3, text: '3'},
@@ -153,7 +153,7 @@ var NavigationBar = React.createClass({
                 break;
             }
         }
-        preferenceEdits.push(<TextField floatingLabelText="Show Name"
+        preferenceEdits.push(<TextField floatingLabelText={__("Show Name")}
                                          defaultValue={this.state.user.showName}
                                          ref="showNameInput" />);
         preferenceEdits.push(<DropDownMenu menuItems={dropdownItems}
@@ -168,13 +168,13 @@ var NavigationBar = React.createClass({
                                     color="#d8f4f9" />}  desktop={true}
                                     onChange={this.handleRightMenuChange}>
                                 <MenuItem primaryText={name} disabled={true} />
-                                <MenuItem primaryText="Preferences"
+                                <MenuItem primaryText={__("Preferences")}
                                     leftIcon={<FontIcon className="fa fa-cog" style={{margin: 0}} />}
                                     value="preferences" />
-                                <MenuItem primaryText="Help"
+                                <MenuItem primaryText={__("Help")}
                                     leftIcon={<FontIcon className="fa fa-lightbulb-o" style={{margin: 0}}/>}
                                     value="help" />
-                                <MenuItem primaryText="Log Out"
+                                <MenuItem primaryText={__("Log Out")}
                                     leftIcon={<FontIcon className="fa fa-sign-out" style={{margin: 0}}/>}
                                     value="logout" />
                                 </IconMenu>
@@ -183,7 +183,7 @@ var NavigationBar = React.createClass({
                     <LeftNav menuItems={menuItems} docked={false} ref="navi" className = "navBar"
                         header={header} isInitiallyOpen={true}/>
                     <Dialog
-                        title="Preferences"
+                        title={__("Preferences")}
                         actions={preferenceActions}
                         ref="preferenceDialog"
                         contentClassName="dropDownDiv">

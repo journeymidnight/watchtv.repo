@@ -325,9 +325,42 @@ var findByIdAndUpdate = function(res, documentId, toUpdate, name, model) {
     );
 };
 
-var render = function(name) {
+var parseAcceptLanguage = function(al) {
+    var regex = /((([a-zA-Z]+(-[a-zA-Z]+)?)|\*)(;q=[0-1](\.[0-9]+)?)?)*/g;
+    var strings = (al || "").match(regex);
+    return strings.map(function(m){
+        if(!m){
+            return;
+        }
+
+        var bits = m.split(';');
+        var ietf = bits[0].split('-');
+
+        return {
+            code: ietf[0],
+            region: ietf[1],
+            quality: bits[1] ? parseFloat(bits[1].split('=')[1]) : 1.0
+        };
+    }).filter(function(r){
+        return r;
+    }).sort(function(a, b){
+        return b.quality - a.quality;
+    });
+};
+
+var render = function(name, params) {
     return function(req, res) {
-        res.render(name);
+        var languages = parseAcceptLanguage(req.headers['accept-language']);
+        var translation = {};
+        for(var i = 0; i < languages.length; i++) {
+            if(languages[i].code === 'en') break;  // English is the default
+            try {
+                translation = require('./translation/' + languages[i].code + '.js');
+            } catch (err) {}
+        }
+        if(!params) params = {};
+        params.translation = JSON.stringify(translation);
+        res.render(name, params);
     };
 };
 

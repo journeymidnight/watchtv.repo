@@ -90,6 +90,14 @@
                     }
                 }
             };
+            window.__ = function(string) {
+                var translation = {{translation|safe}}
+                if(translation[string]) {
+                    return translation[string];
+                } else {
+                    return string;
+                }
+            }
         })();
     </script>
     {% block jsFile %}{% endblock %}

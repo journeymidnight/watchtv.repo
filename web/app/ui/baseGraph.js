@@ -221,7 +221,7 @@ var BaseGraph = React.createClass({
     },
     render: function(){
         var graph = this.props.graph;
-        var placeholderText = "Click Here to Edit Graph Name";
+        var placeholderText = __("Click Here to Edit Graph Name");
         if(graph.title!=null&&graph.title!="") placeholderText = graph.title;
 
         return (

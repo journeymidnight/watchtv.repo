@@ -27,7 +27,7 @@ var ProjectList = React.createClass({
             },
             success: function(){
                 this.props.onRefresh(null, null, true);
-                this.setState({snackMsg: 'Project "' + name + '" created'});
+                this.setState({snackMsg: __('Project created:') + name});
                 this.refs.snackbar.show();
             }.bind(this),
             error: function(xhr, status, err) {
@@ -63,7 +63,7 @@ var ProjectList = React.createClass({
                 <td><TextField ref="newName" id="newName"/></td>
                 <td><TextField ref="newLeader" id="newLeader"/></td>
                 <td>
-                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewProject} title="Add"></i>
+                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewProject} title={__("Add")}></i>
                 </td>
             </tr>;
         return (
@@ -71,9 +71,9 @@ var ProjectList = React.createClass({
                 <Table striped bordered hover condensed>
                     <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Leader</th>
-                        <th>Actions</th>
+                        <th>{__('Name')}</th>
+                        <th>{__('Leader')}</th>
+                        <th>{__('Actions')}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -166,20 +166,20 @@ var ProjectEditButton = React.createClass({
         var edits =
             <div>
                 <div>
-                    <TextField floatingLabelText="Name" defaultValue={this.props.name}
+                    <TextField floatingLabelText={__("Name")} defaultValue={this.props.name}
                                    ref="nameInput" id="nameInput"/>
                 </div>
                 <div>
-                    <TextField floatingLabelText="Leader"
+                    <TextField floatingLabelText={__("Leader")}
                                    defaultValue={leader}
                                    ref="leaderInput" id="leaderInput"/>
                 </div>
             </div>;
         return (
             <span>
-                <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
+                <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title={__("Edit")}></i>
                 <Dialog
-                    title={"Edit info for " + this.props.name}
+                    title={__("Edit info for ") + this.props.name}
                     actions={editActions}
                     onShow={this.bindEvents}
                     ref="editDialog">
@@ -196,11 +196,11 @@ var ProjectApp = React.createClass({
     render: function(){
         return (
             <AppCanvas>
-                <NavigationBar title="Projects" />
+                <NavigationBar title={__("Projects")} />
                 <SearchableList
                     type="project"
                     listClass={ProjectList}
-                    hintText="Find projects"
+                    hintText={__("Find projects")}
                     additionalFilter=""
                     />
             </AppCanvas>

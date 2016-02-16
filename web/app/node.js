@@ -94,7 +94,7 @@ var NodeList = React.createClass({
                 <td><TextField ref="newRegion" id="newRegion"/></td>
                 <td><TextField ref="newIdc" id="newIdc"/></td>
                 <td>
-                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewNode} title="Add"></i>
+                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewNode} title={__("Add")}></i>
                 </td>
             </tr>;
         return (
@@ -102,14 +102,14 @@ var NodeList = React.createClass({
             <Table striped bordered hover condensed>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>IP Addresses</th>
-                        <th>Tags</th>
-                        <th>Description</th>
-                        <th>Project</th>
-                        <th>Region</th>
-                        <th>IDC</th>
-                        <th>Actions</th>
+                        <th>{__('Name')}</th>
+                        <th>{__('IP Addresses')}</th>
+                        <th>{__('Tags')}</th>
+                        <th>{__('Description')}</th>
+                        <th>{__('Project')}</th>
+                        <th>{__('Region')}</th>
+                        <th>{__('IDC')}</th>
+                        <th>{__('Actions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -229,28 +229,29 @@ var NodeEditButton = React.createClass({
             return t.name;
         });
         var edits = <div>
-            <Toggle label="Enable Alarm"
+            <Toggle label={__("Enable Alarm")}
                     ref="alarmToggle"
                     style={{width: '35%'}}
                     defaultToggled={this.props.judgeEnabled} />
-            <TextField floatingLabelText="Name" defaultValue={this.props.nodeName}
+            <TextField floatingLabelText={__("Name")} defaultValue={this.props.nodeName}
                 ref="nameInput" id="nameInput"/>
-            <TextField floatingLabelText="IP Address"
+            <TextField floatingLabelText={__("IP Address")}
                 defaultValue={this.props.nodeIps.join("  ")}
                 ref="ipInput" id="ipInput"/>
-            <TextField floatingLabelText="Tags" defaultValue={tags.join(" ")}
+            <TextField floatingLabelText={__("Tags")}
+                       defaultValue={tags.join(" ")}
                 ref="tagInput" id="tagInput"/>
-            <TextField floatingLabelText="Project" defaultValue={this.props.nodeProject.name}
+            <TextField floatingLabelText={__("Project")} defaultValue={this.props.nodeProject.name}
                            ref="projectInput" id="projectInput"/>
-            <TextField floatingLabelText="Region" defaultValue={this.props.nodeRegion.name}
+            <TextField floatingLabelText={__("Region")} defaultValue={this.props.nodeRegion.name}
                 ref="regionInput" id="regionInput"/>
-            <TextField floatingLabelText="IDC" defaultValue={this.props.nodeIdc.name}
+            <TextField floatingLabelText={__("IDC")} defaultValue={this.props.nodeIdc.name}
                 ref="idcInput" id="idcInput"/>
-            <TextField floatingLabelText="Ignored Alarms"
+            <TextField floatingLabelText={__("Ignored Alarms")}
                        defaultValue={this.props.ignoredAlarms.join(' ')}
                        ref="ignoredAlarmsInput"/>
                 <div>
-                    <TextField floatingLabelText="Description"
+                    <TextField floatingLabelText={__("Description")}
                         defaultValue={this.props.nodeDescription}
                         ref="descriptionInput" multiLine={true}
                     />
@@ -258,9 +259,9 @@ var NodeEditButton = React.createClass({
             </div>;
         return (
             <span>
-                <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
+                <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title={__("Edit")}></i>
                 <Dialog
-                    title={"Edit info for " + this.props.nodeName}
+                    title={__("Edit info for ") + this.props.nodeName}
                     actions={editActions}
                     onShow={this.bindEvents}
                     ref="editDialog">
@@ -284,13 +285,13 @@ var NodeInfoButton = React.createClass({
         if(this.props.state == "Good") {// green, signifies the node is in good condition
             return (
                 <span>
-                    <i className="fa fa-signal infoBtn fa-bg active" onClick={this.showInfo} title="Info"></i>
+                    <i className="fa fa-signal infoBtn fa-bg active" onClick={this.showInfo} title={__("Info")}></i>
                 </span>
             );
         }else{
             return (
                 <span>
-                    <i className="fa fa-signal infoBtn fa-bg" onClick={this.showInfo} title="Info"></i>
+                    <i className="fa fa-signal infoBtn fa-bg" onClick={this.showInfo} title={__("Info")}></i>
                 </span>
             );
         }
@@ -327,10 +328,11 @@ var NodeAlarmButton = React.createClass({
     render: function() {
         return (
             <span>
-                <i className="fa fa-bell fa-bg" onClick={this.showInfo} title="Alarms"></i>
+                <i className="fa fa-bell fa-bg" onClick={this.showInfo}
+                   title={__("Alarms")}></i>
                 <Dialog
-                    title={"Alarms"}
-                    actions={[{text: 'Dismiss'}]}
+                    title={__("Alarms")}
+                    actions={[{text: __('Dismiss')}]}
                     onShow={this.getAlarms}
                     ref="alarmDialog">
                     <TextField value={this.state.alarms} style={{width: '90%'}}
@@ -345,11 +347,11 @@ var NodeApp = React.createClass({
     render: function(){
         return (
             <AppCanvas>
-                <NavigationBar title="Nodes" />
+                <NavigationBar title={__("Nodes")} />
                 <SearchableList
                     type="node"
                     listClass={NodeList}
-                    hintText="Find by name ip or tag"
+                    hintText={__("Find by name ip or tag")}
                     additionalFilter="project region idc"
                 />
             </AppCanvas>

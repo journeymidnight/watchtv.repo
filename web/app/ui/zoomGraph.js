@@ -72,7 +72,7 @@ var Zoom = React.createClass({
         //stop refresh after graph drag
         clearInterval(this.state.currentTimer);
         this.setState({refreshTime: 0});
-        $(".zoomTime .refreshInfo").html("No Refresh");
+        $(".zoomTime .refreshInfo").html(__("No Refresh"));
         $(".refreshInfo + ul li,.zoomTime .refreshInfo").removeClass("selected");
     },
     render: function(){

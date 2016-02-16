@@ -29,9 +29,9 @@ var mixins = require('../mixins.js');
 //                     "region", "idc" and "project"; set to '' if not needed
 
 var displayName = {
-    region: 'Region',
-    idc: 'IDC',
-    project: 'Project'
+    region: __('Region'),
+    idc: __('IDC'),
+    project: __('Project')
 };
 
 var SearchBar = React.createClass({
@@ -162,7 +162,8 @@ var SearchBar = React.createClass({
         searchComponents.push(<TextField hintText={this.props.hintText} ref="keywords"
                                key="keywords" onFocus={this.bindEnterKeypress}
                                onBlur={this.unbindEnterKeypress}/>);
-        searchComponents.push(<RaisedButton label="Find" key="find"
+        searchComponents.push(<RaisedButton label={__("Find")}
+                                            key="find"
                                onClick={this.handleSearch} />);
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;

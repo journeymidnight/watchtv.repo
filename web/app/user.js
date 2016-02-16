@@ -20,9 +20,9 @@ var SearchableList = require('./ui/searchableList.js');
 var utility = require('./utility.js');
 
 var roleItems = [
-    {payload: 'User', text: 'User'},
-    {payload: 'Leader', text: 'Leader'},
-    {payload: 'Root', text: 'Root'}
+    {payload: 'User', text: __('User')},
+    {payload: 'Leader', text: __('Leader')},
+    {payload: 'Root', text: __('Root')}
 ];
 
 var UserList = React.createClass({
@@ -106,9 +106,9 @@ var UserList = React.createClass({
                         displaySelectAll={false}
                         enableSelectAll={false}>
                         <TableRow>
-                            <TableHeaderColumn>Name</TableHeaderColumn>
-                            <TableHeaderColumn>Role</TableHeaderColumn>
-                            <TableHeaderColumn>Projects</TableHeaderColumn>
+                            <TableHeaderColumn>{__('Name')}</TableHeaderColumn>
+                            <TableHeaderColumn>{__('Role')}</TableHeaderColumn>
+                            <TableHeaderColumn>{__('Projects')}</TableHeaderColumn>
                         </TableRow>
                     </TableHeader>
                     <TableBody
@@ -155,7 +155,7 @@ var UserAddButton = React.createClass({
             success: function(data) {
                 this.refs.editDialog.dismiss();
                 this.props.onRefresh(null, null, true);
-                this.setState({snackMsg: 'User "' + name + '" added'});
+                this.setState({snackMsg: __('User added: ') + name });
                 this.refs.snackbar.show();
             }.bind(this),
             error: function(xhr, status, err) {
@@ -169,25 +169,26 @@ var UserAddButton = React.createClass({
     },
     render: function(){
         var actions = [
-            {text: 'Cancel'},
-            {text: 'Add', onClick: this.addUser}
+            {text: __('Cancel')},
+            {text: __('Add'), onClick: this.addUser}
         ];
         var edits =
             <div>
-                <TextField floatingLabelText="Name" defaultValue=''
+                <TextField floatingLabelText={__("Name")} defaultValue=''
                            id="newNameInput" ref="nameInput"/>
                 <DropDownMenu menuItems={roleItems}
                               selectedIndex={0}
                               onChange={this.handleDropDownChange}
                     />
-                <TextField floatingLabelText="Projects" defaultValue=''
+                <TextField floatingLabelText={__("Projects")} defaultValue=''
                            ref="projectInput" id="newProjectInput"/>
             </div>;
         return (
             <span>
-                <i className="fa fa-plus fa-bg" onClick={this.handleClick} title="Add"></i>
+                <i className="fa fa-plus fa-bg" onClick={this.handleClick}
+                   title={__("Add")}></i>
                 <Dialog
-                    title="Add new user"
+                    title={__("Add new user")}
                     actions={actions}
                     ref="editDialog" contentClassName="dropDownDiv"
                     onShow={this.bindEvents}>
@@ -237,8 +238,8 @@ var UserEditButton = React.createClass({
     },
     render: function(){
         var editActions = [
-            {text: 'Cancel'},
-            {text: 'Update', onClick: this.updateUser}
+            {text: __('Cancel')},
+            {text: __('Update'), onClick: this.updateUser}
         ];
         var projects = this.props.user.projects.map(function(p){
             return p.name;
@@ -259,14 +260,15 @@ var UserEditButton = React.createClass({
                     selectedIndex={selectedRoleIndex}
                     onChange={this.handleDropDownChange}
                 />
-                <TextField floatingLabelText="Projects" defaultValue={projects.join(" ")}
+                <TextField floatingLabelText={__("Projects")}
+                           defaultValue={projects.join(" ")}
                     ref="projectInput" id="projectEditInput"/>
             </div>;
         return (
             <span>
                 <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
                 <Dialog
-                    title={"Edit info for " + this.props.user.name}
+                    title={__("Edit info for ") + this.props.user.name}
                     actions={editActions}
                     onShow={this.bindEvents}
                     ref="editDialog" contentClassName="dropDownDiv">
@@ -309,7 +311,7 @@ var BatchAddProjectButton = React.createClass({
                  that.props.onRefresh(null, null, true);
                  that.refs.editDialog.dismiss();
              }).fail(function(){
-                that.setState({snackMsg: 'Failed to add projects'});
+                that.setState({snackMsg: __('Failed to add projects')});
                 that.refs.snackbar.show();
              })
         });
@@ -320,19 +322,21 @@ var BatchAddProjectButton = React.createClass({
     },
     render: function() {
         var actions = [
-            {text: 'Cancel'},
-            {text: 'Add', onClick: this.addProjects}
+            {text: __('Cancel')},
+            {text: __('Add'), onClick: this.addProjects}
         ];
         var edits =
             <div>
-                <TextField floatingLabelText="Projects" defaultValue=''
+                <TextField floatingLabelText={__("Projects")}
+                           defaultValue=''
                            ref="projectInput" id="projectBatchInput"/>
             </div>;
         return (
             <span>
-                <i className="fa fa-tags fa-bg" onClick={this.handleClick} title="Add Projects"></i>
+                <i className="fa fa-tags fa-bg" onClick={this.handleClick}
+                   title={__("Add Projects")}></i>
                 <Dialog
-                    title="Add extra projects to these users:"
+                    title={__("Add extra projects to these users:")}
                     actions={actions}
                     ref="editDialog" contentClassName="dropDownDiv"
                     onShow={this.bindEvents}>
@@ -350,11 +354,11 @@ var UserApp = React.createClass({
     render: function(){
         return (
             <AppCanvas>
-                <NavigationBar title="Users" />
+                <NavigationBar title={__("Users")} />
                 <SearchableList
                     type="user"
                     listClass={UserList}
-                    hintText="Find known users"
+                    hintText={__("Find known users")}
                     additionalFilter="project"
                 />
             </AppCanvas>

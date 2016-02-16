@@ -57,21 +57,22 @@ var DeleteButton = React.createClass({
                 that.props.onRefresh();
                 that.refs.deleteConfirm.dismiss();
          }).fail(function(){
-                that.setState({snackMsg: 'Failed to delete' + that.props.name});
+                that.setState({snackMsg: __('Failed to delete') + that.props.name});
                 that.refs.snackbar.show();
          });
     },
     render: function(){
         var deleteConfirm = [
-            {text: 'Cancel'},
-            {text: 'Confirm', onClick: this.deleteItem}
+            {text: __('Cancel')},
+            {text: __('Confirm'), onClick: this.deleteItem}
         ];
-        var msg = 'Are you sure to delete "' + this.props.name + '"?';
+        var msg = __('Are you sure to delete "') + this.props.name + '"?';
         return (
             <span>
-                <i className="fa fa-times fa-cir" onClick={this.handleClick} title="Delete"></i>
+                <i className="fa fa-times fa-cir" onClick={this.handleClick}
+                   title={__("Delete")}></i>
                 <Dialog
-                    title="Delete Confirmation"
+                    title={__("Delete Confirmation")}
                     actions={deleteConfirm}
                     ref="deleteConfirm"> {msg}
                 </Dialog>

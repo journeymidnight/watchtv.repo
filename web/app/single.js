@@ -209,8 +209,8 @@ var GraphList = React.createClass({
                              onUpdate={this.updateGraph}
                              ref="graphEditor"
                 />
-                <Dialog title="Copy the contents below to share this graph"
-                        actions={[{text: 'Close'}]}
+                <Dialog title={__("Copy the contents below to share this graph")}
+                        actions={[{text: __('Close')}]}
                         autoDetectWindowHeight={true} autoScrollBodyContent={true}
                         ref='shareDialog'>
                     <TextField value={this.state.shareContent} style={{width: '90%'}}
@@ -228,7 +228,7 @@ var GraphList = React.createClass({
 
 React.render(
     <div>
-        <NavigationBar title="Single" />
+        <NavigationBar title={__("Single")} />
         <GraphList />
     </div>,
     document.getElementById('content')

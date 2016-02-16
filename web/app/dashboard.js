@@ -147,8 +147,8 @@ var GraphList = React.createClass({
                              onUpdate={this.updateGraph}
                              ref="graphEditor"
                 />
-                <Dialog title="Copy the contents below to share this graph"
-                        actions={[{text: 'Close'}]}
+                <Dialog title={__("Copy the contents below to share this graph")}
+                        actions={[{text: __('Close')}]}
                         autoDetectWindowHeight={true} autoScrollBodyContent={true}
                         ref='shareDialog'>
                     <TextField value={this.state.shareContent} style={{width: '90%'}}
@@ -163,20 +163,21 @@ var GraphList = React.createClass({
                     <div className="importGraphBtn" onClick={this.showGraphImportDialog}>
                         <i className='fa fa-arrow-down fa-white'></i>
                     </div>
-                    <Dialog title="Import graph"
+                    <Dialog title={__("Import graph")}
                             actions={[
-                                {text: 'Cancel'},
-                                {text: 'Import', onClick: this.importGraph}
+                                {text: __('Cancel')},
+                                {text: __('Import'), onClick: this.importGraph}
                             ]}
                             ref='graphImportDialog'>
-                        <TextField hintText='Paste the JSON string here' ref='graphInput'
+                        <TextField hintText={__('Paste the JSON string here')}
+                                   ref='graphInput'
                                    style={{width: '90%'}} multiLine={true}
                         />
                     </Dialog>
-                    <Dialog title="Cannot parse the content"
-                            actions={[{ text: 'OK' }]}
+                    <Dialog title={__("Cannot parse the content")}
+                            actions={[{ text: __('OK') }]}
                             ref="parseErrorDialog">
-                        Please double check your input
+                        {__('Please double check your input')}
                     </Dialog>
                 </div>
             </div>
@@ -186,7 +187,7 @@ var GraphList = React.createClass({
 
 React.render(
     <div>
-        <NavigationBar title="Dashboard" />
+        <NavigationBar title={__("Dashboard")} />
         <GraphList />
     </div>,
     document.getElementById('content')

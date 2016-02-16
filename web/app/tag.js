@@ -74,7 +74,8 @@ var TagList = React.createClass({
                 <td><TextField ref="newAlarmRule"/></td>
                 <td><TextField ref="newReceivers"/></td>
                 <td>
-                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewTag} title="Add"></i>
+                    <i className="fa fa-plus fa-bg" onClick={this.handleCreateNewTag}
+                       title={__("Add")}></i>
                 </td>
             </tr>;
         return (
@@ -82,12 +83,12 @@ var TagList = React.createClass({
                 <Table striped bordered hover condensed>
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Monitored Items</th>
-                            <th>Periodic Job</th>
-                            <th>Alarm Rule</th>
-                            <th>Alarm Receivers</th>
-                            <th>Actions</th>
+                            <th>{__('Name')}</th>
+                            <th>{__('Monitored Items')}</th>
+                            <th>{__('Periodic Job')}</th>
+                            <th>{__('Alarm Rule')}</th>
+                            <th>{__('Alarm Receivers')}</th>
+                            <th>{__('Actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -171,25 +172,26 @@ var TagEditButton = React.createClass({
     },
     render: function(){
         var editActions = [
-            {text: 'Cancel'},
-            {text: 'Update', onClick: this.updateTag}
+            {text: __('Cancel')},
+            {text: __('Update'), onClick: this.updateTag}
         ];
         var edits =
             <div>
                 <div>
-                <TextField floatingLabelText="Name" defaultValue={this.props.name}
+                <TextField floatingLabelText={__("Name")}
+                           defaultValue={this.props.name}
                     ref="nameInput" id="nameInput"/>
-                <TextField floatingLabelText="Monitored Items"
+                <TextField floatingLabelText={__("Monitored Items")}
                     defaultValue={this.props.monitorItems.join(" ")}
                     ref="monitorItemsInput" id="monitorItemsInput" />
-                <TextField floatingLabelText="Alarm Receivers"
+                <TextField floatingLabelText={__("Alarm Receivers")}
                     defaultValue={this.props.alarmReceivers.join(' ') || ''}
                     ref="alarmReceivers" />
-                <TextField floatingLabelText="Periodic Job"
+                <TextField floatingLabelText={__("Periodic Job")}
                            defaultValue={this.props.periodicJob || ''}
                            multiLine={true}
                            ref="periodicJob" />
-                <TextField floatingLabelText="Alarm Rule"
+                <TextField floatingLabelText={__("Alarm Rule")}
                            defaultValue={this.props.alarmRule || ''}
                            multiLine={true}
                            style={{width: '60%'}}
@@ -198,9 +200,10 @@ var TagEditButton = React.createClass({
             </div>;
         return (
             <span>
-                <i className="fa fa-pencil fa-transform" onClick={this.handleClick} title="Edit"></i>
+                <i className="fa fa-pencil fa-transform" onClick={this.handleClick}
+                   title={__("Edit")}></i>
                 <Dialog
-                    title={"Edit info for " + this.props.name}
+                    title={__("Edit info for ") + this.props.name}
                     onShow={this.bindEvents}
                     actions={editActions}
                     ref="editDialog">
@@ -217,11 +220,11 @@ var TagApp = React.createClass({
     render: function(){
         return (
             <AppCanvas>
-                <NavigationBar title="Tags" />
+                <NavigationBar title={__("Tags")} />
                 <SearchableList
                     type="tag"
                     listClass={TagList}
-                    hintText="Find tags"
+                    hintText={__("Find tags")}
                     additionalFilter=""
                 />
             </AppCanvas>

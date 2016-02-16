@@ -30,12 +30,12 @@ var dashboardGraphEditor = React.createClass({
     saveConfig: function () {
         var that = this;
         if(that.state.ips.length==0){
-            that.setState({snackMsg: 'IP address is required'});
+            that.setState({snackMsg: __('IP address is required')});
             that.refs.snackbar.show();
             return;
         }
         if(that.state.metrics.length==0){
-            that.setState({snackMsg: 'Metric field is required'});
+            that.setState({snackMsg: __('Metric field is required')});
             that.refs.snackbar.show();
             return;
         }
@@ -124,9 +124,9 @@ var dashboardGraphEditor = React.createClass({
     },
     render: function() {
         var deleteButton = <div></div>;
-        var title = 'Add new graph';
+        var title = __('Add new graph');
         if(this.state.type === 'edit') {
-            title = 'Edit graph';
+            title = __('Edit graph');
             deleteButton =
                 <div className="delDialog">
                     <FlatButton label="Delete" className="delBtn" onClick={this.showDelDialog}/>
@@ -137,19 +137,19 @@ var dashboardGraphEditor = React.createClass({
                 <div className="btnParent" >
                     <Dialog title={title}
                             actions={[
-                                {text: 'Cancel'},
-                                {text: 'Submit', onClick: this.saveConfig, ref: 'submit' }
+                                {text: __('Cancel')},
+                                {text: __('Submit'), onClick: this.saveConfig, ref: 'submit' }
                             ]}
                             ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                         {deleteButton}
-                        <Dialog title="Delete confirmation"
+                        <Dialog title={__("Delete confirmation")}
                                     actions={[
-                                                { text: 'Cancel' },
-                                                { text: 'Delete', onClick: this.deleteGraph, ref: 'submit' }
+                                                { text: __('Cancel') },
+                                                { text: __('Delete'), onClick: this.deleteGraph, ref: 'submit' }
                                             ]}
                                     ref="delDialog">
-                            Please confirm to delete this graph.
+                            {__('Please confirm to delete this graph.')}
                         </Dialog>
                         <div>
                             <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
