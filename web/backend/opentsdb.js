@@ -99,6 +99,10 @@ var fetchMetadata = function(ip, callback, tsdbUrl) {
             callback(err);
             return;
         }
+        if(body.error) {
+            callback(body.error.message);
+            return;
+        }
         callback(null, get_measurements(body));
     })
 };

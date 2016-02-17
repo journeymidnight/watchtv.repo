@@ -85,22 +85,6 @@ var plotGraph = function(placeholder, data, yAxisFormatters) {
         });
 };
 
-var getEvent = function(){ //ie and ff 
-    if(document.all)  return window.event;    
-    var func=getEvent.caller;
-    while(func!=null){  
-        var arg0=func.arguments[0]; 
-        if(arg0) { 
-          if((arg0.constructor==Event || arg0.constructor ==MouseEvent) 
-                || (typeof(arg0)=="object" && arg0.preventDefault && arg0.stopPropagation)){  
-            return arg0; 
-          } 
-        } 
-        func=func.caller; 
-    } 
-    return window.event; 
-};
-
 var dotted2underscoredIP = function(ip) {
     var dot = new RegExp('\\.','g');
     return ip.split(':')[0].replace(dot, '_');
@@ -215,7 +199,6 @@ var Utility = {
     periodFromTimeLength: periodFromTimeLength,
     numberFormatter: numberFormatter,
     plotGraph: plotGraph,
-    getEvent: getEvent,
     catHost:catHost,
     splitMetric:splitMetric,
     getElePosition:getElePosition,
