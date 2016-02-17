@@ -356,6 +356,7 @@ var render = function(name, params) {
             if(languages[i].code === 'en') break;  // English is the default
             try {
                 translation = require('./translation/' + languages[i].code + '.js');
+                break;
             } catch (err) {}
         }
         if(!params) params = {};

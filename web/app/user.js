@@ -135,7 +135,7 @@ var UserAddButton = React.createClass({
         return {snackMsg: ''}
     },
     handleDropDownChange: function(err, selectedIndex, menuItem) {
-        this.setState({roleStateDropDown: menuItem.text})
+        this.setState({roleStateDropDown: menuItem.payload})
     },
     bindEvents: function() {
         $('#newNameInput').autocomplete(createSingleAutocompleteObject('q?oauthuser='));
@@ -172,12 +172,18 @@ var UserAddButton = React.createClass({
             {text: __('Cancel')},
             {text: __('Add'), onClick: this.addUser}
         ];
+        var selectedRoleIndex = 0;
+        if (this.state.roleStateDropDown) {
+            if(this.state.roleStateDropDown === 'User') selectedRoleIndex = 0;
+            if(this.state.roleStateDropDown === 'Leader') selectedRoleIndex = 1;
+            if(this.state.roleStateDropDown === 'Root') selectedRoleIndex = 2;
+        }
         var edits =
             <div>
                 <TextField floatingLabelText={__("Name")} defaultValue=''
                            id="newNameInput" ref="nameInput"/>
                 <DropDownMenu menuItems={roleItems}
-                              selectedIndex={0}
+                              selectedIndex={selectedRoleIndex}
                               onChange={this.handleDropDownChange}
                     />
                 <TextField floatingLabelText={__("Projects")} defaultValue=''
@@ -209,7 +215,7 @@ var UserEditButton = React.createClass({
         return {snackMsg: ''}
     },
     handleDropDownChange: function(err, selectedIndex, menuItem) {
-        this.setState({roleStateDropDown: menuItem.text})
+        this.setState({roleStateDropDown: menuItem.payload})
     },
     updateUser: function(){
         $.ajax({

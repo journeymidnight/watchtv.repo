@@ -86,15 +86,15 @@ var Zoom = React.createClass({
         return (
             <div className="zoomTime">
                 <div>
-                    <div className="refreshInfo" onClick={this.showDropDown}>Refresh Rate</div>
+                    <div className="refreshInfo" onClick={this.showDropDown}>{__('Refresh Rate')}</div>
                     <ul>
-                        <li value="0" onClick={that.changeRefreshRate}>No Refresh</li>
-                        <li value="60000" onClick={that.changeRefreshRate}>1 min</li>
-                        <li value="300000" onClick={that.changeRefreshRate}>5 min</li>
-                        <li value="600000" onClick={that.changeRefreshRate}>10 min</li>
+                        <li value="0" onClick={that.changeRefreshRate}>{__('No Refresh')}</li>
+                        <li value="60000" onClick={that.changeRefreshRate}>{__('1 min')}</li>
+                        <li value="300000" onClick={that.changeRefreshRate}>{__('5 min')}</li>
+                        <li value="600000" onClick={that.changeRefreshRate}>{__('10 min')}</li>
                     </ul>
                 </div>
-                <div className="zoom" onClick = {this.zoomOut}>Zoom Out</div>
+                <div className="zoom" onClick = {this.zoomOut}>{__('Zoom Out')}</div>
                 <div>
                     <div className="zoomInfo" onClick={this.showDropDown}>last 12h</div>
                     <ul>
