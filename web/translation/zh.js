@@ -10,7 +10,7 @@ var translation = {
     'Cannot parse the content': '不能解析内容',
     Dashboard: '面板',
     Name: '名称',
-    'IP Addresses': '',
+    'IP Addresses': 'IP地址',
     Tags: '标签',
     Description: '描述',
     Project: '项目',
