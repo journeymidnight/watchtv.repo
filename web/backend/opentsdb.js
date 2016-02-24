@@ -20,6 +20,9 @@ var createSender = function() {
         setTimeout(connect, 30 * 1000);  // wait 30s before connection retry
     };
     sender.on('error', onError);
+    sender.on('data', function(data) {
+        logger('Data point write error: ', data.toString('ascii'));
+    });
     return sender;
 };
 
