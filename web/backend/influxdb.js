@@ -27,8 +27,7 @@ var buildUrl = function(query) {
         db: config.db.influxdbDatabase,
         q: query
     };
-    return config.db.influxdbURL + '/query?' +
-        encodeURIComponent(querystring.stringify(parameters));
+    return config.db.influxdbURL + '/query?' + querystring.stringify(parameters);
 };
 
 var fetch = function(url, callback) {
@@ -150,8 +149,9 @@ var fitData = function(data) {
 };
 
 var fetchMetric = function(fromTime, toTime, ip, measurement, device, measure, callback) {
-    fromTime = new Date(fromTime);
-    toTime = new Date(toTime);
+    fromTime = new Date(Number(fromTime));
+    toTime = new Date(Number(toTime));
+    ip = ip.replace(/\./g, '_');  // influxdb needs underscore split IP address
     var query = buildQuery(fromTime, toTime, ip, measurement, device, measure);
     var url = buildUrl(query);
     fetch(url, function(err, body) {
