@@ -12,21 +12,23 @@ node_path=/letv/nodeRelease/node
 RETVAL=0
 
 start() {
-    echo -n "Starting API server: "
-	daemon "nohup $node_path $server_path < /dev/null >> $crash_log 2>&1 &"
+    echo -n "Starting Judge: "
+	daemon "nohup $node_path $judge_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
-	ps -ef|grep "$node_path $server_path"|grep -v grep|awk '{ print $2 }' > $server_pid
+	ps -ef|grep "node $judge_path"|grep -v grep|awk '{ print $2 }' > $judge_pid
 	echo
-        [ $RETVAL = 0 ] && touch ${server_lock}
+        [ $RETVAL = 0 ] && touch ${judge_lock}
 	return $RETVAL
 }
 
 stop() {
-	echo -n "Stopping API server: "
-	killproc -p ${server_pid} -d 10
+    echo -n "Stopping Judge: "
+    pid=`cat ${judge_pid}`
+	groupid=`ps xao pid,pgid|grep ${pid}|awk '{print $2}'`
+	kill -TERM -${groupid}
 	RETVAL=$?
 	echo
-	[ $RETVAL = 0 ] && rm -f ${server_lock} ${server_pid}
+	[ $RETVAL = 0 ] && rm -f ${judge_lock} ${judge_pid}
 	return $RETVAL
 }
 
@@ -38,7 +40,7 @@ case "$1" in
 	stop
 	;;
   status)
-    status -p ${server_pid} -l ${server_lock} "API server"
+    status -p ${judge_pid} -l ${judge_lock} "Judge"
 	RETVAL=$?
 	;;
   restart)

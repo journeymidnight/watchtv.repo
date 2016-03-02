@@ -11,16 +11,16 @@ config.webServer = {
 
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
-    timeSeriesBackend: "opentsdb",  // influxdb or opentsdb
+    timeSeriesBackend: "influxdb",  // influxdb or opentsdb
     opentsdbURL: "http://10.140.80.108:4242",
-    influxdbURL: "http://10.58.180.151:8086",
+    influxdbURL: "http://10.58.180.155:8086",
     influxdbUser: "root",
     influxdbPassword: "root",
     influxdbDatabase: "graphite"
 };
 
 config.judge = {
-    graphitePort: 2004,
+    graphitePort: 2003,
     sinkIP: '10.140.80.108',
     sinkPort: 4242,
     ruleUpdateInterval: 60 * 1000, // 1min, in ms
@@ -32,6 +32,8 @@ config.sandbox = {
 };
 
 config.periodicWorker = {
+    enable: true,  // Only one periodicWorker should be enabled in a cluster,
+                   // otherwise you would receive duplicate alarms
     nodeLivenessCheckInterval: 5 * 60 * 1000, // 5min
     nodeListUpdateInterval: 10 * 60 * 1000, // 10min
     tagListUpdateInterval: 60 * 1000 // 1min

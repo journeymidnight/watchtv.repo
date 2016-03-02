@@ -13,7 +13,10 @@ var cache = require('./cache.js');
 process.title = 'node - WatchTV - Judge';
 
 var emailProcess = child_process.fork(path.join(__dirname, 'alarm', 'email.js'));
-var periodicWorker = child_process.fork(path.join(__dirname, 'alarm', 'periodicWorker.js'));
+var periodicWorker  = null;
+if(config.periodicWorker.enable) {
+    periodicWorker = child_process.fork(path.join(__dirname, 'alarm', 'periodicWorker.js'));
+}
 var basicEvaluator = child_process.fork(path.join(__dirname, 'alarm', 'basicEvaluator.js'));
 
 // tagID -> {
@@ -39,25 +42,27 @@ var emitEventToProcess = function(event) {
     basicEvaluator.send({event: event});
 };
 
-periodicWorker.on('message', function(message) {
-    if(message.event != null) {
-        var event = message.event;
-        if(event.ip.constructor === Array) {
-            event.ip.map(function(ip) {
-                emitEventToProcess({
-                    name: event.name,
-                    nodeID: event.nodeID,
-                    ip: ip,
-                    timestamp: event.timeStamp,
-                    ttl: event.ttl,
-                    payload: event.payload
+if(periodicWorker) {
+    periodicWorker.on('message', function(message) {
+        if(message.event != null) {
+            var event = message.event;
+            if(event.ip.constructor === Array) {
+                event.ip.map(function(ip) {
+                    emitEventToProcess({
+                        name: event.name,
+                        nodeID: event.nodeID,
+                        ip: ip,
+                        timestamp: event.timeStamp,
+                        ttl: event.ttl,
+                        payload: event.payload
+                    });
                 });
-            });
-        } else { // event.ip is a string, a single IP
-            emitEventToProcess(event);
+            } else { // event.ip is a string, a single IP
+                emitEventToProcess(event);
+            }
         }
-    }
-});
+    });
+}
 
 // alarmQueue[nodeID][tagID] = [alarm object], used to aggregate messages
 var alarmQueue = {};
@@ -300,7 +305,7 @@ var forwardData = require('./backend/' + config.db.timeSeriesBackend + '.js').fo
 var createSender = require('./backend/' + config.db.timeSeriesBackend + '.js').createSender;
 
 var startGraphiteServer = function() {
-    var udpSender = createSender();
+    var sender = createSender();
     var server = net.createServer(function(socket) {
         var dataBuffer = '';
         socket.on('data', function(data) {
@@ -313,7 +318,7 @@ var startGraphiteServer = function() {
         });
         socket.on('line', function(data) {
             processData(data);
-            forwardData(data, udpSender);
+            forwardData(data, sender);
         });
         socket.on('error', function(error) {
             logger('Socket error', error);
