@@ -20,11 +20,12 @@ config.db = {
 };
 
 config.judge = {
+    instanceNumber: 3,
     graphitePort: 2003,
     sinkIP: '10.140.80.108',
     sinkPort: 4242,
-    ruleUpdateInterval: 60 * 1000, // 1min, in ms
-    alarmThrottleSpan: 3 * 60 * 60 * 1000 // 3h
+    ruleUpdateInterval: 5 * 60 * 1000, // 5min, in ms
+    alarmThrottleSpan: 4 * 60 * 60 * 1000 // 4h
 };
 
 config.sandbox = {
