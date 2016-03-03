@@ -245,16 +245,29 @@ var updateRules = function() {
 };
 
 var processData = function (data) {
+        // metricEntry is something like:
+        // servers.111_206_211_68.network.tx_fifo.eth2 0 1456934412
+        var split = data.metricEntry.split(' ');
+        var measure = split[0],
+            value = Number(split[1]),
+            timestamp = new Date(Number(split[2]) * 1000);
+        try {
+            var eventName = measure.split('.').slice(2, 4).join('.');
+            var device = measure.split('.')[4];
+        } catch (err) {
+            logger('Error parse metric entry', data.metricEntry, err);
+            return;
+        }
         var node = ip2node.get(data.ip);
         if(node === null) return;
         emitEventToProcess({
-            name: data.name,
+            name: eventName,
             nodeID: node.nodeID,
             ip: data.ip,
-            timestamp: data.timestamp,
+            timestamp: timestamp,
             ttl: 60 * 1000,
-            device: data.device,
-            payload: data.value
+            device: device,
+            payload: value
         });
 };
 

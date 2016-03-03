@@ -15,6 +15,7 @@ start() {
     echo -n "Starting Judge: "
 	daemon "nohup $node_path $judge_path < /dev/null >> $crash_log 2>&1 &"
 	RETVAL=$?
+	sleep 3
 	ps -ef|grep "node - WatchTV - Judge Dispatcher"|grep -v grep|awk '{ print $2 }' > $judge_pid
 	echo
         [ $RETVAL = 0 ] && touch ${judge_lock}

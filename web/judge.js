@@ -21,32 +21,31 @@ if(config.periodicWorker.enable) {
     judgeProcesses[0].send({command: 'enablePeriodicWorker'});
 }
 
+var ipHashes = {};  // Hash by IP so certain metrics from same IP would be sent to
+                    // the same judge process
 var processData = function (data) {
     data.split('\n').map(function (metricEntry) {
-        var splitted = metricEntry.split(' ');
-        var measure = splitted[0],
-            value = Number(splitted[1]),
-            timestamp = new Date(Number(splitted[2]) * 1000);
         try {
-            var ip = measure.split('.')[1].replace(/_/g, '.');
-            var ipHash = ip.split('.').reduce(function(pre, curr) {
-                return pre + Number(curr);
-            }, 0);
-            var eventName = measure.split('.').slice(2, 4).join('.');
-            var device = measure.split('.')[4];
+            // metricEntry is something like:
+            // servers.111_206_211_68.network.tx_fifo.eth2 0 1456934412
+            var ip = metricEntry.split(' ')[0]
+                    .split('.')[1].replace(/_/g, '.');
+            var ipHash = ipHashes[ip];
+            if(!ipHash) {
+                ipHash = ip.split('.').reduce(function(pre, curr) {
+                    return pre + Number(curr);
+                }, 0);
+                ipHash = ipHash % config.judge.instanceNumber;
+                ipHashes[ip] = ipHash;
+            }
         } catch (err) {
             logger('Error parse metric entry', metricEntry, err);
             return;
         }
-        // Hash by IP so certain metrics from same IP would be sent to
-        // the same judge process
-        judgeProcesses[ipHash % config.judge.instanceNumber].send({
+        judgeProcesses[ipHash].send({
             event: {
-                name: eventName,
                 ip: ip,
-                timestamp: timestamp,
-                device: device,
-                payload: value
+                metricEntry: metricEntry
             }
         });
     })
