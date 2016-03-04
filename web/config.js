@@ -11,8 +11,8 @@ config.webServer = {
 
 config.db = {
     mongodbURL: "mongodb://localhost:27017/watchtv",
-    timeSeriesBackend: "influxdb",  // influxdb or opentsdb
-    opentsdbURL: "http://10.140.80.108:4242",
+    timeSeriesBackend: "opentsdb",  // influxdb or opentsdb
+    opentsdbURL: "http://10.110.122.114:4242",
     influxdbURL: "http://10.58.180.155:8086",
     influxdbUser: "root",
     influxdbPassword: "root",
