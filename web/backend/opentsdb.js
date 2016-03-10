@@ -114,6 +114,7 @@ var pointsPerGraph = 200;
 
 var buildQuery = function(fromTime, toTime, ip, measurement, device, measure) {
     var downSampleInterval = Math.floor((toTime - fromTime)/pointsPerGraph/1000);
+    if(downSampleInterval < 1) downSampleInterval = 1;
     var query = 'start=' + fromTime + '&end=' + toTime +
             '&m=avg:' + downSampleInterval + 's-avg:' + measurement + '.' + measure;
     query += '{ip=' + ip;
