@@ -135,8 +135,9 @@ var GraphSelector = React.createClass({
         if($(".configList > div").size()==1) return;//nothing selected
         if(selected.device == null) selected.device = '';
         var metric = selected.measurement + ',' + selected.device + ',' + selected.measure;
+        metric = metric.replace(',,', ',');
         if(metrics.indexOf(metric) === -1) {
-            metrics.push(metric.replace(",,",","));
+            metrics.push(metric);
         }
         this.setState({metrics: metrics});
         if(this.props.onChange) this.props.onChange(metrics);
