@@ -1764,6 +1764,51 @@ app.post('/user/graphs/imports', function(req, res) {
     })
 });
 
+app.post('/user/graph/move/:graph_id', function (req, res) {
+    var graph_id = req.params.graph_id;
+    var from_panel_id = req.body.from_panel_id,
+        to_panel_id = req.body.to_panel_id;
+    var user_id = String(req.user._id);
+    if(!graph_id || !from_panel_id || !to_panel_id) {
+        res.status(400).send('Missing one or some of parameters: graph_id, from_panel_id, to_panel_id');
+        return;
+    }
+    async.map([from_panel_id, to_panel_id], function(panel_id, map_cb) {
+        db.Panel.findById(panel_id, map_cb);
+    }, function(err, result_panels) {
+        if(err) {
+            res.status(500).send('Error querying panels');
+            return;
+        }
+        var from_panel = result_panels[0], to_panel = result_panels[1];
+        if(!from_panel || !to_panel
+            || String(from_panel.owner) !== user_id
+            || String(to_panel.owner) !== user_id) {
+            res.status(403).send("Only panel's owner could modify it");
+            return;
+        }
+        db.Panel.findByIdAndUpdate(to_panel_id,
+            { $push: { graphs: graph_id}},
+            function(err, p) {
+                if(err) {
+                    res.status(500).send('Error modifying panel: ' + to_panel_id);
+                    return;
+                }
+                db.Panel.findByIdAndUpdate(from_panel_id,
+                    { $pull: {graphs: graph_id}},
+                    function(err, p) {
+                        if(err) {
+                            res.status(500).send('Error modifying panel: ' + from_panel_id);
+                            return;
+                        }
+                        res.send('Move graph successful: ' + graph_id);
+                    }
+                );
+            }
+        );
+    });
+});
+
 // import panels to a user's dashboard
 // pass by panel ids, i.e. by reference
 app.post('/user/panels/imports', function (req, res) {

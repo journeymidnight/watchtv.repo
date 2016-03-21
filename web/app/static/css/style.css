@@ -72,6 +72,15 @@ li{list-style: none;}
 .graph .importBtnParent{display: none}
 .nodeInfo{line-height: 30px;text-align: center;font-size: 16px;}
 .nodeInfo span{margin-right: 10px;}
+.dashboardPanel {list-style: none; padding: 0; margin: 0 0 10px 0; overflow: hidden;
+    font-size: 16px; line-height: 20px}
+.dashboardPanel li {display: inline-block;float: left;margin: 10px 10px 0 10px;
+    background-color: #77B300;  min-width: 30px;}
+.dashboardPanel a {color: white; display: block; text-decoration: none; padding: 3px;
+    text-align: center}
+.dashboardPanel a:hover, .dashboardPanel a:focus {background-color: deepskyblue;}
+.dashboardPanel input {display: none;}
+.focusedPanel {background-color: cornflowerblue;}
 /*btn animation*/
 .graphBtn,.btnParent,.shareBtnParent,.importBtnParent,.importGraphBtn{-webkit-animation: moveLeft 0.4s ease-in-out 1s backwards;-moz-animation: moveLeft 0.4s ease-in-out 1s backwards;-o-animation: moveLeft 0.4s ease-in-out 1s backwards;-ms-animation: moveLeft 0.4s ease-in-out 1s backwards;animation: moveLeft 0.4s ease-in-out 1s backwards;}
 @-webkit-keyframes moveLeft{0% {left:0;width:37px;}100% {left:-31px;width:6px;}}
@@ -85,6 +94,7 @@ li{list-style: none;}
 .configInfo .metricInfo button{display: none;width:21px;height:21px;background: #DADADC url('../images/delete.png') no-repeat 2px 3px;background-size: 14px;border: none;position: absolute;right: 0;top: 10px;border-radius: 50%;}
 .delBtn + div{position: absolute!important;z-index: 120!important}
 .delBtn + div div:last-child{left:-200%!important;}
+.moveBtn {position: absolute!important;top: 20px;right: 100px;}
 .titleInput{background-color: #1F1F1F;border: none;display: block;width: 100%;font-size:14px;text-align: center;padding: 10px 0;}
 .titleInput:focus{background-color: #fff;outline: none;color: #000;}
 .tool{min-width: 180px;font-size: 14px;}
