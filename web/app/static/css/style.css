@@ -74,12 +74,13 @@ li{list-style: none;}
 .nodeInfo span{margin-right: 10px;}
 .dashboardPanel {list-style: none; padding: 0; margin: 0 0 10px 0; overflow: hidden;
     font-size: 16px; line-height: 20px}
+.dashboardPanel .fa-white {font-size: 16px; margin: 0;}
 .dashboardPanel li {display: inline-block;float: left;margin: 10px 10px 0 10px;
     background-color: #77B300;  min-width: 30px;}
 .dashboardPanel a {color: white; display: block; text-decoration: none; padding: 3px;
     text-align: center}
 .dashboardPanel a:hover, .dashboardPanel a:focus {background-color: deepskyblue;}
-.dashboardPanel input {display: none;}
+.dashboardPanel input {display: none; outline: none;}
 .focusedPanel {background-color: cornflowerblue;}
 /*btn animation*/
 .graphBtn,.btnParent,.shareBtnParent,.importBtnParent,.importGraphBtn{-webkit-animation: moveLeft 0.4s ease-in-out 1s backwards;-moz-animation: moveLeft 0.4s ease-in-out 1s backwards;-o-animation: moveLeft 0.4s ease-in-out 1s backwards;-ms-animation: moveLeft 0.4s ease-in-out 1s backwards;animation: moveLeft 0.4s ease-in-out 1s backwards;}

@@ -191,7 +191,7 @@ var GraphList = React.createClass({
                 } else { // double click
                     // show input and hide a
                     $('#' + p._id + 'a').css('display', 'none');
-                    $('#' + p._id + 'input').css('display', 'block').focus();
+                    $('#' + p._id + 'input').css('display', 'block').focus().select();
                 }
                 lastClickTime = Date.now();
             };
@@ -235,12 +235,14 @@ var GraphList = React.createClass({
             }
             return (
                 <li><a href="#" onClick={click} id={p._id+'a'}>{p.name}</a>
-                    <input type="text" placeholder={p.name} id={p._id+'input'}
+                    <input type="text" defaultValue={p.name} id={p._id+'input'}
                            onBlur={savePanelTitle}/></li>
             )
         });
-        panels.push(<li><a href="#" onClick={_this.showPanelAddDialog}>+</a></li>);
-        panels.push(<li><a href="#" onClick={_this.showPanelDeleteDialog}>x</a></li>);
+        panels.push(<li><a href="#" onClick={_this.showPanelAddDialog}>
+            <i className="fa fa-white fa-plus-circle"></i></a></li>);
+        panels.push(<li><a href="#" onClick={_this.showPanelDeleteDialog}>
+            <i className="fa fa-white fa-trash"></i></a></li>);
         var currentPanel = this.state.panels.filter(function(p) {
             return p._id === _this.state.panelID;
         })[0];

@@ -66,6 +66,7 @@ var userSchema = new Schema({
         name: String,
         showName: String,
         panels: [{type: Schema.Types.ObjectId, ref: 'Panel'}],
+        graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],  // deprecated
         graphColumnNumber: Number,
         graphRefreshInterval: Number,  // In seconds, 0 for "don't refresh"
         role: {type: String, enum: roles},
