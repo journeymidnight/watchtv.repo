@@ -49,13 +49,22 @@ var NodeSelector = React.createClass({
                     success: function(data) {
                         var source = [];
                         data.result.map(function(node) {
-                            node.ips.map(function(ip){
+                            if (node.metricIdentifier) {
                                 source.push({
-                                    value: ip,
-                                    label: ip + '(' + node.name + ':' + node.project.name + '-' +
-                                        node.region.name + node.idc.name + ')'
+                                    value: node.metricIdentifier,
+                                    label: node.metricIdentifier + '(' + node.name + ':'
+                                        + node.project.name + '-' + node.region.name
+                                        + node.idc.name + ')'
                                 });
-                            });
+                            } else {
+                                node.ips.map(function (ip) {
+                                    source.push({
+                                        value: ip,
+                                        label: ip + '(' + node.name + ':' + node.project.name + '-' +
+                                            node.region.name + node.idc.name + ')'
+                                    });
+                                });
+                            }
                         });
                         res(source);
                     },

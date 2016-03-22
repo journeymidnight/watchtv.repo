@@ -161,9 +161,9 @@ var dashboardGraphEditor = React.createClass({
             title = __('Edit graph');
             deleteButton =
                 <div className="delDialog">
-                    <FlatButton label="Delete" className="delBtn" onClick={this.showDelDialog}/>
+                    <FlatButton label={__("Delete")} className="delBtn" onClick={this.showDelDialog}/>
                 </div>;
-            moveButton = <FlatButton label="Move" className="moveBtn"
+            moveButton = <FlatButton label={__("Move")} className="moveBtn"
                                      onClick={this.showGraphMoveDialog} />
         }
         var createPanelNameDropdownHandler = function () {

@@ -16,6 +16,7 @@ var utility = require('../utility.js');
 // graph: graph object described above. The graphs to draw are (graph.ips x graph.metrics)
 // period: [fromTime, toTime], fromTime and toTime are Date objects. The time interval to draw.
 // onRefresh: callback function(fromTime, toTime). Used to pass back dragged period.
+// onUpdate: callback function(graph). Mainly used to pass back graph title to Dashboard.
 // showShareDialog: callback function(graph_id). Used to open share dialog.
 // showEditDialog: callback function(graph_id). Used to open edit dialog.
 
@@ -127,6 +128,12 @@ var BaseGraph = React.createClass({
                 url: 'graph/' + that.props.graph._id,
                 data: {graph: graph},
                 success: function(){
+                    if(that.props.onUpdate) {
+                        that.props.onUpdate({
+                            title: graph.title,
+                            _id: that.props.graph._id
+                        });
+                    }
                 },
                 error:function(xhr, status, err){
                     if (xhr.status === 401) {

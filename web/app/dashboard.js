@@ -91,9 +91,10 @@ var GraphList = React.createClass({
             if(panels[i]._id === this.state.panelID) {
                 var graphs = panels[i].graphs;
                 for(var j=0;j<graphs.length;j++) {
-                    if(graphs[i]._id === graph._id) {
-                        graphs[i].ips = graph.ips;
-                        graphs[i].metrics = graph.metrics;
+                    if(graphs[j]._id === graph._id) {
+                        if(graph.ips) graphs[j].ips = graph.ips;
+                        if(graph.metrics) graphs[j].metrics = graph.metrics;
+                        if(graph.title) graphs[j].title = graph.title;
                         break;
                     }
                 }
@@ -262,6 +263,7 @@ var GraphList = React.createClass({
                                   graph={graphCopy}
                                   period={_this.state.period}
                                   onRefresh={_this.refreshTime}
+                                  onUpdate={_this.updateGraph}
                                   showShareDialog={_this.showShareDialog}
                                   showEditDialog={_this.showEditDialog}
                 />

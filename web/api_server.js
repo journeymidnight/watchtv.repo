@@ -2380,6 +2380,11 @@ app.get('/timeseries/meta', function(req, res) {
         db.Node.findById(req.query.node, function(err, node) {
             if(err) {
                 logger('Error fetching node', err);
+                res.status(500).send('Error fetching node: ' + err);
+                return;
+            }
+            if(!node) {
+                res.status(404).send('Cannot find metadata');
                 return;
             }
             ip = getIPFromNode(node);
@@ -2427,6 +2432,11 @@ app.get('/timeseries/metric', function(req, res) {
         db.Node.findById(node, function(err, n) {
             if(err) {
                 logger('Error fetching node', err);
+                res.status(500).send('Error fetching node: ' + err);
+                return;
+            }
+            if(!n) {
+                res.status(404).send('Cannot find metric');
                 return;
             }
             ip = getIPFromNode(n);
