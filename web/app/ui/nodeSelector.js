@@ -67,8 +67,9 @@ var NodeSelector = React.createClass({
         });
     },
     handleAddingNode: function() {
-        var ip = this.refs.nodeInput.getValue(),
+        var ip = this.refs.nodeInput.getValue().trim(),
             listItems = this.state.ips;
+        if(ip === '') return;
         if(listItems.indexOf(ip) === -1) {
             listItems.push(ip);
         }
