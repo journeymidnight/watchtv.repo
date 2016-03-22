@@ -1,6 +1,7 @@
 var React = require('react');
 var FlatButton = require('material-ui/lib/flat-button');
 var Dialog = require('material-ui/lib/dialog');
+var DropDownMenu = require('material-ui/lib/drop-down-menu');
 var Snackbar = require('material-ui/lib/snackbar');
 
 var GraphSelector = require('./graphSelector.js');
@@ -21,6 +22,7 @@ var dashboardGraphEditor = React.createClass({
     getInitialState: function () {
         return {
             _id: null,  // graph id
+            panel_id: null,
             ips: [],
             metrics: [],
             snackMsg: '',
@@ -42,7 +44,8 @@ var dashboardGraphEditor = React.createClass({
 
         var graphPayload = {
             ips: this.state.ips,
-            metrics: this.state.metrics
+            metrics: this.state.metrics,
+            panel_id: this.state.panel_id
         };
         if(this.state.type === 'edit') {
             $.ajax({
@@ -83,10 +86,11 @@ var dashboardGraphEditor = React.createClass({
     handleMetricChange: function (metrics) {
         this.setState({metrics: metrics});
     },
-    show: function (graph) {
+    show: function (panel_id, graph) {
         if(graph) {
             this.setState({
                 _id: graph._id,
+                panel_id: panel_id,
                 ips: graph.ips,
                 metrics: graph.metrics,
                 type: 'edit'
@@ -94,6 +98,7 @@ var dashboardGraphEditor = React.createClass({
         } else {
             this.setState({
                 _id: null,
+                panel_id: panel_id,
                 ips: [],
                 metrics: [],
                 type: 'add'
@@ -107,7 +112,7 @@ var dashboardGraphEditor = React.createClass({
     deleteGraph: function() {
         var that = this;
         $.ajax({
-            url: '/user/graph/' + this.state._id,
+            url: '/user/graph/' + this.state.panel_id + '/' + this.state._id,
             type: 'DELETE',
             success: function() {
                 that.props.onRefresh();
@@ -122,16 +127,56 @@ var dashboardGraphEditor = React.createClass({
         this.refs.delDialog.dismiss();
         this.refs.graphEditDialog.dismiss();
     },
+    moveGraph: function() {
+        var that = this;
+        $.ajax({
+            url: '/user/graph/move/' + that.state._id,
+            type: 'POST',
+            data: {
+                from_panel_id: that.state.panel_id,
+                to_panel_id: that.getDropdownValue()
+            },
+            success: function() {
+                that.props.onRefresh();
+                that.refs.graphMoveDialog.dismiss();
+                that.refs.graphEditDialog.dismiss();
+            },
+            error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                console.log('Error moving user graph', xhr, status, error);
+            }
+        })
+    },
+    showGraphMoveDialog: function () {
+        this.refs.graphMoveDialog.show();
+    },
     render: function() {
+        var that = this;
         var deleteButton = <div></div>;
+        var moveButton = <div></div>;
         var title = __('Add new graph');
         if(this.state.type === 'edit') {
             title = __('Edit graph');
             deleteButton =
                 <div className="delDialog">
                     <FlatButton label="Delete" className="delBtn" onClick={this.showDelDialog}/>
-                </div>
+                </div>;
+            moveButton = <FlatButton label="Move" className="moveBtn"
+                                     onClick={this.showGraphMoveDialog} />
         }
+        var createPanelNameDropdownHandler = function () {
+            if(!that.props.otherPanelsDropdownItems[0]) return null;
+
+            var selected = that.props.otherPanelsDropdownItems[0].payload;
+            that.getDropdownValue = function() {
+                return selected;
+            };
+            return function (event, index, item) {
+                selected = item.payload;
+            }
+        };
         return (
             <div>
                 <div className="btnParent" >
@@ -143,6 +188,7 @@ var dashboardGraphEditor = React.createClass({
                             ref='graphEditDialog'
                             contentClassName='scrollDialog' >
                         {deleteButton}
+                        {moveButton}
                         <Dialog title={__("Delete confirmation")}
                                     actions={[
                                                 { text: __('Cancel') },
@@ -150,6 +196,16 @@ var dashboardGraphEditor = React.createClass({
                                             ]}
                                     ref="delDialog">
                             {__('Please confirm to delete this graph.')}
+                        </Dialog>
+                        <Dialog title={__('Move graph to')}
+                                actions={[
+                                    {text: __('Cancel')},
+                                    {text: __('Move'), onClick: this.moveGraph}
+                                ]}
+                                ref="graphMoveDialog">
+                            <DropDownMenu menuItems={this.props.otherPanelsDropdownItems}
+                                          onChange={createPanelNameDropdownHandler()}
+                            />
                         </Dialog>
                         <div>
                             <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}

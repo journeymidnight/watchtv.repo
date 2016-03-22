@@ -65,7 +65,8 @@ var roles = ['Root', 'Leader', 'User'];
 var userSchema = new Schema({
         name: String,
         showName: String,
-        graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],
+        panels: [{type: Schema.Types.ObjectId, ref: 'Panel'}],
+        graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],  // deprecated
         graphColumnNumber: Number,
         graphRefreshInterval: Number,  // In seconds, 0 for "don't refresh"
         role: {type: String, enum: roles},
@@ -76,6 +77,16 @@ var userSchema = new Schema({
     }
 );
 var User = mongoose.model('User', userSchema);
+
+var panelSchema = new Schema({
+    name: String,
+    graphs: [{type: Schema.Types.ObjectId, ref: 'Graph'}],
+    owner: {type: Schema.Types.ObjectId, ref: 'User'}  // because panel is shared by reference,
+                                                       // only owner can modify the panel
+}, {
+    collection: 'Panel'
+});
+var Panel = mongoose.model('Panel', panelSchema);
 
 var graphSchema = new Schema({
         ips: [String],
@@ -124,6 +135,7 @@ module.exports = {
     Node: Node,
     Alarm: Alarm,
     User: User,
+    Panel: Panel,
     Graph: Graph,
     Region: Region,
     Idc: Idc,

@@ -35,6 +35,10 @@ var notUndefined = function (value) {
     return (value !== undefined);
 };
 
+var notNull = function(value) {
+    return (value !== null);
+};
+
 var valueWithDefault = function(value, defaultValue) {
     if (isUndefined(value)) {
         return defaultValue;
@@ -83,6 +87,12 @@ var requireLogin = function (req, res, next) {
         next();
         return;
     }
+    // For API test
+    //req.user = {
+    //    _id: '560b644fb2aafe01657b78c1'
+    //};
+    //next();
+    //return;
     if (req.session && req.session.user) {
         db.User.findOne({name: req.session.user},
             function (err, u) {
@@ -1567,11 +1577,34 @@ app.get('/user', function(req, res) {
     res.send(req.user); // req.user is assigned in `requireLogin`
 });
 
-// for users to get their graphs on dashboard
+// for users to get their panels and graphs on dashboard
+// return value format: [panels]
 app.get('/user/graphs', function(req, res) {
     db.User.findById(req.user._id, function(err, user) {
-        res.send(user.graphs);
-    }).populate('graphs', 'ips metrics title')
+        if(err) {
+            res.status(500).send('Error fetching user ' + req.user._id);
+            return;
+        }
+        if(!user.panels) {
+            res.send({});
+            return;
+        }
+        async.map(user.panels, function(panel_id, cb) {
+            db.Panel.findById(panel_id, function(err, panel) {
+                if(err) {
+                    cb(null, null);
+                    return;
+                }
+                cb(null, panel);
+            }).populate('graphs', 'ips metrics title');
+        }, function(err, results) {
+            if(err) {
+                res.status(500).send('Error fetching graphs for user ' + req.user._id);
+                return;
+            }
+            res.send(results.filter(notNull));
+        });
+    });
 });
 
 // Add new projects to user
@@ -1608,18 +1641,59 @@ app.post('/user/:user_id/projects', function(req, res) {
     )
 });
 
+app.post('/user/panels', function(req, res) {
+    var user_id = req.user._id;
+    var name = valueWithDefault(req.body.name, 'Panel');
+
+    db.Panel.create({
+        name: name,
+        graphs: [],
+        owner: user_id
+    }, function(err, created) {
+        if(err) {
+            res.status(500).send('Panel create failed');
+            return;
+        }
+        db.User.findByIdAndUpdate(user_id,
+            { $push: { panels: created}},
+        function(err, u) {
+            if(err) {
+                res.status(500).send('Adding panel to user failed');
+                return;
+            }
+            res.status(201).send('Panel added to user');
+        });
+    });
+});
+
+// Can only change panel name since graph manipulation is handled by /user/graph
+app.put('/user/panel/:panel_id', function(req, res) {
+    var user_id = req.user._id;
+    var name = req.body.name;
+    var panel_id = req.params.panel_id;
+    var update = { name: name };
+
+    ensureUserOwnsPanel(user_id, panel_id, req, res, function () {
+        findByIdAndUpdate(res, panel_id, update, 'Panel', db.Panel);
+    });
+});
+
 // add new graph to current user
 app.post('/user/graphs', function(req, res) {
-    var user_id = req.user._id;
     var ips = req.body.ips,
         metrics = req.body.metrics,
-        title = valueWithDefault(req.body.title, '');
+        title = valueWithDefault(req.body.title, ''),
+        panel_id = req.body.panel_id;
     if(!ips || ips.constructor !== Array || ips.length === 0) {
         res.status(400).send('Missing IPs or bad format');
         return;
     }
     if(!metrics || metrics.constructor !== Array || metrics.length === 0) {
         res.status(400).send('Missing metrics or bad format');
+        return;
+    }
+    if(!panel_id) {
+        res.status(400).send('Missing panel_id');
         return;
     }
     db.Graph.create({
@@ -1631,7 +1705,7 @@ app.post('/user/graphs', function(req, res) {
             res.status(500).send('Graph create failed');
             return;
         }
-        db.User.findByIdAndUpdate(user_id,
+        db.Panel.findByIdAndUpdate(panel_id,
             { $push: { graphs: created }},
             function(err, u) {
                 if(err) {
@@ -1647,11 +1721,16 @@ app.post('/user/graphs', function(req, res) {
 });
 
 // import graphs to user's dashboard
+// for historical reasons, url is prefixed with /user
 app.post('/user/graphs/imports', function(req, res) {
-    var user_id = req.user._id;
-    var graphs = req.body.graphs;
+    var graphs = req.body.graphs,
+        panel_id = req.body.panel_id;
     if(graphs.constructor !== Array) {
         res.status(400).send('Graphs should be an array');
+        return;
+    }
+    if(!panel_id) {
+        res.status(400).send('Missing panel_id');
         return;
     }
     for(var i=0; i<graphs.length; i++) {
@@ -1670,9 +1749,9 @@ app.post('/user/graphs/imports', function(req, res) {
             res.status(500).send('Graph import failed');
             return;
         }
-        db.User.findByIdAndUpdate(user_id,
+        db.Panel.findByIdAndUpdate(panel_id,
             { $push: {graphs: {$each: created}}},
-            function(err, u) {
+            function(err, p) {
                 if(err) {
                     res.status(500).send('Adding graph to user failed');
                     return;
@@ -1685,20 +1764,114 @@ app.post('/user/graphs/imports', function(req, res) {
     })
 });
 
-// delete graph with graph_id in current user
-app.delete('/user/graph/:graph_id', function(req, res) {
-    var user_id = req.user._id,
-        graph_id = req.params.graph_id;
+app.post('/user/graph/move/:graph_id', function (req, res) {
+    var graph_id = req.params.graph_id;
+    var from_panel_id = req.body.from_panel_id,
+        to_panel_id = req.body.to_panel_id;
+    var user_id = String(req.user._id);
+    if(!graph_id || !from_panel_id || !to_panel_id) {
+        res.status(400).send('Missing one or some of parameters: graph_id, from_panel_id, to_panel_id');
+        return;
+    }
+    async.map([from_panel_id, to_panel_id], function(panel_id, map_cb) {
+        db.Panel.findById(panel_id, map_cb);
+    }, function(err, result_panels) {
+        if(err) {
+            res.status(500).send('Error querying panels');
+            return;
+        }
+        var from_panel = result_panels[0], to_panel = result_panels[1];
+        if(!from_panel || !to_panel
+            || String(from_panel.owner) !== user_id
+            || String(to_panel.owner) !== user_id) {
+            res.status(403).send("Only panel's owner could modify it");
+            return;
+        }
+        db.Panel.findByIdAndUpdate(to_panel_id,
+            { $push: { graphs: graph_id}},
+            function(err, p) {
+                if(err) {
+                    res.status(500).send('Error modifying panel: ' + to_panel_id);
+                    return;
+                }
+                db.Panel.findByIdAndUpdate(from_panel_id,
+                    { $pull: {graphs: graph_id}},
+                    function(err, p) {
+                        if(err) {
+                            res.status(500).send('Error modifying panel: ' + from_panel_id);
+                            return;
+                        }
+                        res.send('Move graph successful: ' + graph_id);
+                    }
+                );
+            }
+        );
+    });
+});
+
+// import panels to a user's dashboard
+// pass by panel ids, i.e. by reference
+app.post('/user/panels/imports', function (req, res) {
+    var panels = req.body.panels;
+    var user_id = req.user._id;
     db.User.findByIdAndUpdate(user_id,
-        { $pull: {graphs: graph_id}},
-        function(err, u) {
+        { $push: {panels: {$each: panels}}},
+        function (err, u) {
             if(err) {
-                res.status(500).send('Removing graph for user failed');
+                res.status(500).send('Adding panel to user failed');
                 return;
             }
-            handleDeleteById(req, res, 'graph', db.Graph);
+            res.status(200).send('Panels imported to user');
+        });
+});
+
+var ensureUserOwnsPanel = function(user_id, panel_id, req, res, next) {
+    db.Panel.findById(panel_id, function(err, panel) {
+        if(err) {
+            res.status(500).send('Error fetching panel ' + panel_id);
+            return;
         }
-    )
+        if(String(user_id) !== String(panel.owner)) {
+            res.status(403).send("Only panel's owner could delete it");
+            return;
+        }
+        next();
+    })
+};
+
+app.delete('/user/panel/:panel_id', function(req, res) {
+    var user_id = req.user._id;
+    var panel_id = req.params.panel_id;
+    ensureUserOwnsPanel(user_id, panel_id, req, res, function () {
+        db.User.findByIdAndUpdate(user_id,
+            { $pull: {panels: panel_id}},
+            function (err, u) {
+                if(err) {
+                    res.status(500).send('Error removing panel ' + panel_id + ' for user ' + user_id);
+                    return;
+                }
+                handleDeleteById(req, res, 'panel', db.Panel);
+            })
+    });
+});
+
+// delete graph with graph_id
+app.delete('/user/graph/:panel_id/:graph_id', function(req, res) {
+    var user_id = req.user._id;
+    var panel_id = req.params.panel_id,
+        graph_id = req.params.graph_id;
+    ensureUserOwnsPanel(user_id, panel_id, req, res, function () {
+        db.Panel.findByIdAndUpdate(panel_id,
+            { $pull: {graphs: graph_id}},
+            function(err, u) {
+                if(err) {
+                    res.status(500).send('Removing graph for user failed');
+                    return;
+                }
+                handleDeleteById(req, res, 'graph', db.Graph);
+            }
+        )
+    })
 });
 
 app.get('/user/:user_id', requireLeader, function(req, res) {
