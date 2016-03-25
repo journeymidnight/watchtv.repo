@@ -42,12 +42,17 @@ var processData = function (data) {
             logger('Error parse metric entry', metricEntry, err);
             return;
         }
-        judgeProcesses[ipHash].send({
-            event: {
-                ip: ip,
-                metricEntry: metricEntry
-            }
-        });
+        var p = judgeProcesses[ipHash];
+        if(p) {
+            p.send({
+                event: {
+                    ip: ip,
+                    metricEntry: metricEntry
+                }
+            });
+        } else {
+            logger('Possible port probing detected:', metricEntry);
+        }
     })
 };
 
