@@ -5,6 +5,7 @@ var DropDownMenu = require('material-ui/lib/drop-down-menu');
 var Snackbar = require('material-ui/lib/snackbar');
 
 var GraphSelector = require('./graphSelector.js');
+var GraphMetricEditor = require('./graphMetricEditor.js');
 var NodeSelector = require('./nodeSelector.js');
 
 // The graph editor for Dashboard page, includes a NodeSelector to pick IPs,
@@ -23,6 +24,7 @@ var dashboardGraphEditor = React.createClass({
         return {
             _id: null,  // graph id
             panel_id: null,
+            graphType: 'Line',
             ips: [],
             metrics: [],
             snackMsg: '',
@@ -43,6 +45,7 @@ var dashboardGraphEditor = React.createClass({
         }
 
         var graphPayload = {
+            type: this.state.graphType,
             ips: this.state.ips,
             metrics: this.state.metrics,
             panel_id: this.state.panel_id
@@ -86,11 +89,15 @@ var dashboardGraphEditor = React.createClass({
     handleMetricChange: function (metrics) {
         this.setState({metrics: metrics});
     },
+    handleGraphTypeChange: function(err, selectedIndex, menuItem) {
+        this.setState({graphType: menuItem.payload});
+    },
     show: function (panel_id, graph) {
         if(graph) {
             this.setState({
                 _id: graph._id,
                 panel_id: panel_id,
+                graphType: graph.type,
                 ips: graph.ips,
                 metrics: graph.metrics,
                 type: 'edit'
@@ -177,6 +184,35 @@ var dashboardGraphEditor = React.createClass({
                 selected = item.payload;
             }
         };
+        var graphTypeDropdownItems = [
+            {payload: 'Line', text: __('Graph Type: Line')},
+            {payload: 'Pie', text: __('Graph Type: Pie')},
+            {payload: 'Figure', text: __('Graph Type: Figure')}
+        ];
+        var graphTypeDropdownIndex = 0;
+        for(var i = 0; i < graphTypeDropdownItems.length; i++) {
+            if(graphTypeDropdownItems[i].payload === this.state.graphType) {
+                graphTypeDropdownIndex = i;
+                break;
+            }
+        }
+        var metricEditor;
+        if(this.state.graphType === 'Line') {
+            metricEditor =
+                <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
+                              initialMetrics={this.state.metrics}
+                              needToQueryMeasurements={true}
+                              ref='graphMetrics'
+                />
+        } else {
+            metricEditor =
+                <GraphMetricEditor onChange={this.handleMetricChange} ips={this.state.ips}
+                               initialMetrics={this.state.metrics}
+                               needToQueryMeasurements={true}
+                               ref='graphMetrics'
+                />
+        }
+
         return (
             <div>
                 <div className="btnParent" >
@@ -208,14 +244,16 @@ var dashboardGraphEditor = React.createClass({
                             />
                         </Dialog>
                         <div>
+                            <DropDownMenu menuItems={graphTypeDropdownItems}
+                                          selectedIndex={graphTypeDropdownIndex}
+                                          onChange={this.handleGraphTypeChange}
+                                          style={{float: "right"}}
+                                          disabled={this.state.type==='edit'}
+                            />
                             <NodeSelector ref='nodeIPs' onChange={this.handleIpChange}
                                           initialIPs={this.state.ips}
                             />
-                            <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
-                                           initialMetrics={this.state.metrics}
-                                           needToQueryMeasurements={true}
-                                           ref='graphMetrics'
-                            />
+                            {metricEditor}
                         </div>
                     </Dialog>
                 </div>
