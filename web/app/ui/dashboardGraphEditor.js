@@ -106,6 +106,7 @@ var dashboardGraphEditor = React.createClass({
             this.setState({
                 _id: null,
                 panel_id: panel_id,
+                graphType: 'Line',
                 ips: [],
                 metrics: [],
                 type: 'add'
@@ -197,7 +198,7 @@ var dashboardGraphEditor = React.createClass({
             }
         }
         var metricEditor;
-        if(this.state.graphType === 'Line') {
+        if(!this.state.graphType || this.state.graphType === 'Line') {
             metricEditor =
                 <GraphSelector onChange={this.handleMetricChange} ips={this.state.ips}
                               initialMetrics={this.state.metrics}

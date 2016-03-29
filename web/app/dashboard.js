@@ -5,6 +5,8 @@ var TextField = require('material-ui/lib/text-field');
 var mixins = require('./mixins.js');
 var NavigationBar = require('./ui/navigationBar.js');
 var BaseGraph  = require('./ui/baseGraph.js');
+var PieGraph = require('./ui/pieGraph.js');
+var FigureGraph = require('./ui/figureGraph.js');
 var Zoom  = require('./ui/zoomGraph.js');
 var GraphEditor = require('./ui/dashboardGraphEditor.js');
 var utility = require('./utility.js');
@@ -254,19 +256,36 @@ var GraphList = React.createClass({
                 // otherwise, in baseGraph `this.props` is always the same with `nextProps`,
                 // since they are pointing to the same object
                 var graphCopy = {
+                    type: graph.type,
                     _id: graph._id,
                     title: graph.title,
                     ips: graph.ips.slice(),
                     metrics: graph.metrics.slice()
                 };
-                return <BaseGraph key={graph._id}
-                                  graph={graphCopy}
-                                  period={_this.state.period}
-                                  onRefresh={_this.refreshTime}
-                                  onUpdate={_this.updateGraph}
-                                  showShareDialog={_this.showShareDialog}
-                                  showEditDialog={_this.showEditDialog}
-                />
+                if(!graph.type || graph.type === 'Line') {
+                    return <BaseGraph key={graph._id}
+                                      graph={graphCopy}
+                                      period={_this.state.period}
+                                      onRefresh={_this.refreshTime}
+                                      onUpdate={_this.updateGraph}
+                                      showShareDialog={_this.showShareDialog}
+                                      showEditDialog={_this.showEditDialog}
+                    />
+                } else if(graph.type === 'Pie') {
+                    return <PieGraph  key={graph._id}
+                                      graph={graphCopy}
+                                      onUpdate={_this.updateGraph}
+                                      showShareDialog={_this.showShareDialog}
+                                      showEditDialog={_this.showEditDialog}
+                    />
+                } else if(graph.type === 'Figure') {
+                    return <FigureGraph key={graph._id}
+                                      graph={graphCopy}
+                                      onUpdate={_this.updateGraph}
+                                      showShareDialog={_this.showShareDialog}
+                                      showEditDialog={_this.showEditDialog}
+                    />
+                }
             });
         }
         var otherPanelItems = this.state.panels.filter(function(panel) {

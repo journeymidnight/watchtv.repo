@@ -240,6 +240,7 @@ var GraphSelector = React.createClass({
                 <div className="metricInput">
                     <TextField ref="metricInput"
                                hintText={__('Metric Formula')}
+                               style={{width: '85%'}}
                     />
                     <i className="fa fa-plus fa-bg fa-transform"
                        onClick={this.handleAddingMetricFormula}

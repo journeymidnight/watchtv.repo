@@ -12,26 +12,26 @@ var utility = require('../utility.js');
 // ShowEditDialog: callback function(graph_id). Used to open edit dialog.
 
 
-var PieGraph = React.createClass({
+var FigureGraph = React.createClass({
     getInitialState: function () {
         return {
+            value: '',
             graphWidth: $('#' + this.props.graph._id).width()
         }
     },
-    plot: function() {
+    plot: function(graph) {
         var that = this;
+        var graph = graph || this.props.graph;
 
         var metricsToFetch = {};
-        this.props.graph.metrics.forEach(function(metricFormula) {
-            metricFormula.replace(/\+/g, ' ').replace(/-/g, ' ')
-                         .replace(/\*/g, ' ').replace(/\//g, ' ')
-                         .replace(/\(/g, ' ').replace(/\)/g, ' ')
-                         .split(' ')
-                         .filter(function(metric) {
-                    return metric !== '';
-                }).forEach(function(metric) {
-                    metricsToFetch[metric] = 1; // value is dummy, we don't care
-                });
+        graph.metrics[0].replace(/\+/g, ' ').replace(/-/g, ' ')
+            .replace(/\*/g, ' ').replace(/\//g, ' ')
+            .replace(/\(/g, ' ').replace(/\)/g, ' ')
+            .split(' ')
+            .filter(function(metric) {
+            return metric !== '';
+        }).forEach(function(metric) {
+            metricsToFetch[metric] = 1; // value is dummy, we don't care
         });
 
         var metricQueries = [];
@@ -51,10 +51,10 @@ var PieGraph = React.createClass({
                 measure: metricParameters[2]
             };
             var req = $.ajax({
-                    type: 'GET',
-                    url: '/timeseries/metric?' + $.param(queryParameters),
-                    dataType: 'json'
-                });
+                type: 'GET',
+                url: '/timeseries/metric?' + $.param(queryParameters),
+                dataType: 'json'
+            });
             req.metric = m;
             metricQueries.push(req);
         }
@@ -63,67 +63,42 @@ var PieGraph = React.createClass({
         var metricData = {};
         $.when.apply(undefined, metricQueries)
          .then(function () {
-             // If there's only one graphRequest, arguments is in structure
-             // [ data, statusText, jqXHR ];
-             // if there're multiple graphRequests, arguments is an array of
-             // [ data, statusText, jqXHR ], so some branches are needed here
-             var results = arguments;
-             if(metricQueries.length === 1) {
-                 results = [arguments];
-             }
-             for(var i = 0; i < results.length; i++) {
-                 var d = null;
-                 var dataArray = results[i][0];
-                 for(var j = dataArray.length-1; j >= 0; j--) {
-                     // results[i][0] is the result of metricQueries[i]
-                     // data returned is in format [[time, value], [time, value], ...]
-                     // get the latest value among them
-                     if(dataArray[j][1]) {
-                         d = dataArray[j][1];
-                         break;
-                     }
-                 }
-                 metricData[metricQueries[i].metric] = d;
-             }
-             var plotData = that.props.graph.metrics.map(function(metricFormula) {
-                 var m = metricFormula;
-                 for(var metric in metricData) {
-                     if(!metricData.hasOwnProperty(metric)) continue;
-                     m = m.replace(metric, metricData[metric]);
-                 }
-                 var v;
-                 try {
-                     v = eval(m);
-                 } catch (e) {
-                     console.log('Metric evaluation error', e);
-                     return null;
-                 }
-                 return {
-                     label: metricFormula,
-                     data: v
-                 }
-             });
-             $.plot('#graph' + that.props.graph._id,
-                 plotData,
-                 {
-                     series: {
-                         pie: {
-                             show: true,
-                             radius: 1,
-                             label: {
-                                 show: true,
-                                 radius: 3/4,
-                             }
-                         }
-                     },
-                     legend: {
-                         show: false
-                     },
-                     colors: ["#CACF15","#71C855","#6ED0E0","#B941DA","#EF843C","#4E41BB",
-                              "#E24D42","#E600FF","#FF0000","#48FF00","#FFE600"]
-                 }
-             );
-         })
+                // If there's only one graphRequest, arguments is in structure
+                // [ data, statusText, jqXHR ];
+                // if there're multiple graphRequests, arguments is an array of
+                // [ data, statusText, jqXHR ], so some branches are needed here
+                var results = arguments;
+                if(metricQueries.length === 1) {
+                    results = [arguments];
+                }
+                for(var i = 0; i < results.length; i++) {
+                    var d = null;
+                    var dataArray = results[i][0];
+                    for(var j = dataArray.length-1; j >= 0; j--) {
+                        // results[i][0] is the result of metricQueries[i]
+                        // data returned is in format [[time, value], [time, value], ...]
+                        // get the latest value among them
+                        if(dataArray[j][1]) {
+                            d = dataArray[j][1];
+                            break;
+                        }
+                    }
+                    metricData[metricQueries[i].metric] = d;
+                }
+                var formula = graph.metrics[0].slice();
+                for(var metric in metricData) {
+                    if(!metricData.hasOwnProperty(metric)) continue;
+                    formula = formula.replace(metric, metricData[metric]);
+                }
+                try {
+                    var v = eval(formula);
+                } catch (e) {
+                    console.log('Metric evaluation error', e);
+                    that.setState({value: 'Error'});
+                    return null;
+                }
+                that.setState({value: v});
+            })
     },
     componentDidMount: function () {
         var that = this;
@@ -172,8 +147,8 @@ var PieGraph = React.createClass({
 
         this.plot();
     },
-    componentDidUpdate: function () {
-        this.plot();
+    componentWillReceiveProps: function (nextProps) {
+        this.plot(nextProps.graph);
     },
     showShareDialog: function () {
         this.props.showShareDialog(this.props.graph._id);
@@ -187,7 +162,7 @@ var PieGraph = React.createClass({
         if(graph.title!=null&&graph.title!="") placeholderText = graph.title;
         return (
             <div id={graph._id} style={{width: '25%'}}>
-                <div className="graph pieGraph">
+                <div className="graph figureGraph">
                     <input type="text" name="title" className="titleInput"
                            placeholder={placeholderText}
                     />
@@ -195,6 +170,13 @@ var PieGraph = React.createClass({
                          style={{width: '100%', height: '145px',
                             backgroundColor: '#1f1f1f', marginTop: '10px'
                          }}>
+                        <p style={{fontFamily: "PT Mono,monospace",
+                            fontSize: '48px',
+                            lineHeight: '150px',
+                            textAlign: 'center'
+                        }}>
+                            {this.state.value}
+                        </p>
                     </div>
                     <div className='shareBtnParent'>
                         <div className="graphBtn" onClick={this.showShareDialog}>
@@ -212,4 +194,4 @@ var PieGraph = React.createClass({
     }
 });
 
-module.exports = PieGraph;
+module.exports = FigureGraph;
