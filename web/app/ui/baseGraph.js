@@ -2,6 +2,7 @@ var React = require('react');
 
 var unit = require('../unit.js');
 var utility = require('../utility.js');
+var graphMixin = require('../mixins.js').graphMixin;
 
 // The component to actually draw a graph
 
@@ -21,6 +22,7 @@ var utility = require('../utility.js');
 // showEditDialog: callback function(graph_id). Used to open edit dialog.
 
 var BaseGraph = React.createClass({
+    mixins: [graphMixin],
     getInitialState: function(){
         return {
             data: [],
@@ -99,51 +101,6 @@ var BaseGraph = React.createClass({
             differentArray(nextProps.graph.metrics, this.props.graph.metrics)) {
             this.setState({data:[]}, fetch);
         }
-    },
-    componentDidMount: function () {
-        var that = this;
-
-        // check and set the state of graphWidth so as to redraw the graphs
-        // when graph width changes
-        var checkGraphWidth = function () {
-            var graph = $('#' + that.props.graph._id);
-            var graphWidth = graph.width();
-            return function () {
-                if(graphWidth !== graph.width()) {
-                    graphWidth = graph.width();
-                    that.setState({graphWidth: graphWidth});
-                }
-            };
-        }();
-        setInterval(checkGraphWidth, 1200);
-
-        // For updating graph title
-        $("#" + this.props.graph._id + " .titleInput").off().on('blur', function(){
-            if($(this).val()=="") return;
-            var graph = {
-                title: $(this).val()
-            };
-            $.ajax({
-                type: 'PUT',
-                url: 'graph/' + that.props.graph._id,
-                data: {graph: graph},
-                success: function(){
-                    if(that.props.onUpdate) {
-                        that.props.onUpdate({
-                            title: graph.title,
-                            _id: that.props.graph._id
-                        });
-                    }
-                },
-                error:function(xhr, status, err){
-                    if (xhr.status === 401) {
-                        location.assign('/login.html');
-                    }
-                    console.log("error");
-                }
-            });
-        });
-        $(".singleDefault .titleInput").off().attr("disabled",true);
     },
     componentDidUpdate: function() {
         var fitted_data=this.getFittedData();

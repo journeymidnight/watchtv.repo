@@ -155,6 +155,7 @@ var GraphList = React.createClass({
         var graph = this.graphFromID(graphID);
         if(graph) {
             var shareContent = '[' + JSON.stringify({
+                    type: graph.type,
                     ips: graph.ips,
                     metrics: graph.metrics,
                     title: graph.title
