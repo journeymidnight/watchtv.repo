@@ -8,6 +8,8 @@ var TextField = require('material-ui/lib/text-field');
 
 var mixins = require('../mixins.js');
 
+// TODO: copied tons of code from graphSelector, refactor needed
+
 // Includes a couple of dropdown menus to edit measurements
 
 // data structures:
