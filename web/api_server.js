@@ -19,7 +19,7 @@ var logger = require('./logger.js').getLogger('API');
 var app = express();
 
 var userPopulateArgument = {
-    path: "projects graphs",
+    path: "projects panels",
     select: "name ips metrics title"
 };
 
@@ -827,18 +827,16 @@ app.get('/node/:node_id/graphs', function (req, res) {
 app.post('/node/:node_id/graphs', function (req, res){
     var node_id = req.params.node_id,
         user_id = req.user._id;
-    var ips = req.body.ips,
+    var type = valueWithDefault(req.body.type, 'Line'),
+        ips = req.body.ips,
         metrics = req.body.metrics,
         title = valueWithDefault(req.body.title, '');
-    if(!ips || ips.constructor !== Array || ips.length === 0) {
-        res.status(400).send('Missing IPs or bad format');
-        return;
-    }
     if(!metrics || metrics.constructor !== Array || metrics.length === 0) {
         res.status(400).send('Missing metrics or bad format');
         return;
     }
     db.Graph.create({
+        type: type,
         ips: ips,
         metrics: metrics,
         title: title
@@ -1402,7 +1400,6 @@ app.get('/users', requireLeader, function(req, res) {
 app.post('/users', requireLeader,
     function(req, res){
     var name = req.body.name,
-        graphs = valueWithDefault(req.body.graphs, []),
         role = valueWithDefault(req.body.role, 'User'),
         projects = valueWithDefault(req.body.projects, ['']);
     if(isUndefined(name)) {
@@ -1447,7 +1444,7 @@ app.post('/users', requireLeader,
                         db.User.create({
                                 name: name,
                                 showName: '',
-                                graphs: graphs,
+                                panels: [],
                                 graphColumnNumber: 2,
                                 graphRefreshInterval: 0,
                                 role: role,
@@ -1596,7 +1593,7 @@ app.get('/user/graphs', function(req, res) {
                     return;
                 }
                 cb(null, panel);
-            }).populate('graphs', 'ips metrics title');
+            }).populate('graphs', 'type ips metrics title');
         }, function(err, results) {
             if(err) {
                 res.status(500).send('Error fetching graphs for user ' + req.user._id);
@@ -1680,14 +1677,11 @@ app.put('/user/panel/:panel_id', function(req, res) {
 
 // add new graph to current user
 app.post('/user/graphs', function(req, res) {
-    var ips = req.body.ips,
+    var type = valueWithDefault(req.body.type, 'Line'),
+        ips = req.body.ips,
         metrics = req.body.metrics,
         title = valueWithDefault(req.body.title, ''),
         panel_id = req.body.panel_id;
-    if(!ips || ips.constructor !== Array || ips.length === 0) {
-        res.status(400).send('Missing IPs or bad format');
-        return;
-    }
     if(!metrics || metrics.constructor !== Array || metrics.length === 0) {
         res.status(400).send('Missing metrics or bad format');
         return;
@@ -1697,6 +1691,7 @@ app.post('/user/graphs', function(req, res) {
         return;
     }
     db.Graph.create({
+        type: type,
         ips: ips,
         metrics: metrics,
         title: title
@@ -1735,10 +1730,6 @@ app.post('/user/graphs/imports', function(req, res) {
     }
     for(var i=0; i<graphs.length; i++) {
         var graph = graphs[i];
-        if(!graph.ips || graph.ips.constructor !== Array || graph.ips.length === 0) {
-            res.status(400).send('Missing IPs or bad format for graph#' + i);
-            return;
-        }
         if(!graph.metrics || graph.metrics.constructor !== Array || graph.metrics.length === 0) {
             res.status(400).send('Missing metrics or bad format for graph#' + i);
             return;

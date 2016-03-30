@@ -88,7 +88,15 @@ var panelSchema = new Schema({
 });
 var Panel = mongoose.model('Panel', panelSchema);
 
+// For "Line" chart, graph is specified by ips * metrics;
+// for "Pie" chart, graph is specified by metrics, which is an array of
+// `ip,metric [operator(+,-,*,/) ip,metric]`, and the sum of them denotes 100%;
+// for "Figure" chart, the widget is a number to show current value of a metric,
+// and is specified by metrics[0], which is `ip;metric [operator(+,-,*,/) ip;metric]*`.
+// "default" is reserved for default graphs on single page.
+var graphTypes = ['Line', 'Pie', 'Figure', 'default'];
 var graphSchema = new Schema({
+        type: {type: String, enum: graphTypes},
         ips: [String],
         metrics: [String],
         title: String

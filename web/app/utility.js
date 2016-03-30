@@ -192,9 +192,84 @@ var dataMapper = {
 var resetTimePeriod = function(oldPeriod,refreshPeriod){
     return [
         new Date(oldPeriod[0].getTime()+refreshPeriod),
-        new Date(oldPeriod[1].getTime()+refreshPeriod),
+        new Date(oldPeriod[1].getTime()+refreshPeriod)
     ];
-}
+};
+
+// Parse metric formulas for Pie and Figure graphs to find metrics to query
+var parseMetricsToFetch = function (metricFormulas) {
+    if(metricFormulas.constructor !== Array) return {};
+
+    var metricsToFetch = {};
+    metricFormulas.forEach(function(metricFormula) {
+        metricFormula.replace(/\+/g, ' ').replace(/-/g, ' ')
+            .replace(/\*/g, ' ').replace(/\//g, ' ')
+            .replace(/\(/g, ' ').replace(/\)/g, ' ')
+            .split(' ')
+            .filter(function(metric) {
+                return metric !== '';
+            }).forEach(function(metric) {
+            metricsToFetch[metric] = 1; // value is dummy, we don't care
+        });
+    });
+    return metricsToFetch;
+};
+
+var buildMetricQueries = function (metricsToFetch) {
+    var metricQueries = [];
+    var currentTime = new Date();
+    for(var m in metricsToFetch) {
+        if(!metricsToFetch.hasOwnProperty(m)) continue;
+        if(m.indexOf(';') === -1) continue;
+
+        // metric of "Pie" and "Figure" is of format: ip;measurement,device,measure
+        var metricParameters = splitMetric(m.split(';')[1]).split(',');
+        var queryParameters = {
+            from: currentTime - 1000 * 60 * 15,
+            to: currentTime.getTime(),
+            ip: m.split(';')[0],
+            measurement: metricParameters[0],
+            device: metricParameters[1],
+            measure: metricParameters[2]
+        };
+        var req = $.ajax({
+            type: 'GET',
+            url: '/timeseries/metric?' + $.param(queryParameters),
+            dataType: 'json'
+        });
+        req.metric = m;
+        metricQueries.push(req);
+    }
+    return metricQueries;
+};
+
+var extractMetricData = function (ajaxResults, metricQueries) {
+    // If there's only one graphRequest, ajaxResults is in structure
+    // [ data, statusText, jqXHR ];
+    // if there're multiple graphRequests, ajaxResults is an array of
+    // [ data, statusText, jqXHR ], so some branches are needed here
+    // F*** jQuery.
+    if(metricQueries.length === 1) {
+        ajaxResults = [ajaxResults];
+    }
+    var metricData = {};
+    for(var i = 0; i < ajaxResults.length; i++) {
+        var d = null;
+        var dataArray = ajaxResults[i][0];
+        for(var j = dataArray.length-1; j >= 0; j--) {
+            // ajaxResults[i][0] is the result of metricQueries[i]
+            // data returned is in format [[time, value], [time, value], ...]
+            // get the latest value among them
+            if(dataArray[j][1]) {
+                d = dataArray[j][1];
+                break;
+            }
+        }
+        metricData[metricQueries[i].metric] = d;
+    }
+    return metricData;
+};
+
 var Utility = {
     periodFromTimeLength: periodFromTimeLength,
     numberFormatter: numberFormatter,
@@ -207,6 +282,9 @@ var Utility = {
     dotted2underscoredIP: dotted2underscoredIP,
     generateKeyForGraph: generateKeyForGraph,
     dataMapper: dataMapper,
-    resetTimePeriod:resetTimePeriod
+    resetTimePeriod:resetTimePeriod,
+    parseMetricsToFetch: parseMetricsToFetch,
+    buildMetricQueries: buildMetricQueries,
+    extractMetricData: extractMetricData
 };
 module.exports = Utility;
