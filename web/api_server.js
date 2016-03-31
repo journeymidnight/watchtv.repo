@@ -1457,6 +1457,17 @@ app.post('/users', requireLeader,
                                     return
                                 }
                                 logger('User added', u);
+                                db.Panel.create({
+                                    name: 'Default',
+                                    graphs: [],
+                                    owner: u._id
+                                }, function (err, p) {
+                                    db.User.findOneAndUpdate(
+                                        {_id: u._id},
+                                        {'$push': {panels: p._id}},
+                                        function () {} // best effort
+                                    );
+                                });
                                 res.status(201)
                                     .location('/user/' + u._id)
                                     .send('User added');
@@ -1805,15 +1816,30 @@ app.post('/user/graph/move/:graph_id', function (req, res) {
 app.post('/user/panels/imports', function (req, res) {
     var panels = req.body.panels;
     var user_id = req.user._id;
-    db.User.findByIdAndUpdate(user_id,
-        { $push: {panels: {$each: panels}}},
-        function (err, u) {
-            if(err) {
-                res.status(500).send('Adding panel to user failed');
-                return;
+    db.User.findById(user_id, function (err, u) {
+        var exists = false;
+        var existedPanels = [];
+        u.panels.forEach(function (p) {
+            var panelIdString = String(p);
+            if(panels.indexOf(panelIdString) !== -1) {
+                exists = true;
+                existedPanels.push(panelIdString);
             }
-            res.status(200).send('Panels imported to user');
         });
+        if(exists) {
+            res.status(400).send('Panels already exist: ' + existedPanels);
+            return;
+        }
+        db.User.findByIdAndUpdate(user_id,
+            { $push: {panels: {$each: panels}}},
+            function (err, u) {
+                if(err) {
+                    res.status(500).send('Adding panel to user failed');
+                    return;
+                }
+                res.status(200).send('Panels imported to user');
+            });
+    })
 });
 
 var ensureUserOwnsPanel = function(user_id, panel_id, req, res, next) {
@@ -2232,11 +2258,23 @@ var ensureUserExistence = function(user, res, callback) {
         } else if (results.existsInOauth) {
             db.User.create({
                 name: user,
-                role: 'Leader'
+                role: 'Leader',
+                panels: []
             }, function (err, u) {
                 if (err) {
                     res.status(500).send('Project create failed');
                 }
+                db.Panel.create({
+                    name: 'Default',
+                    graphs: [],
+                    owner: u._id
+                }, function (err, p) {
+                    db.User.findOneAndUpdate(
+                        {_id: u._id},
+                        {'$push': {panels: p._id}},
+                        function () {} // best effort
+                    );
+                });
                 callback(err, u);
             })
         } else {

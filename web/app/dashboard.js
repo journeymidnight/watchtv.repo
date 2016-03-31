@@ -137,6 +137,34 @@ var GraphList = React.createClass({
         });
         this.refs.graphImportDialog.dismiss();
     },
+    importPanel: function () {
+        var that = this, panels;
+        var panelJson = this.refs.panelIdInput.getValue().trim();
+        try {
+            panels = JSON.parse(panelJson);
+        } catch (e) {
+            this.refs.panelImportErrorDialog.show();
+            return;
+        }
+        $.ajax({
+            url: '/user/panels/imports',
+            type: 'POST',
+            data: {
+                panels: panels
+            },
+            success: function () {
+                that.getUserGraphs();
+            },
+            error: function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    location.assign('/login.html');
+                }
+                that.refs.panelImportErrorDialog.show();
+                console.log('Error adding user panel', xhr, status, error);
+            }
+        });
+        this.refs.panelImportDialog.dismiss();
+    },
     graphFromID: function(graphID) {
         var panels = this.state.panels;
         for(var i = 0; i < panels.length; i++) {
@@ -181,6 +209,12 @@ var GraphList = React.createClass({
     },
     showPanelDeleteDialog: function () {
         this.refs.panelDeleteDialog.show();
+    },
+    showPanelShareDialog: function () {
+        this.refs.panelShareDialog.show();
+    },
+    showPanelImportDialog: function () {
+        this.refs.panelImportDialog.show();
     },
     render: function(){
         var _this = this;
@@ -245,6 +279,10 @@ var GraphList = React.createClass({
         });
         panels.push(<li><a href="#" onClick={_this.showPanelAddDialog}>
             <i className="fa fa-white fa-plus-circle"></i></a></li>);
+        panels.push(<li><a href="#" onClick={_this.showPanelShareDialog}>
+            <i className="fa fa-white fa-share"></i></a></li>);
+        panels.push(<li><a href="#" onClick={_this.showPanelImportDialog}>
+            <i className="fa fa-white fa-arrow-down"></i></a></li>);
         panels.push(<li><a href="#" onClick={_this.showPanelDeleteDialog}>
             <i className="fa fa-white fa-trash"></i></a></li>);
         var currentPanel = this.state.panels.filter(function(p) {
@@ -318,6 +356,31 @@ var GraphList = React.createClass({
                                 {text: __('Confirm'), onClick: this.deletePanel}
                             ]}
                             ref="panelDeleteDialog" >
+                    </Dialog>
+                    <Dialog title={__("Copy the contents below to share this panel")}
+                            actions={[{text: __('Close')}]}
+                            autoDetectWindowHeight={true} autoScrollBodyContent={true}
+                            ref="panelShareDialog">
+                        <TextField value={'[' + JSON.stringify(this.state.panelID) + ']'}
+                                   style={{width: '90%'}}
+                                   multiLine={true} />
+                    </Dialog>
+                    <Dialog title={__("Import panel")}
+                            actions={[
+                                {text: __('Cancel')},
+                                {text: __('Import'), onClick: this.importPanel}
+                            ]}
+                            ref='panelImportDialog'>
+                        {__('Panels shared by others are read-only.')}
+                        <TextField hintText={__('Paste the JSON string here')}
+                                   ref='panelIdInput'
+                                   style={{width: '90%'}}
+                        />
+                    </Dialog>
+                    <Dialog title={__("Cannot import panel")}
+                            actions={[{ text: __('OK') }]}
+                            ref="panelImportErrorDialog">
+                        {__('Please double check your input')}
                     </Dialog>
                 </div>
                 <div className="graphList">

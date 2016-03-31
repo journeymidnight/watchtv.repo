@@ -46,7 +46,6 @@ li{list-style: none;}
 .dropDownMenu{margin-left: -24px;z-index: 111;}
 .dropDownMenu svg + div{margin-top: -10px!important;}
 .ipList,.configList,.metricList,.metricEditList{width: 30%;max-width:270px;margin-right: 3%;margin-top: 20px;float: left;position:relative;border: 1px solid #E0E0E0;padding: 10px 5px 10px 10px;border-radius: 3px;height: 170px;overflow: auto;overflow-x: hidden;}
-.metricList:hover, .metricEditList:hover {overflow-x: visible;}
 .ipList > div ,.configList > div {line-height: 40px;width: 100%!important;height: 40px!important;display: block!important;margin: 5px 0;margin-left: -10px;}
 .configList > div > div:first-child + div{max-height: 250px;overflow-y: auto!important;}
 .ipList > div label,.configList > div label{color: #4A4A4A;font-weight: 400;}
@@ -108,7 +107,8 @@ tr.disabled {opacity: .5;}
 .legendColorBox > div{border:none!important;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
 .legendLabel{color: #fff;font-size: 12px;}
-.pieLabel{background-color: rgba(10,10,10,.8); border-radius: 2px}
+.pieLabel{background-color: rgba(10,10,10,.8); border-radius: 2px; opacity: 0.3; transition: all 0.5s ease-in-out}
+.pieLabel:hover{opacity: 1;}
 .pieLabel > div {color: #fff!important;}
 .add_node td > div{width:100%!important;}
 .metricList button + div {overflow: hidden;text-overflow: ellipsis;}

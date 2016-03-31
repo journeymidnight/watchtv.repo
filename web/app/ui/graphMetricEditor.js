@@ -145,6 +145,7 @@ var GraphSelector = React.createClass({
     handleAddingMetricFormula: function() {
         var metrics = this.state.metrics,
             formula = this.refs.metricInput.getValue().trim();
+        if(formula === '') return;
         if(metrics.indexOf(formula) !== -1) return;
         metrics.push(formula);
         this.refs.metricInput.setValue('');

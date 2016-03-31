@@ -53,10 +53,10 @@ var PieGraph = React.createClass({
                      series: {
                          pie: {
                              show: true,
-                             radius: 4/5,
+                             radius: 1,
                              label: {
                                  show: true,
-                                 radius: 1
+                                 radius: 0.75
                              }
                          }
                      },
