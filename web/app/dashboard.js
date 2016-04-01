@@ -216,6 +216,12 @@ var GraphList = React.createClass({
     showPanelImportDialog: function () {
         this.refs.panelImportDialog.show();
     },
+    createCopyHandler: function (inputID) {
+        return function () {
+            $('#' + inputID).select();
+            document.execCommand('copy');
+        }
+    },
     render: function(){
         var _this = this;
         var currentPanelName = '';
@@ -333,6 +339,13 @@ var GraphList = React.createClass({
             return {payload: panel._id, text: panel.name};
         });
 
+        var panelShareActions = [{text: __('Close')}];
+        var graphShareActions = [{text: __('Close')}];
+        if(document.queryCommandSupported('copy')) {
+            panelShareActions.push({text: __('Copy'), onClick: this.createCopyHandler('panelShare')});
+            graphShareActions.push({text: __('Copy'), onClick: this.createCopyHandler('graphShare')});
+        }
+
         return (
             <div>
                 <Zoom onRefresh={this.refreshTime} period={this.state.period} ref="zoom"/>
@@ -358,11 +371,11 @@ var GraphList = React.createClass({
                             ref="panelDeleteDialog" >
                     </Dialog>
                     <Dialog title={__("Copy the contents below to share this panel")}
-                            actions={[{text: __('Close')}]}
+                            actions={panelShareActions}
                             autoDetectWindowHeight={true} autoScrollBodyContent={true}
                             ref="panelShareDialog">
                         <TextField value={'[' + JSON.stringify(this.state.panelID) + ']'}
-                                   style={{width: '90%'}}
+                                   style={{width: '90%'}} id="panelShare"
                                    multiLine={true} />
                     </Dialog>
                     <Dialog title={__("Import panel")}
@@ -392,11 +405,11 @@ var GraphList = React.createClass({
                              ref="graphEditor"
                 />
                 <Dialog title={__("Copy the contents below to share this graph")}
-                        actions={[{text: __('Close')}]}
+                        actions={graphShareActions}
                         autoDetectWindowHeight={true} autoScrollBodyContent={true}
                         ref='shareDialog'>
                     <TextField value={this.state.shareContent} style={{width: '90%'}}
-                               multiLine={true} />
+                               multiLine={true} id="graphShare"/>
                 </Dialog>
                 <div className="btnParent" >
                     <div className="graphBtn" onClick={this.showEditDialog}>

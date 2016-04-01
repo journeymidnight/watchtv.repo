@@ -30,7 +30,14 @@ var PieGraph = React.createClass({
          .then(function () {
              var metricData = utility.extractMetricData(arguments, metricQueries);
              var plotData = that.props.graph.metrics.map(function(metricFormula) {
-                 var m = metricFormula;
+                 var name, m;
+                 if(metricFormula.split('|').length === 2) {
+                     name = metricFormula.split('|')[0];
+                     m = metricFormula.split('|')[1];
+                 } else {
+                     name = metricFormula;
+                     m = metricFormula;
+                 }
                  for(var metric in metricData) {
                      if(!metricData.hasOwnProperty(metric)) continue;
                      m = m.replace(metric, metricData[metric]);
@@ -43,7 +50,7 @@ var PieGraph = React.createClass({
                      return null;
                  }
                  return {
-                     label: metricFormula,
+                     label: name,
                      data: v
                  }
              });

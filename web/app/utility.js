@@ -202,6 +202,9 @@ var parseMetricsToFetch = function (metricFormulas) {
 
     var metricsToFetch = {};
     metricFormulas.forEach(function(metricFormula) {
+        if(metricFormula.split('|').length === 2) {
+            metricFormula = metricFormula.split('|')[1];
+        }
         metricFormula.replace(/\+/g, ' ').replace(/-/g, ' ')
             .replace(/\*/g, ' ').replace(/\//g, ' ')
             .replace(/\(/g, ' ').replace(/\)/g, ' ')

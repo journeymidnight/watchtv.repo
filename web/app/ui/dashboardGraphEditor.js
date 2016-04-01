@@ -107,8 +107,8 @@ var dashboardGraphEditor = React.createClass({
                 _id: null,
                 panel_id: panel_id,
                 graphType: 'Line',
-                ips: [],
-                metrics: [],
+                //ips: [],
+                //metrics: [],
                 type: 'add'
             });
         }
