@@ -422,15 +422,19 @@ var isIPandPort = function(s) {
 var nodeCommander = function(nodes, enables, disables) {
     logger('Command to Diamond: nodes:', nodes, ', enables:', enables,
            ', disables:', disables);
-    enables = enables.map(function(en){
+    enables = enables.filter(function (en) {
+        return en != null && typeof en === 'string' && en.trim() !== '';
+    }).map(function(en){
         return ({
-            "name": en,
+            "name": en.trim(),
             "config": {}
         });
     });
-    disables = disables.map(function(dis){
+    disables = disables.filter(function (dis) {
+        return dis != null && typeof dis === 'string' && dis.trim() !== '';
+    }).map(function(dis){
         return ({
-            "name": dis,
+            "name": dis.trim(),
             "config": {}
         });
     });
@@ -767,6 +771,215 @@ app.get('/node/:node_id/ips', function(req, res) {
             return;
         }
         res.send(found);
+    });
+});
+
+// Add tags to filtered nodes on `Nodes` page
+app.post('/node/tags', function (req, res) {
+    var project = req.body.project,
+        region = req.body.region,
+        idc = req.body.idc,
+        node = req.body.keywords,
+        tags = req.body.tags;
+    var user_id = req.user._id;
+
+    // TODO: copied from `queryNode` and modified accordingly, should refactor
+    async.parallel([  // expand region, idc, and project to db documents
+        function(callback) {
+            if(notUndefined(region)) {
+                documentFromName(region, db.Region, false, callback);
+            } else {
+                callback(null, null);
+            }
+        },
+        function(callback) {
+            if(notUndefined(idc)) {
+                documentFromName(idc, db.Idc, false, callback);
+            } else {
+                return callback(null, null);
+            }
+        },
+        function(callback) {
+            if(notUndefined(project)) {
+                documentFromName(project, db.Project, false, callback);
+            } else {
+                return callback(null, null);
+            }
+        }
+    ], function(err, results) {
+        var regionDoc = results[0],
+            idcDoc = results[1],
+            projectDoc = results[2];
+
+        if(project && req.user.role !== 'Root') {
+            var projectFiltered = req.user.projects.filter(function(userProject){
+                if(!projectDoc || !userProject) return false;
+                // projectDoc._id is an ObjectId and userProject._id is a string
+                return projectDoc._id.equals(userProject._id);
+            });
+            if(projectFiltered.length === 0) {
+                res.status(403).send('User is not allowed to access this project');
+                return;
+            }
+        }
+        var filter = {}, projects = [];
+        if(regionDoc) filter['region'] = regionDoc._id;
+        if(idcDoc) filter['idc'] = idcDoc._id;
+        // if project is assigned, filter as requested,
+        // otherwise filter with user's projects
+        if(projectDoc) {
+            filter['project'] = projectDoc._id;
+        } else if(req.user.role !== 'Root') {
+            // req.user.projects are populated so extract only ids
+            req.user.projects.map(function(project){
+                projects.push(project._id);
+            });
+            filter['project'] = { $in: projects };
+        }
+        async.map(
+            node.split(' '),
+            function(s, map_callback){
+                async.parallel([
+                        function (callback) {
+                            var tagRegExp;
+                            if(s.indexOf(':') !== -1) { // handle 'tag:xxx'
+                                var k = s.split(':')[0],
+                                    v = s.split(':')[1];
+                                if(k === 'tag') {
+                                    tagRegExp = new RegExp(v, 'i');
+                                } else {
+                                    callback(null, []);
+                                    return;
+                                }
+                            } else {
+                                tagRegExp = new RegExp(s, 'i');
+                            }
+                            var q = {name: tagRegExp};
+                            db.Tag.find(q, {_id: 1}, // only return id
+                                function (err, tags) {
+                                    if (err) {
+                                        callback(err, {});
+                                    }
+                                    var ids = tags.map(function (tag) {
+                                        return tag._id;
+                                    });
+                                    var nodeFilter = {tags: {$in: ids}};
+                                    for(var k in filter) {
+                                        nodeFilter[k] = filter[k];
+                                    }
+                                    db.Node.find(nodeFilter,
+                                        function (err, nodes) {
+                                            if (err) {
+                                                callback(err, {});
+                                            }
+                                            callback(null, nodes);
+                                        }).populate('tags region idc project', 'name');
+                                }
+                            );
+                        },
+                        function (callback) {
+                            var q = {};
+                            if(s.indexOf(':') !== -1) { // handle 'name:xxx' and 'ip:xxx'
+                                var k = s.split(':')[0],
+                                    v = s.split(':')[1];
+                                if(k === 'name') {
+                                    q.name = new RegExp(v, 'i');
+                                } else if(k === 'ip') {
+                                    q.ips = new RegExp(v, 'i');
+                                } else {
+                                    callback(null, []);
+                                    return;
+                                }
+                            } else {
+                                var sregx = new RegExp(s, 'i');
+                                q = { $or: [
+                                    {name: sregx},
+                                    {ips: sregx}
+                                ]};
+                            }
+                            for(var k in filter) {
+                                q[k] = filter[k];
+                            }
+                            db.Node.find(q,
+                                function (err, nodes) {
+                                    callback(err, nodes);
+                                }).populate('tags region idc project', 'name');
+                        }
+                    ],
+                    function(err, r){
+                        if(err){
+                            logger(err);
+                            res.status(500).send("Cannot complete your query");
+                            return;
+                        }
+                        var uniq_nodes = {};
+                        r.map(function(nodes){
+                            nodes.map(function (node) {
+                                uniq_nodes[node._id] = node;
+                            });
+                        });
+                        map_callback(null, uniq_nodes);
+                    });
+            },
+            function(err, results) {
+                var ans = results.reduce(
+                    function(pre, curr, index, array){
+                        if(pre == null){
+                            return curr;
+                        } else {
+                            var ans = {};
+                            // intersection of pre and curr
+                            for (var p in pre) {
+                                if (curr[p] != undefined){
+                                    ans[p] = pre[p];
+                                }
+                            }
+                            return ans;
+                        }
+                    },
+                    null
+                );
+                var resultNodes = [];
+                for (var k in ans) {
+                    resultNodes.push(ans[k]);
+                }
+                async.map(tags, function (t, callback) {
+                    if(t === '') return callback(null, null);
+                    documentFromName(t, db.Tag, false, callback);
+                }, function (err, results) {
+                    var toEnable = [];
+                    var tagIDs = results.filter(function (r) {
+                        return r != null
+                    }).map(function (r) {
+                        toEnable = setMerge(toEnable, r.monitorItems);
+                        return r._id;
+                    });
+                    if(tagIDs.length === 0) return;
+                    if(resultNodes.length === 0) return;
+
+                    resultNodes.map(function (node) {
+                        var currentTags = node.tags.map(function (tag) {
+                            return String(tag._id);
+                        });
+                        var tagsToAdd =  tagIDs.filter(function (tagID) {
+                            return currentTags.indexOf(String(tagID)) === -1;
+                        });
+                        db.Node.findByIdAndUpdate(node._id,
+                            { $push: { tags: {$each: tagsToAdd}}},
+                            function (err, u) {
+                                if(err) {
+                                    logger('Batch tag add failed', err);
+                                }
+                                if(toEnable.length > 0) {
+                                    nodeCommander(u.ips, toEnable, []);
+                                }
+                            }
+                        )
+                    });
+                });
+                res.status(200).send('Tags added');
+            }
+        );
     });
 });
 

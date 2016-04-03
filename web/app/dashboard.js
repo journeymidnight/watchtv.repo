@@ -342,8 +342,10 @@ var GraphList = React.createClass({
         var panelShareActions = [{text: __('Close')}];
         var graphShareActions = [{text: __('Close')}];
         if(document.queryCommandSupported('copy')) {
-            panelShareActions.push({text: __('Copy'), onClick: this.createCopyHandler('panelShare')});
-            graphShareActions.push({text: __('Copy'), onClick: this.createCopyHandler('graphShare')});
+            panelShareActions.push({text: __('Copy'),
+            onClick: this.createCopyHandler('panelShare')});
+            graphShareActions.push({text: __('Copy'),
+            onClick: this.createCopyHandler('graphShare')});
         }
 
         return (

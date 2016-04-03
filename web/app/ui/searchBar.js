@@ -3,8 +3,10 @@ var Pagination = require('react-bootstrap/lib/Pagination');
 var TextField = require('material-ui/lib/text-field');
 var RaisedButton = require('material-ui/lib/raised-button');
 var DropDownMenu = require('material-ui/lib/drop-down-menu');
+var Dialog = require('material-ui/lib/dialog');
 
 var mixins = require('../mixins.js');
+var dataMapper = require('../utility.js').dataMapper;
 
 // Includes an input field and a "Find" button
 //     +---------------------------------+ +-------+      
@@ -27,6 +29,8 @@ var mixins = require('../mixins.js');
 //   activePage: number, start from 1 to totalPages, currently selected page
 //   additionalFilter: string, space separated names of filters, possible values are
 //                     "region", "idc" and "project"; set to '' if not needed
+//   additionalButton: string, space separated names of buttons, currently only supports
+//                      "batchTags"
 
 var displayName = {
     region: __('Region'),
@@ -36,6 +40,11 @@ var displayName = {
 
 var SearchBar = React.createClass({
     mixins: [mixins.materialMixin],
+    getDefaultProps: function () {
+        return {
+            additionalButton: ''
+        }
+    },
     raiseStates: function() {
         var filter = {},
             that = this;
@@ -155,6 +164,47 @@ var SearchBar = React.createClass({
     unbindEnterKeypress: function () {
         $(document).unbind('keydown', this.onKeydown);
     },
+    showBatchTagsDialog: function () {
+        this.refs.batchTagsDialog.show();
+    },
+    batchAddTags: function () {
+        var that = this;
+        var project = this.state.project,
+            region = this.state.region,
+            idc = this.state.idc;
+        var keywords = this.refs.keywords.getValue().trim();
+        var tagsInput = this.refs.tagsInput.getValue().trim();
+        if(tagsInput === '') return;
+        var tags = tagsInput.split(' ');
+
+        $.ajax({
+            url: '/node/tags',
+            type: 'POST',
+            data: {
+                project: project,
+                region: region,
+                idc: idc,
+                keywords: keywords,
+                tags: tags
+            },
+            success: function (data) {
+                that.props.onNewKeywords({
+                    project: project,
+                    region: region,
+                    idc: idc,
+                    keywords: keywords
+                });
+            },
+            error: function (xhr, status, err) {
+                console.error('Add new tags failed: ', err);
+            }
+        });
+        this.refs.batchTagsDialog.dismiss();
+    },
+    bindEvents: function () {
+        $('#tagBatchInput').autocomplete(createMultiAutocompleteObject('q?tag=',
+            dataMapper.tag));
+    },
     render: function(){
         var that = this,
             searchComponents = [];
@@ -165,6 +215,14 @@ var SearchBar = React.createClass({
         searchComponents.push(<RaisedButton label={__("Find")}
                                             key="find"
                                onClick={this.handleSearch} />);
+        this.props.additionalButton.split(' ').map(function (buttonName) {
+            if(buttonName === '') return;
+
+            if(buttonName === 'batchTags') {
+                searchComponents.push(<RaisedButton label={<i className="fa fa-tags"></i>}
+                                                    onClick={that.showBatchTagsDialog} />);
+            }
+        });
         this.props.additionalFilter.split(' ').map(function (dropdownName) {
             if (dropdownName === '') return;
 
@@ -215,6 +273,18 @@ var SearchBar = React.createClass({
                         }
                     }
                 />
+                <Dialog title={__("Add tags to all filtered nodes")}
+                        actions={[
+                            {text: __('Cancel')},
+                            {text: __('Add'), onClick: this.batchAddTags}
+                        ]}
+                        onShow={this.bindEvents}
+                        ref="batchTagsDialog">
+                    <TextField floatingLabelText={__('Tags to add')}
+                               defaultValue=""
+                               style={{width: '80%'}}
+                               ref="tagsInput" id="tagBatchInput" />
+                </Dialog>
             </div>
         )
     }

@@ -11,7 +11,7 @@ var SearchBar = require('./searchBar.js');
 // listClass: react class, currently "NodeList", "TagList", "UserList"
 // hintText: string, text to show as a placeholder in search input box
 
-var itemsPerPage = 10; // TODO: should be configurable per user in UI
+var itemsPerPage = 10; // TODO: should be configurable by user in UI
 
 var SearchableList = React.createClass({
     componentDidMount: function(){
@@ -85,6 +85,7 @@ var SearchableList = React.createClass({
             <div>
                 <SearchBar onNewKeywords={this.handleKeyword} hintText={this.props.hintText}
                     totalPages={this.state.totalPages} activePage={this.state.activePage}
+                    additionalButton={this.props.additionalButton}
                     additionalFilter={this.props.additionalFilter}
                 />
                 <this.props.listClass data={this.state.data} onRefresh={this.handleKeyword}

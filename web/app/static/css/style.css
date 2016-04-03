@@ -34,6 +34,7 @@ li{list-style: none;}
 .searchForm > div + i {top: -13px;position: relative;margin: 0;}
 .searchForm > div:first-child {bottom: 16px;}
 .searchForm > div:nth-of-type(2) {position: relative;top: -15px;left: 10px;margin-right: 10px}
+.searchForm > div:nth-of-type(3) {position: relative;top: -13px;left: 10px;margin-right: 10px}
 .table {padding: 0 15px;}
 .table thead tr th:last-child{min-width: 190px;}
 .table th,.table td{vertical-align: middle!important;}
@@ -107,7 +108,7 @@ tr.disabled {opacity: .5;}
 .legendColorBox > div{border:none!important;}
 .legendColorBox > div >div {width: 10px!important;height: 2px!important;border-width: 1px!important;}
 .legendLabel{color: #fff;font-size: 12px;}
-.pieLabel{background-color: rgba(10,10,10,.8); border-radius: 2px; opacity: 0.3; transition: all 0.5s ease-in-out}
+.pieLabel{background-color: rgba(10,10,10,.8); border-radius: 2px; opacity: 0.3; transition: opacity 0.5s ease-in-out}
 .pieLabel:hover{opacity: 1;}
 .pieLabel > div {color: #fff!important;}
 .add_node td > div{width:100%!important;}

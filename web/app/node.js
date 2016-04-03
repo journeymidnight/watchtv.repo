@@ -351,7 +351,8 @@ var NodeApp = React.createClass({
                 <SearchableList
                     type="node"
                     listClass={NodeList}
-                    hintText={__("Find by name ip or tag")}
+                    hintText={__("Find by name, IP or tag")}
+                    additionalButton="batchTags"
                     additionalFilter="project region idc"
                 />
             </AppCanvas>
