@@ -67,12 +67,16 @@ var ring = function() {
                     })
                 });
             } else {
-                fetchReceivers = new Promise(function(resovle, reject) {
+                fetchReceivers = new Promise(function(resolve, reject) {
                     db.Node.findById(nodeID, function(err, node) {
                         if(err) return reject(err);
                         db.Project.findById(node.project, function(err, project) {
                             if(err) return reject(err);
-                            resovle(project.leader.name + '@letv.com');
+                            if(project.leader) {
+                                resolve(project.leader.name + '@le.com');
+                                return;
+                            }
+                            resolve(config.judge.lastContact || 'zhangcan@le.com');
                         }).populate('leader', 'name');
                     })
                 });

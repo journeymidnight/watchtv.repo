@@ -25,7 +25,9 @@ config.judge = {
     sinkIP: '10.140.80.108',
     sinkPort: 4242,
     ruleUpdateInterval: 5 * 60 * 1000, // 5min, in ms
-    alarmThrottleSpan: 4 * 60 * 60 * 1000 // 4h
+    alarmThrottleSpan: 4 * 60 * 60 * 1000, // 4h
+    lastContact: 'zhangcan@le.com' // The last contact if we could find
+                                   // no one to send alarms to
 };
 
 config.sandbox = {

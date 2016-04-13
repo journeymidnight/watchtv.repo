@@ -13,7 +13,7 @@ var server = email.server.connect({
 process.on('message', function (message) {
     server.send({
         text: message.content,
-        from: 'WatchTV Alarm Service <alarm@watchtv.letv.io>',
+        from: 'WatchTV Alarm Service <alarm@watchtv.lecloud.com>',
         to: message.to,
         subject: message.subject
     }, function(err, message) {
