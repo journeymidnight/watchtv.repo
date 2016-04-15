@@ -55,7 +55,7 @@ var fetch = function(url, callback) {
     request({
         url: url,
         json: true,
-        timeout: 5000 // 5s
+        timeout: 10000 // 10s
     }, function(err, resp, body) {
         if(err) {
             logger('OpenTSDB connection error:', err);
