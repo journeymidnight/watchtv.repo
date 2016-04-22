@@ -63,6 +63,7 @@ var startGraphiteServer = function() {
     var sender = createSender();
     var server = net.createServer(function(socket) {
         var dataBuffer = '';
+        socket.setKeepAlive(true, 10000); // start keepalive probe 10s after last data packet
         socket.on('data', function(data) {
             dataBuffer += data.toString('ascii');
             var n = dataBuffer.lastIndexOf('\n');
@@ -77,6 +78,7 @@ var startGraphiteServer = function() {
         });
         socket.on('error', function(error) {
             logger('Socket error', error);
+            socket.destroy();
         });
     }).listen(config.judge.graphitePort);
 
