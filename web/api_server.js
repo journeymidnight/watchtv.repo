@@ -2061,6 +2061,10 @@ var ensureUserOwnsPanel = function(user_id, panel_id, req, res, next) {
             res.status(500).send('Error fetching panel ' + panel_id);
             return;
         }
+        if(!panel) {
+            res.status(500).send('Database returned null value');
+            return;
+        }
         if(String(user_id) !== String(panel.owner)) {
             res.status(403).send("Only panel's owner could delete it");
             return;
@@ -2069,20 +2073,35 @@ var ensureUserOwnsPanel = function(user_id, panel_id, req, res, next) {
     })
 };
 
+// delete panel
 app.delete('/user/panel/:panel_id', function(req, res) {
     var user_id = req.user._id;
     var panel_id = req.params.panel_id;
-    ensureUserOwnsPanel(user_id, panel_id, req, res, function () {
-        db.User.findByIdAndUpdate(user_id,
-            { $pull: {panels: panel_id}},
-            function (err, u) {
+
+    db.User.findByIdAndUpdate(user_id,
+        { $pull: {panels: panel_id}},
+        function (err, u) {
+            if(err) {
+                res.status(500).send('Error removing panel ' + panel_id + ' for user ' + user_id);
+                return;
+            }
+            db.Panel.findById(panel_id, function (err, panel) {
                 if(err) {
-                    res.status(500).send('Error removing panel ' + panel_id + ' for user ' + user_id);
+                    res.status(200).send('Error fetching panel ' + panel_id);
                     return;
                 }
-                handleDeleteById(req, res, 'panel', db.Panel);
-            })
-    });
+                if(!panel) {
+                    res.status(200).send('Database returned null value');
+                    return;
+                }
+                if(String(user_id) !== String(panel.owner)) {  // current user is not panel owner
+                    res.status(200).send('Remove panel successfully');
+                } else { // current user is panel owner
+                    handleDeleteById(req, res, 'panel', db.Panel);
+                    // TODO : also delete the graphs inside panel
+                }
+            });
+        })
 });
 
 // delete graph with graph_id
