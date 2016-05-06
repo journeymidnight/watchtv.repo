@@ -135,6 +135,14 @@ var projectSchema = new Schema({
 );
 var Project = mongoose.model("Project", projectSchema);
 
+// Save metric metadata to MongoDB if using OpenTSDB
+var metricSchema = new Schema({
+    metricIdentifier: String, // currently an IP address
+    metrics: Schema.Types.Mixed
+}, {
+    collection: "Metric"
+});
+var Metric = mongoose.model("Metric", metricSchema);
 
 mongoose.connect(config.db.mongodbURL);
 
@@ -147,5 +155,6 @@ module.exports = {
     Graph: Graph,
     Region: Region,
     Idc: Idc,
-    Project: Project
+    Project: Project,
+    Metric: Metric
 };

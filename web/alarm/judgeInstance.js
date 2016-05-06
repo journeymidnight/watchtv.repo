@@ -248,6 +248,39 @@ var updateRules = function() {
     });
 };
 
+var metricMeta = {}; // metricMeta[ip] = metric meta needed in front end
+var mergeMeta = function (ip, name, metric, device) {
+    if(!metricMeta[ip]) metricMeta[ip] = {};
+    var meta = metricMeta[ip];
+    if(!meta[name]) meta[name] = {
+        measure: []
+    };
+    if(meta[name].measure.indexOf(metric) === -1) {
+        meta[name].measure.push(metric);
+    }
+    if(device) {
+        if(!meta[name].device) meta[name].device = [];
+        if(meta[name].device.indexOf(device) === -1) {
+            meta[name].device.push(device);
+        }
+    }
+};
+var saveMeta = function (ip, measure) {
+    var split = measure.split('.');
+    var name = split[2],
+        metric = split[3],
+        device = split[4];
+    if(!metricMeta[ip]) {
+        db.Metric.findOne({metricIdentifier: ip}, function (err, m) {
+            if(m) {
+                metricMeta[ip] = m;
+                mergeMeta(ip, name, metric, device);
+            }
+        })
+    }
+    mergeMeta(ip, name, metric, device);
+};
+
 var processData = function (data) {
         // metricEntry is something like:
         // servers.111_206_211_68.network.tx_fifo.eth2 0 1456934412
@@ -262,6 +295,7 @@ var processData = function (data) {
             logger('Error parse metric entry', data.metricEntry, err);
             return;
         }
+        saveMeta(data.ip, measure);
         var node = ip2node.get(data.ip);
         if(node === null) return;
         emitEventToProcess({
@@ -318,6 +352,19 @@ var flushToDB = function() {
             {'$set': {evaluationErrors: errorStrings}},
             function(err, tag) {
                 if(err) logger('Error update tag evaluation errors:', err);
+            }
+        )
+    }
+
+    // flush metric metadata
+    for(let ip in metricMeta) {
+        if(!metricMeta.hasOwnProperty(ip)) continue;
+        db.Metric.findOneAndUpdate(
+            {metricIdentifier: ip},
+            {metrics: metricMeta[ip]},
+            {upsert: true},
+            function (err, m) {
+                if(err) logger('Error update metric meta:', err);
             }
         )
     }
