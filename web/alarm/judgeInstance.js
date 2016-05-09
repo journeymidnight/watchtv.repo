@@ -249,21 +249,35 @@ var updateRules = function() {
 };
 
 var metricMeta = {}; // metricMeta[ip] = metric meta needed in front end
+var metricClean = {}; // metricClean[ip] = true/false
 var mergeMeta = function (ip, name, metric, device) {
-    if(!metricMeta[ip]) metricMeta[ip] = {};
+    var isClean = true;
+    if(!metricMeta[ip]) {
+        metricMeta[ip] = {};
+        isClean = false;
+    }
     var meta = metricMeta[ip];
-    if(!meta[name]) meta[name] = {
-        measure: []
-    };
+    if(!meta[name]) {
+        meta[name] = {
+            measure: []
+        };
+        isClean = false;
+    }
     if(meta[name].measure.indexOf(metric) === -1) {
         meta[name].measure.push(metric);
+        isClean = false;
     }
     if(device) {
-        if(!meta[name].device) meta[name].device = [];
+        if(!meta[name].device) {
+            meta[name].device = [];
+            isClean = false;
+        }
         if(meta[name].device.indexOf(device) === -1) {
             meta[name].device.push(device);
+            isClean = false;
         }
     }
+    metricClean[ip] = metricClean[ip] && isClean;
 };
 var saveMeta = function (ip, measure) {
     var split = measure.split('.');
@@ -273,7 +287,7 @@ var saveMeta = function (ip, measure) {
     if(!metricMeta[ip]) {
         db.Metric.findOne({metricIdentifier: ip}, function (err, m) {
             if(m) {
-                metricMeta[ip] = m;
+                metricMeta[ip] = m.metrics;
                 mergeMeta(ip, name, metric, device);
             }
         })
@@ -359,12 +373,17 @@ var flushToDB = function() {
     // flush metric metadata
     for(let ip in metricMeta) {
         if(!metricMeta.hasOwnProperty(ip)) continue;
+        if(metricClean[ip]) continue;
         db.Metric.findOneAndUpdate(
             {metricIdentifier: ip},
             {metrics: metricMeta[ip]},
             {upsert: true},
             function (err, m) {
-                if(err) logger('Error update metric meta:', err);
+                if(err) {
+                    logger('Error update metric meta:', err);
+                    return;
+                }
+                metricClean[ip] = true;
             }
         )
     }

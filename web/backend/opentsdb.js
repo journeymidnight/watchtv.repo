@@ -46,8 +46,8 @@ var forwardData = function(data, sender) {
         var metric = eventName + ip;
         if(device) metric += device;
         var toWrite = 'put ' + metric + ' ' + timestamp + ' ' + value + ' _=_' + '\n';
-        // NOTE: setting tag to `_=_` is a workaround because OpenTSDB telnet
-        // interface requires at least one tag pair
+        // NOTE: setting tag to `_=_` is dummy and is a workaround because OpenTSDB
+        // requires at least one tag pair
 
         sender.write(toWrite);
     })
