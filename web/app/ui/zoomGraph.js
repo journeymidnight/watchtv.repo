@@ -6,7 +6,7 @@ var Zoom = React.createClass({
     getInitialState: function () {
         return {
             zoomTimeIndex: 3, //last 12h
-            refreshTime:60000,//1 min
+            refreshTime: 0,// 0 means "no refresh"
             currentTimer: null // object returned from `setInterval`
         };
     },
