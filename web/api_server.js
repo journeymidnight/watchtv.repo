@@ -1639,7 +1639,7 @@ app.post('/users', requireLeader,
                 return
             }
 
-            if(body.length > 0 && body[0].email == name+'@letv.com') {
+            if(body.length > 0 && body[0].email == name+'@le.com') {
                 async.map(projects,
                     function(project, map_callback) {
                         documentFromName(project, db.Project, false, map_callback);
@@ -2472,7 +2472,7 @@ var ensureUserExistence = function(user, res, callback) {
                     callback(err, false);
                     return;
                 }
-                if(body.length > 0 && body[0].email == user + '@letv.com') {
+                if(body.length > 0 && body[0].email == user + '@le.com') {
                     callback(null, true);
                 } else {
                     callback(null, false);
