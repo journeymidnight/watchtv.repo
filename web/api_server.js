@@ -2172,7 +2172,24 @@ app.get('/graphs/default', function(req, res) {
 
 app.post('/login', function(req, res) {
     var user = req.body.user,
-        password = encodeURIComponent(req.body.password);
+        password = encodeURIComponent(req.body.password),
+        captcha = req.body.captcha;
+
+    if (captcha == "" || captcha.length < 1000) {
+        res.status(401).send('Invalid captcha');
+        return
+    }
+    /* FUCKING GFW
+    request({
+        method: "POST",
+        url:"https://www.google.com/recaptcha/api/siteverify?secret=6LdhISkTAAAAAMPGl1wfbobeeQagOrmDuB_uFMDe" +
+            '&response=' + captcha,
+    },
+        function (err, resp, body) {
+            console.log(err, resp, body)
+        }
+    );
+    */
 
     if(!user || !password) {
         res.status(400).send('Invalid username or password');

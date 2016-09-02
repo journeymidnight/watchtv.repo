@@ -6,6 +6,7 @@
 <link type="text/css" href="static/css/style.css" rel="stylesheet" />
 <link rel="shortcut icon" href="static/images/favicon.ico">
 <script src="static/js/jquery-2.1.4.min.js"></script>
+<script src="https://www.google.com/recaptcha/api.js"></script>
 <script type="text/javascript">
 $(function(){
     $("#userSubmit").bind('click',submitForm);
@@ -16,23 +17,31 @@ $(function(){
         } 
     };
     function submitForm(){
-        var errInfo;
+        $("#loginErr_msg").text("");
+        var errInfo = "";
         var name = $("#user").val();
         var pwd = $("#pwd").val();
+        var captcha = grecaptcha.getResponse();
+        if (captcha == "") {
+            errInfo = "Prove you're not a robot!";
+        }
         if(name==""){
             errInfo = "Please enter your username";
         }else if(pwd==""){
             errInfo = "Please enter your password";
         }
-        if(errInfo != null){
+        if(errInfo != ""){
             $("#loginErr_msg").text(errInfo);
             return;
         }
-        $("#loginErr_msg").text("");
         $.ajax({
             url:'/login',
             type:'post',
-            data:{user:name,password:pwd},
+            data:{
+                user:name,
+                password:pwd,
+                captcha:captcha
+            },
             success:function(){
                 window.location.href="/index.html";
             },
@@ -55,6 +64,7 @@ $(function(){
             <div class = "login_info">
                 <input type="password" id="pwd" name="password" class="login_input" placeholder="Password"/>
             </div>
+            <div class="g-recaptcha login_info" data-sitekey="6LdhISkTAAAAAHFS6rNSofZRr9_7bw3oTcF-VtXN"></div>
             <div id="loginErr_msg" class="errorMessage"></div>
             <div class = "login_btn">
                 <span class="submit" id="userSubmit">LOG IN</span>

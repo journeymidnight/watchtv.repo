@@ -126,12 +126,13 @@ tr.disabled {opacity: .5;}
 /*login*/
 .login_body{margin:0;font-family: serif;}
 .login_div{width: 100%;height: 100%;background: url(../images/up2.png) no-repeat center;background-size: cover;}
-.login_form{position: fixed;width: 450px;height: 250px;top: 60%;left: 30%;margin-top: -70px;margin-left: -225px;background-color: rgba(255,255,255,.5);color: #333;border-top: 3px solid #0089cc;border-bottom: 3px solid #0089cc;box-shadow: 4px 4px 10px #036fa5;}
+.login_form{position: fixed;width: 450px;top: 50%;left: 30%;margin-top: -70px;margin-left: -225px;background-color: rgba(255,255,255,.5);color: #333;border-top: 3px solid #0089cc;border-bottom: 3px solid #0089cc;box-shadow: 4px 4px 10px #036fa5;}
 .logo{height: 70px;text-align: center;line-height: 70px;font-size: 30px;font-family: cursive;}
 .login_info {margin: 10px;}
-.login_info input {width: 250px;display: block;padding: 6px 12px;margin: 0 auto;font-size: 14px;line-height: 1.42857143;color: #555;background-color: #fff;background-image: none;border: 1px solid #ccc;border-radius: 4px;-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);box-shadow: inset 0 1px 1px rgba(0,0,0,.075);outline: none;}
+.login_info input {width: 280px;display: block;padding: 6px 12px;margin: 0 auto;font-size: 14px;line-height: 1.42857143;color: #555;background-color: #fff;background-image: none;border: 1px solid #ccc;border-radius: 4px;-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);box-shadow: inset 0 1px 1px rgba(0,0,0,.075);outline: none;}
 .errorMessage {width: 100%;font-size: 14px;color: rgb(223, 40, 40);text-align: center;display: block;font-weight: 600;}
 .submit{display: block;margin: 20px auto;width: 100px;text-align: center;padding: 10px;border: 1px solid #036FA5;background-color: #0089cc;color: #fff;border-radius: 2px;transition: all .3s ease-in-out;cursor: pointer;}
 .submit:hover{background-color: #036FA5;}
+.g-recaptcha > div { margin: 0 auto; }
 /* jQuery autocomplete */
 .ui-autocomplete-loading {background:url('../images/loading.gif') no-repeat right center;-webkit-background-size: 20px 20px;background-size: 20px 20px;}
